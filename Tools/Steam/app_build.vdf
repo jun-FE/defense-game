@@ -1,0 +1,24 @@
+"AppBuild"
+{
+	"AppID" "__APP_ID__"
+	"Desc" "__DESC__"
+	"BuildOutput" "output"
+	"ContentRoot" "../../Builds/Windows"
+	"SetLive" ""
+	"Depots"
+	{
+		"__DEPOT_ID__"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+			"FileExclusion" "*.pdb"
+			"FileExclusion" "*_BurstDebugInformation_DoNotShip"
+			"FileExclusion" "*_BackUpThisFolder_ButDontShipItInPlayer"
+			"FileExclusion" "steam_appid.txt"
+		}
+	}
+}
