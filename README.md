@@ -4,29 +4,46 @@ Unity 6.3 LTS로 만드는 2D 타워 디펜스 게임입니다. Steam 출시를 
 
 ## 1. 처음 설치 (한 번만)
 
-1. 이 폴더를 원하는 위치에 둡니다. 예: `C:\Dev\defense-game`
-   - 경로에 한글이나 공백이 없는 곳을 권장합니다.
-2. `Setup\Install.bat`을 **더블클릭**합니다. 관리자 권한 요청이 뜨면 "예"를 누르세요.
-3. 스크립트가 아래 항목을 자동으로 설치합니다. 이미 설치된 항목은 건너뜁니다.
+이 폴더는 경로에 한글이나 공백이 없는 곳에 두는 걸 권장합니다. 예: `~/defense-game`, `C:\Dev\defense-game`
+
+### macOS
+
+**터미널**(Spotlight에서 `터미널` 검색)을 열고 아래 명령을 붙여넣은 뒤 엔터를 누릅니다.
+
+```bash
+bash ~/defense-game/Setup/install-mac.sh
+```
+
+- 폴더 위치가 다르면 경로를 바꿔 주세요.
+- `Setup/Install.command`를 더블클릭해도 됩니다. "확인되지 않은 개발자" 경고가 뜨면 **우클릭 → 열기**를 누르세요.
+- 중간에 Mac 로그인 비밀번호를 물어봅니다. 입력해도 화면에 안 보이는 게 정상입니다.
 
 | 항목 | 용도 |
 | --- | --- |
+| Homebrew | 맥용 프로그램 설치 도구 (없을 때만 설치) |
 | Git, Git LFS | 버전 관리, 이미지·사운드 같은 큰 파일 관리 |
 | Unity Hub | Unity 에디터와 라이선스 관리 |
-| Unity 6.3 LTS + Windows IL2CPP | 게임 엔진과 Windows 빌드 모듈 |
-| Visual Studio 2022 Community (Unity 워크로드) | C# 코드 편집과 디버깅 |
+| Unity 6.3 LTS + Windows Build Support (Mono) | 게임 엔진과, 맥에서 Windows용 게임을 빌드하는 모듈 |
+| VS Code + Unity 확장 + .NET SDK | C# 코드 편집과 디버깅 |
 | Steam 클라이언트 | Steam 연동 테스트 |
 
-Unity 에디터를 받느라 **10~30분** 걸립니다. 디스크는 약 20GB가 필요합니다.
+옵션: `SKIP_VSCODE=1 bash ~/defense-game/Setup/install-mac.sh` (Rider를 쓸 때), `SKIP_STEAM=1`.
 
-설치가 끝나면:
+### Windows
+
+`Setup\Install.bat`을 **더블클릭**합니다. 관리자 권한 요청이 뜨면 "예"를 누르세요.
+Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 2022(Unity 워크로드), Steam을 설치합니다.
+옵션: `Install.bat -SkipVisualStudio`, `-SkipSteam`.
+
+### 설치가 끝나면 (공통)
+
+이미 설치된 항목은 건너뜁니다. Unity 에디터를 받느라 **10~30분** 걸리고, 디스크는 약 20GB가 필요합니다.
 
 1. Unity Hub에 로그인하고 **Personal(무료) 라이선스**를 활성화합니다.
-2. Hub에서 **프로젝트 > 추가 > 디스크에서 프로젝트 추가**를 누르고 이 폴더를 선택합니다.
+2. Hub에서 **Projects > Add > Add project from disk**를 누르고 이 폴더를 선택합니다.
 3. 처음 열 때는 패키지와 에셋을 가져오느라 몇 분 걸립니다. 열리면 `Assets/Scenes/Main` 데모 씬이 자동으로 만들어집니다.
 4. 상단의 ▶ Play 버튼을 누릅니다.
-
-옵션: `Install.bat -SkipVisualStudio`(VS Code나 Rider를 쓸 때), `-SkipSteam`.
+5. (VS Code) Unity 메뉴 **Settings(Preferences) > External Tools > External Script Editor**에서 Visual Studio Code를 고르면, 스크립트를 더블클릭할 때 VS Code로 열립니다.
 
 ## 2. 데모 게임 조작
 
@@ -47,7 +64,7 @@ Assets/
     Steam/     SteamManager (Steam API 초기화)
     Editor/    DemoSceneBuilder(데모 씬 생성), BuildMenu(Windows 빌드)
   Art/ Prefabs/ Scenes/   ← 처음 열 때 자동 생성
-Setup/         개발 환경 설치 스크립트
+Setup/         개발 환경 설치 스크립트 (install-mac.sh, Install.bat)
 Tools/Steam/   Steam 업로드 스크립트
 ```
 
@@ -64,9 +81,17 @@ Tools/Steam/   Steam 업로드 스크립트
    - 지금은 Valve 테스트용 앱인 `480`(Spacewar)으로 설정돼 있습니다.
    - Steam을 켠 채로 Play를 누르면 Console에 `[Steam] 초기화 성공`이 뜨는지 확인하세요.
 3. Unity 메뉴 **Defense > Windows 빌드**를 실행하면 `Builds/Windows/`에 빌드가 만들어집니다.
+   - Steam 유저 대부분이 Windows이므로 Windows 빌드가 기본입니다. 맥에서도 Windows 빌드를 만들 수 있습니다(Mono 백엔드).
+   - **Defense > macOS 빌드**로 맥 버전도 만들 수 있습니다.
 4. [Steamworks SDK](https://partner.steamgames.com/downloads/list)를 받아 `Tools/Steam/sdk/`에 압축을 풉니다.
-5. PowerShell에서 업로드합니다.
+5. 업로드합니다.
+   ```bash
+   # macOS (터미널)
+   cd ~/defense-game/Tools/Steam
+   ./upload.sh 1234560 1234561 내계정 "v0.1"
+   ```
    ```powershell
+   # Windows (PowerShell)
    cd Tools\Steam
    .\upload.ps1 -AppId 1234560 -DepotId 1234561 -SteamUser 내계정 -Desc "v0.1"
    ```
