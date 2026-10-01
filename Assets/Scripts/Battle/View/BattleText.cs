@@ -34,7 +34,6 @@ public static class BattleText
         {
             case EndReason.AllWavesCleared: return "모든 웨이브를 막아냈어요.";
             case EndReason.CoreDestroyed: return "꿈의 중심이 무너졌어요. 어느 방향에서 새어 들어왔는지 떠올려 보세요.";
-            case EndReason.ErosionMaxed: return "침식이 끝까지 차올랐어요.";
             case EndReason.Retreat: return "의뢰는 진행 중으로 남아 있어요. 준비를 바꿔 다시 들어갈 수 있어요.";
             default: return "";
         }

@@ -43,7 +43,8 @@ namespace Akmong.Battle
 
     public enum BattleResult { None, Success, Failure, Retreat }
 
-    public enum EndReason { None, AllWavesCleared, CoreDestroyed, ErosionMaxed, Retreat }
+    /// <summary>전투 종료 사유. 실패는 중심 HP 0(CoreDestroyed)뿐이다. 침식도 100은 실패가 아니라 최대 강화 단계.</summary>
+    public enum EndReason { None, AllWavesCleared, CoreDestroyed, Retreat }
 
     /// <summary>건설·강화 거부 사유. 실패하면 상태는 바뀌지 않는다.</summary>
     public enum CommandError
