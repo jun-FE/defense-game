@@ -10,9 +10,6 @@ public class StageData : ScriptableObject
     [Tooltip("스테이지 시작 전에 보여줄 스토리. 없으면 바로 게임이 시작된다.")]
     public StoryData introStory;
 
-    public int startGold = 120;
-    public int startLives = 20;
-    public int totalWaves = 10;
-    [Tooltip("적 체력 배율. 1.2면 20% 더 단단하다.")]
-    public float enemyHealthMultiplier = 1f;
+    [Tooltip("이 스테이지의 전투 데이터(맵, 웨이브, 시작 재화, 지을 수 있는 타워)")]
+    public StageAsset battleStage;
 }

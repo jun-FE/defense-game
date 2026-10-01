@@ -9,7 +9,7 @@ public static class SceneFlow
 {
     public const string TitleScene = "Title";
     public const string StoryScene = "Story";
-    public const string GameScene = "Main";
+    public const string GameScene = "Battle";
 
     public static int CurrentStageIndex { get; private set; }
     public static StageData CurrentStage => StageDatabase.Instance.Get(CurrentStageIndex);

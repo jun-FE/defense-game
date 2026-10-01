@@ -1,0 +1,14 @@
+{
+    "name": "Akmong.Battle.Core",
+    "rootNamespace": "Akmong.Battle",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

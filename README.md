@@ -57,13 +57,13 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - **스토리 화면**
   - 클릭, `Space`, `Enter`: 글자가 나오는 중이면 대사를 바로 완성하고, 다 나왔으면 다음 대사로 넘어갑니다.
   - 우상단 **스킵 ▶▶** 버튼이나 `Esc`: 스토리를 건너뛰고 바로 게임을 시작합니다.
-- **게임 화면**
-  - 하단 버튼이나 `1`, `2` 키로 타워를 고르고, 길 옆의 어두운 칸을 클릭해 짓습니다.
-  - `Space`: 다음 웨이브를 바로 시작하고, 남은 시간만큼 보너스 골드를 받습니다.
-  - `x1`/`x2`: 게임 속도
-  - `Esc`: 일시정지 (계속하기 / 다시 하기 / 스테이지 선택 / 메인 메뉴)
-  - 모든 웨이브를 막으면 승리, 라이프가 0이 되면 패배입니다. 5웨이브마다 보스가 나옵니다.
-  - 승리하면 다음 스테이지로 바로 넘어갈 수 있습니다.
+- **전투 화면** (다방향 디펜스: 북쪽·동쪽에서 적이 꿈의 중심으로 온다)
+  - 하단 타워 카드나 `1` 키로 타워를 고르고, 밝은 칸을 클릭해 짓습니다. 초록 칸은 건설 가능, 빨간 칸은 불가입니다. 우클릭·`Esc`로 취소합니다.
+  - 지은 타워를 클릭하면 오른쪽에 정보와 **강화** 버튼이 나옵니다.
+  - 웨이브 사이 준비 시간에 `Space`(바로 시작)로 웨이브를 당길 수 있습니다.
+  - `x1`/`x2`/`x4` 속도, `Esc` 일시정지(계속 / 처음부터 / 중도 귀환 / 메인 메뉴).
+  - 꿈의 중심 HP가 0이 되면 실패, 모든 웨이브를 막으면 성공입니다.
+  - 개발용(에디터·개발 빌드): `F1` 재화 +100, `F2` 적 전부 처치.
 
 ## 스테이지와 스토리 고치기
 
@@ -73,9 +73,34 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - **새로 만들기**: Project 창에서 우클릭 → **Create → Defense → Story** 또는 **Stage**를 고릅니다. 만든 스테이지는 StageDatabase에 추가하세요.
 - 지금은 모든 스테이지가 같은 맵을 씁니다. 스테이지별 맵은 다음 단계에서 붙일 수 있습니다.
 
+## 전투 데이터 고치기 (기획자용)
+
+전투 수치는 코드가 아니라 `Assets/Data/Battle`의 데이터 에셋에서 고칩니다. 시스템 기획서 7장의 테이블과 같은 구조이며, ID도 같습니다.
+
+| 에셋 | 기획서 테이블 | 고치는 것 |
+| --- | --- | --- |
+| `RULE_BASE` | GameRule | 방어력 상수, 공격 간격 하한, 틱 간격, 이동 배율 하한·상한 |
+| `EN_TOY`, `EN_RUSH`, `EN_HEAVY` | Enemy | HP, 방어력, 이동 속도, 누수 피해, 처치 재화, 색·크기 |
+| `TW_LAMP` | Tower + TowerLevel | 설치 비용, 단계별 공격력·사거리·간격·치명타·강화 비용, 프리팹·아이콘 |
+| `MAP_ROOM` | Map + SpawnPoint | 중심 위치, 출현 경로, 건설 구역, 카메라 범위 |
+| `STG_Q01` | Stage + Wave + SpawnGroup | 시작 재화, 중심 HP, 지을 수 있는 타워, 웨이브별 준비 시간·생성 묶음 |
+
+- 고친 뒤 메뉴 **Defense → 전투 데이터 검사**로 중복 ID, 없는 참조, 범위를 벗어난 값을 확인하세요. 오류가 있으면 전투 화면에도 표시되고 시작되지 않습니다.
+- "데모 게임 다시 만들기"는 이미 있는 데이터 에셋을 덮어쓰지 않습니다.
+
+## 전투 코어와 검산 테스트 (개발자용)
+
+- 전투 규칙은 Unity와 분리된 순수 C#입니다(`Assets/Scripts/Battle/Core`, 네임스페이스 `Akmong.Battle`). 0.05초 고정 틱으로만 시간이 흐르고, 같은 시드면 결과가 같습니다.
+- 화면 쪽(`Assets/Scripts/Battle/View`)은 전투 사건을 받아 그리기만 하고, 바꿀 때는 `TryBuild`, `TryUpgrade` 같은 명령만 씁니다.
+- 시스템 기획서의 계산 사례(16피해, 7회 7초 처치, 잔액 76, 강화 실패 시 변화 없음 등)를 자동으로 검사합니다.
+  - Unity: 메뉴 **Defense → 전투 검산 테스트 실행** (Console에 결과)
+  - 터미널(Mono 필요): `bash Tools/CoreTests/run.sh`
+- 밸런스 모의 플레이: `bash Tools/CoreTests/balance.sh` → 성공률, 잔여 중심 HP, 소요 시간을 기획 목표와 함께 보여줍니다.
+- 첫 의뢰 웨이브는 기획서 샘플보다 적을 줄인 1차 밸런스입니다(기획서 샘플은 시작 재화 120으로 막기 어려운 스트레스 테스트). 기획서 샘플 그대로의 웨이브는 테스트 전용(`SampleContent.SpecSampleStage`)으로 남겨 두었습니다.
+
 ## 타워 아트
 
-- **기본 타워 = 드림캐처**: `Assets/Art/Towers/Dreamcatcher/`
+- **스탠드(TW_LAMP) = 드림캐처**: `Assets/Art/Towers/Dreamcatcher/`
   - `dreamcatcher_build_0~1`: 설치 연출 (마법진에서 나타남, 1회)
   - `dreamcatcher_idle_0~6`: 대기 (흔들림, 반복)
   - `dreamcatcher_attack_0~6`: 공격 (충전 → 깃털 폭발, 발사할 때마다 1회)
@@ -85,30 +110,31 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - 원본 시트: `ArtSource/Towers/dreamcatcher_sheet.jpg`. 다시 자르려면 프로젝트 폴더에서
   `python3 Tools/Art/slice_dreamcatcher.py`를 실행합니다(검은 배경을 투명하게 바꾸고 고리 중심을 기준으로 정렬).
 - `Assets/Art/Towers/` 아래 PNG는 자동으로 스프라이트로 가져옵니다(타워 150 PPU, 투사체 220 PPU).
-- 애니메이션 속도는 `BasicTower` 프리팹의 `Visual` 오브젝트 → `TowerVisual`에서 조정합니다.
+- 애니메이션 속도는 `Assets/Prefabs/Towers/TW_LAMP` 프리팹의 `Visual` 오브젝트 → `TowerVisual`에서 조정합니다.
 
 ## 3. 프로젝트 구조
 
 ```
 Assets/
   Scripts/
-    Core/      GameManager(골드·라이프·승패·일시정지), SceneFlow(화면 전환), Progress(클리어 기록),
-               GameSettings(설정 저장), PathRoute(적 이동 경로)
-    Data/      StageData, StoryData, StageDatabase (ScriptableObject)
+    Battle/
+      Core/    전투 규칙(순수 C#): BattleSession, BattleMath, DefinitionValidator, SampleContent, BattleSelfTest
+      Data/    전투 데이터 에셋(Enemy, Tower, Map, Stage, GameRule)과 변환기
+      View/    BattleController(고정 틱), MapView, BattleView, BattleHUD 등 화면
+    Core/      SceneFlow(화면 전환), Progress(클리어 기록), GameSettings(설정 저장)
+    Data/      StageData(스테이지 목록 항목), StoryData, StageDatabase
     Story/     StoryPlayer (대사 출력, 클릭으로 넘기기, 스킵)
-    Enemies/   Enemy, WaveSpawner(웨이브 생성·난이도)
-    Towers/    Tower, Projectile, BuildSlot, BuildManager
-    UI/        TitleMenu(메인 메뉴), HUD(게임 화면), UIKit(공통 스타일)
+    Towers/    TowerVisual(타워 스프라이트 애니메이션)
+    UI/        TitleMenu(메인 메뉴), UIKit(공통 스타일)
     Steam/     SteamManager (Steam API 초기화)
-    Editor/    DemoSceneBuilder(데모 게임 생성), BuildMenu(Windows/macOS 빌드)
+    Editor/    DemoSceneBuilder(데모 게임 생성), BattleToolsMenu(검산·데이터 검사), BuildMenu(빌드)
   Art/ Prefabs/ Scenes/ Data/ Resources/   ← 처음 열 때 자동 생성
 Setup/         개발 환경 설치 스크립트 (install-mac.sh, Install.bat)
 Tools/Steam/   Steam 업로드 스크립트
+Tools/CoreTests/ 전투 검산 테스트·밸런스 모의 플레이 (Unity 없이 실행)
 ```
 
-- 밸런스는 Inspector에서 조정합니다.
-  - 타워: `Assets/Prefabs/BasicTower`, `CannonTower`의 사거리, 공격 속도, 피해량, 비용
-  - 웨이브: 씬의 `Game` 오브젝트에 있는 `WaveSpawner`
+- 밸런스는 `Assets/Data/Battle`의 데이터 에셋에서 조정합니다(아래 "전투 데이터 고치기").
 - 아트 교체: `Assets/Art`의 흰색 도형을 실제 스프라이트로 바꾸거나, 프리팹의 SpriteRenderer에 새 스프라이트를 넣으면 됩니다.
 - 씬과 프리팹을 처음 상태로 되돌리려면 메뉴 **Defense > 데모 게임 다시 만들기**를 실행합니다. 씬 3개와 프리팹은 덮어쓰지만, 스테이지·스토리 데이터(`Assets/Data`, `Assets/Resources`)는 건드리지 않습니다.
 

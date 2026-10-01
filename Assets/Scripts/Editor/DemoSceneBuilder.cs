@@ -1,40 +1,43 @@
+using System.Collections.Generic;
 using System.IO;
+using Akmong.Battle;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
 /// <summary>
 /// 데모 게임 전체를 코드로 만든다.
-/// - 씬: Title(메인 메뉴), Story(스토리), Main(게임)
-/// - 임시 스프라이트, 타워/적 프리팹
-/// - 스테이지/스토리 데이터 (이미 있으면 덮어쓰지 않는다 → 직접 고친 대사는 안전)
+/// - 씬: Title(메인 메뉴), Story(스토리), Battle(전투)
+/// - 임시 스프라이트, 타워 프리팹
+/// - 전투 데이터(Assets/Data/Battle): 시스템 기획서 샘플(SampleContent)에서 처음 한 번만 만든다
+/// - 스테이지/스토리 데이터
+/// 데이터 에셋은 이미 있으면 덮어쓰지 않는다 → 기획자가 고친 수치와 대사는 안전하다.
 /// 메뉴: Defense > 데모 게임 다시 만들기
-/// 프로젝트를 열었을 때 Title 씬이 없으면 자동으로 한 번 실행된다.
 /// </summary>
 public static class DemoSceneBuilder
 {
     public const string TitleScenePath = "Assets/Scenes/Title.unity";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
-    public const string GameScenePath = "Assets/Scenes/Main.unity";
+    public const string BattleScenePath = "Assets/Scenes/Battle.unity";
 
     const string ArtDir = "Assets/Art";
     const string PrefabDir = "Assets/Prefabs";
     const string SceneDir = "Assets/Scenes";
     const string DataDir = "Assets/Data";
+    const string BattleDataDir = "Assets/Data/Battle";
     public const string DreamcatcherDir = "Assets/Art/Towers/Dreamcatcher";
     const string ResourcesDir = "Assets/Resources";
 
-    static readonly Vector2[] PathPoints =
+    // 이전 버전(단일 경로 디펜스)이 만든 파일. 업데이트할 때 지운다.
+    static readonly string[] ObsoleteAssets =
     {
-        new Vector2(-11f, 3f), new Vector2(-5f, 3f), new Vector2(-5f, -3f), new Vector2(1f, -3f),
-        new Vector2(1f, 3f), new Vector2(6f, 3f), new Vector2(6f, -1f), new Vector2(11f, -1f),
-    };
-
-    static readonly Vector2[] SlotPoints =
-    {
-        new Vector2(-8f, 1.5f), new Vector2(-8f, 4.5f), new Vector2(-6.5f, -1f), new Vector2(-3.5f, 0f),
-        new Vector2(-2f, -1.5f), new Vector2(-2f, -4.5f), new Vector2(-0.5f, 1.5f), new Vector2(2.5f, 1.5f),
-        new Vector2(3.5f, 4.5f), new Vector2(4.5f, 0f), new Vector2(7.5f, 1.5f), new Vector2(9f, -2.5f),
+        "Assets/Scenes/Main.unity",
+        "Assets/Prefabs/BasicTower.prefab",
+        "Assets/Prefabs/CannonTower.prefab",
+        "Assets/Prefabs/Enemy.prefab",
+        "Assets/Prefabs/Bullet.prefab",
+        "Assets/Prefabs/CannonShell.prefab",
+        "Assets/Prefabs/Feather.prefab",
     };
 
     [MenuItem("Defense/데모 게임 다시 만들기")]
@@ -50,27 +53,20 @@ public static class DemoSceneBuilder
         EnsureFolder(PrefabDir);
         EnsureFolder(SceneDir);
         EnsureFolder(DataDir);
+        EnsureFolder(BattleDataDir);
         EnsureFolder(ResourcesDir);
 
-        StageDatabase database = CreateStageData();
+        foreach (string path in ObsoleteAssets)
+            if (File.Exists(path)) AssetDatabase.DeleteAsset(path);
 
         Sprite square = CreateSpriteAsset($"{ArtDir}/Square.png", 32, false);
         Sprite circle = CreateSpriteAsset($"{ArtDir}/Circle.png", 64, true);
 
-        Projectile bullet = CreateProjectilePrefab("Bullet", circle, new Color(1f, 0.95f, 0.4f), 0.18f);
-        Projectile shell = CreateProjectilePrefab("CannonShell", circle, new Color(1f, 0.55f, 0.2f), 0.3f);
-        // 드림캐처 그림이 있으면 기본 타워에 쓰고, 없으면 도형으로 만든다.
-        Tower basic = CreateDreamcatcherTowerPrefab();
-        if (basic == null)
-        {
-            basic = CreateTowerPrefab("BasicTower", square, circle, bullet, new Color(0.35f, 0.55f, 0.9f),
-                "기본 타워", 50, range: 2.6f, fireRate: 2f, damage: 1f, splash: 0f, speed: 10f);
-        }
-        Tower cannon = CreateTowerPrefab("CannonTower", square, circle, shell, new Color(0.85f, 0.45f, 0.25f),
-            "대포 타워", 90, range: 2.2f, fireRate: 0.6f, damage: 3f, splash: 1.2f, speed: 6f);
-        Enemy enemy = CreateEnemyPrefab(square, circle);
+        GameRulesAsset rules;
+        StageAsset battleStage = CreateBattleData(circle, out rules);
+        StageDatabase database = CreateStageData(battleStage);
 
-        BuildGameScene(square, basic, cannon, enemy);
+        BuildBattleScene(battleStage, rules, square, circle);
         BuildTitleScene(square, circle);
         BuildStoryScene(database);
 
@@ -78,40 +74,183 @@ public static class DemoSceneBuilder
         {
             new EditorBuildSettingsScene(TitleScenePath, true),
             new EditorBuildSettingsScene(StoryScenePath, true),
-            new EditorBuildSettingsScene(GameScenePath, true),
+            new EditorBuildSettingsScene(BattleScenePath, true),
         };
         AssetDatabase.SaveAssets();
         EditorSceneManager.OpenScene(TitleScenePath);
         Debug.Log("[Defense] 데모 게임을 만들었습니다. Title 씬에서 Play 버튼을 눌러 보세요.");
     }
 
-    static void BuildGameScene(Sprite square, Tower basic, Tower cannon, Enemy enemy)
+    static void BuildBattleScene(StageAsset stage, GameRulesAsset rules, Sprite square, Sprite circle)
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-        Camera cam = CreateCamera(new Color(0.18f, 0.32f, 0.2f));
+        Camera cam = CreateCamera(new Color(0.07f, 0.07f, 0.13f));
 
-        PathRoute path = CreatePath(square);
+        var battle = new GameObject("Battle");
+        var controller = battle.AddComponent<BattleController>();
+        controller.defaultStage = stage;
+        controller.rules = rules;
 
-        var slots = new GameObject("BuildSlots").transform;
-        foreach (Vector2 p in SlotPoints)
+        var map = new GameObject("Map").AddComponent<MapView>();
+        map.controller = controller;
+        map.square = square;
+        map.circle = circle;
+
+        var view = new GameObject("BattleView").AddComponent<BattleView>();
+        view.controller = controller;
+        view.mapView = map;
+        view.square = square;
+        view.circle = circle;
+
+        var hud = new GameObject("BattleHUD").AddComponent<BattleHUD>();
+        hud.controller = controller;
+        hud.view = view;
+        hud.worldCamera = cam;
+        hud.square = square;
+        hud.circle = circle;
+
+        EditorSceneManager.SaveScene(scene, BattleScenePath);
+    }
+
+    // ───────── 전투 데이터 (기획서 샘플 → 에셋, 처음 한 번) ─────────
+
+    static StageAsset CreateBattleData(Sprite circle, out GameRulesAsset rules)
+    {
+        rules = LoadOrCreate<GameRulesAsset>("RULE_BASE", r =>
         {
-            GameObject slot = CreateSprite("Slot", square, new Color(0.3f, 0.45f, 0.3f), slots, p, Vector2.one * 0.9f, -5);
-            slot.AddComponent<BuildSlot>();
+            var source = new GameRules();
+            r.armorConstant = source.ArmorConstant;
+            r.minAttackSec = source.MinAttackSec;
+            r.fixedDt = source.FixedDt;
+            r.minMoveRatio = source.MinMoveRatio;
+            r.maxMoveRatio = source.MaxMoveRatio;
+        });
+
+        StageDef sample = SampleContent.StageQ01();
+        var enemyColors = new Dictionary<string, Color>
+        {
+            { "EN_TOY", new Color(0.85f, 0.3f, 0.35f) },
+            { "EN_RUSH", new Color(0.62f, 0.42f, 0.95f) },
+            { "EN_HEAVY", new Color(0.62f, 0.45f, 0.3f) },
+        };
+        var enemyScales = new Dictionary<string, float> { { "EN_TOY", 0.6f }, { "EN_RUSH", 0.45f }, { "EN_HEAVY", 0.9f } };
+
+        var enemies = new Dictionary<EnemyDef, EnemyAsset>();
+        foreach (WaveDef wave in sample.Waves)
+        foreach (SpawnGroupDef group in wave.Groups)
+        {
+            EnemyDef def = group.Enemy;
+            if (enemies.ContainsKey(def)) continue;
+            enemies[def] = LoadOrCreate<EnemyAsset>(def.Id, e =>
+            {
+                e.displayName = def.Name;
+                e.maxHp = def.MaxHp;
+                e.armor = def.Armor;
+                e.moveSpeed = def.MoveSpeed;
+                e.coreDamage = def.CoreDamage;
+                e.killCoin = def.KillCoin;
+                e.sprite = circle;
+                e.tint = enemyColors.ContainsKey(def.Id) ? enemyColors[def.Id] : Color.white;
+                e.scale = enemyScales.ContainsKey(def.Id) ? enemyScales[def.Id] : 0.6f;
+            });
         }
 
-        var game = new GameObject("Game");
-        game.AddComponent<GameManager>();
-        var spawner = game.AddComponent<WaveSpawner>();
-        spawner.enemyPrefab = enemy;
-        spawner.path = path;
-        var build = game.AddComponent<BuildManager>();
-        build.towerPrefabs = new[] { basic, cannon };
-        var hud = game.AddComponent<HUD>();
-        hud.worldCamera = cam;
-        hud.buildManager = build;
-        hud.spawner = spawner;
+        var towers = new List<TowerAsset>();
+        foreach (TowerDef def in sample.Towers)
+        {
+            towers.Add(LoadOrCreate<TowerAsset>(def.Id, t =>
+            {
+                t.displayName = def.Name;
+                t.buildCost = def.BuildCost;
+                t.levels = def.Levels.ConvertAll(l => new TowerLevelData
+                {
+                    id = l.Id, damage = l.Damage, range = l.Range, attackSec = l.AttackSec,
+                    critChance = l.CritChance, critMult = l.CritMult, upgradeCost = l.UpgradeCost,
+                }).ToArray();
+            }));
+        }
+        // 스탠드(TW_LAMP)는 드림캐처 아트를 쓴다. 프리팹·아이콘이 비어 있으면 채운다.
+        foreach (TowerAsset tower in towers)
+        {
+            if (tower.id != "TW_LAMP") continue;
+            if (tower.prefab == null) tower.prefab = CreateDreamcatcherPrefab(tower.id);
+            if (tower.icon == null) tower.icon = LoadTowerSprite("icon_tower.png");
+            if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_tower_disabled.png");
+            if (tower.projectile == null) tower.projectile = LoadTowerSprite("feather_projectile.png");
+            EditorUtility.SetDirty(tower);
+        }
 
-        EditorSceneManager.SaveScene(scene, GameScenePath);
+        MapDef mapDef = sample.Map;
+        MapAsset map = LoadOrCreate<MapAsset>(mapDef.Id, m =>
+        {
+            m.corePos = BattleContentBuilder.ToUnity(mapDef.CorePos);
+            m.spawnPoints = mapDef.SpawnPoints.ConvertAll(sp => new SpawnPointData
+            {
+                id = sp.Id,
+                path = sp.Path.ConvertAll(BattleContentBuilder.ToUnity).ToArray(),
+            }).ToArray();
+            m.buildZones = mapDef.BuildZones.ConvertAll(z => Rect.MinMaxRect(z.XMin, z.YMin, z.XMax, z.YMax)).ToArray();
+            m.cameraBounds = new Rect(mapDef.CameraX, mapDef.CameraY, mapDef.CameraWidth, mapDef.CameraHeight);
+        });
+
+        return LoadOrCreate<StageAsset>(sample.Id, st =>
+        {
+            st.displayName = sample.Name;
+            st.map = map;
+            st.startCoin = sample.StartCoin;
+            st.coreMaxHp = sample.CoreMaxHp;
+            st.towers = towers.ToArray();
+            st.waves = sample.Waves.ConvertAll(w => new WaveData
+            {
+                id = w.Id,
+                prepareSec = w.PrepareSec,
+                clearCoin = w.ClearCoin,
+                groups = w.Groups.ConvertAll(g => new SpawnGroupData
+                {
+                    id = g.Id, spawnId = g.SpawnId, enemy = enemies[g.Enemy],
+                    count = g.Count, startSec = g.StartSec, intervalSec = g.IntervalSec,
+                }).ToArray(),
+            }).ToArray();
+        });
+    }
+
+    /// <summary>Assets/Data/Battle/{id}.asset 이 있으면 그대로 쓰고, 없으면 만들어서 fill로 채운다.</summary>
+    static T LoadOrCreate<T>(string id, System.Action<T> fill) where T : DefinitionAsset
+    {
+        string path = $"{BattleDataDir}/{id}.asset";
+        var existing = AssetDatabase.LoadAssetAtPath<T>(path);
+        if (existing != null) return existing;
+        var asset = ScriptableObject.CreateInstance<T>();
+        asset.id = id;
+        fill(asset);
+        AssetDatabase.CreateAsset(asset, path);
+        return asset;
+    }
+
+    static GameObject CreateDreamcatcherPrefab(string id)
+    {
+        Sprite[] idle = LoadTowerFrames("dreamcatcher_idle", 7);
+        Sprite[] attack = LoadTowerFrames("dreamcatcher_attack", 7);
+        Sprite[] build = LoadTowerFrames("dreamcatcher_build", 2);
+        if (idle == null || attack == null) return null;
+
+        EnsureFolder($"{PrefabDir}/Towers");
+        var root = new GameObject(id);
+        // 고리 중심이 타일보다 살짝 위에 오도록 올린다(깃털이 타일 위로 늘어진다).
+        var ringCenter = new Vector2(0f, 0.45f);
+        GameObject visualGo = CreateSprite("Visual", idle[0], Color.white, root.transform, ringCenter, Vector2.one, 1);
+        var visual = visualGo.AddComponent<TowerVisual>();
+        visual.buildFrames = build ?? new Sprite[0];
+        visual.idleFrames = idle;
+        visual.attackFrames = attack;
+
+        var firePoint = new GameObject("FirePoint").transform;
+        firePoint.SetParent(root.transform, false);
+        firePoint.localPosition = ringCenter;
+
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
+        Object.DestroyImmediate(root);
+        return prefab;
     }
 
     static void BuildTitleScene(Sprite square, Sprite circle)
@@ -158,12 +297,23 @@ public static class DemoSceneBuilder
         return cam;
     }
 
-    /// <summary>임시 스테이지 3개와 스토리 2개. 이미 있으면 그대로 둔다.</summary>
-    static StageDatabase CreateStageData()
+    // ───────── 스테이지·스토리 데이터 ─────────
+
+    /// <summary>임시 스테이지 3개와 스토리 2개. 이미 있으면 그대로 두고, 전투 데이터가 비어 있는 스테이지만 채운다.</summary>
+    static StageDatabase CreateStageData(StageAsset battle)
     {
         string databasePath = $"{ResourcesDir}/{StageDatabase.ResourcePath}.asset";
         var existing = AssetDatabase.LoadAssetAtPath<StageDatabase>(databasePath);
-        if (existing != null) return existing;
+        if (existing != null)
+        {
+            foreach (StageData stage in existing.stages)
+            {
+                if (stage == null || stage.battleStage != null) continue;
+                stage.battleStage = battle;
+                EditorUtility.SetDirty(stage);
+            }
+            return existing;
+        }
 
         StoryData intro = CreateStory("Story_1-1_Intro", new Color(0.08f, 0.09f, 0.16f), new[]
         {
@@ -185,9 +335,9 @@ public static class DemoSceneBuilder
         var database = ScriptableObject.CreateInstance<StageDatabase>();
         database.stages = new[]
         {
-            CreateStage("Stage_1-1", "1-1", "초원의 입구", intro, gold: 150, lives: 20, waves: 5, health: 0.8f),
-            CreateStage("Stage_1-2", "1-2", "어두운 숲길", null, gold: 130, lives: 20, waves: 8, health: 1f),
-            CreateStage("Stage_1-3", "1-3", "성문 앞 결전", gate, gold: 120, lives: 15, waves: 10, health: 1.2f),
+            CreateStage("Stage_1-1", "1-1", "초원의 입구", intro, battle),
+            CreateStage("Stage_1-2", "1-2", "어두운 숲길", null, battle),
+            CreateStage("Stage_1-3", "1-3", "성문 앞 결전", gate, battle),
         };
         AssetDatabase.CreateAsset(database, databasePath);
         return database;
@@ -202,117 +352,18 @@ public static class DemoSceneBuilder
         return story;
     }
 
-    static StageData CreateStage(string fileName, string id, string title, StoryData story, int gold, int lives, int waves, float health)
+    static StageData CreateStage(string fileName, string id, string title, StoryData story, StageAsset battle)
     {
         var stage = ScriptableObject.CreateInstance<StageData>();
         stage.stageId = id;
         stage.title = title;
         stage.introStory = story;
-        stage.startGold = gold;
-        stage.startLives = lives;
-        stage.totalWaves = waves;
-        stage.enemyHealthMultiplier = health;
+        stage.battleStage = battle;
         AssetDatabase.CreateAsset(stage, $"{DataDir}/{fileName}.asset");
         return stage;
     }
 
-    static PathRoute CreatePath(Sprite square)
-    {
-        var root = new GameObject("Path");
-        var route = root.AddComponent<PathRoute>();
-        route.waypoints = new Transform[PathPoints.Length];
-        for (int i = 0; i < PathPoints.Length; i++)
-        {
-            var point = new GameObject($"Waypoint{i}").transform;
-            point.SetParent(root.transform);
-            point.position = PathPoints[i];
-            route.waypoints[i] = point;
-        }
-
-        var road = new GameObject("Road").transform;
-        road.SetParent(root.transform);
-        var roadColor = new Color(0.72f, 0.62f, 0.42f);
-        for (int i = 0; i < PathPoints.Length - 1; i++)
-        {
-            Vector2 a = PathPoints[i];
-            Vector2 b = PathPoints[i + 1];
-            Vector2 size = new Vector2(Mathf.Abs(b.x - a.x) + 1f, Mathf.Abs(b.y - a.y) + 1f);
-            CreateSprite("Segment", square, roadColor, road, (a + b) * 0.5f, size, -10);
-        }
-        return route;
-    }
-
-    static Projectile CreateProjectilePrefab(string name, Sprite circle, Color color, float size)
-    {
-        var go = CreateSprite(name, circle, color, null, Vector2.zero, Vector2.one * size, 5);
-        go.AddComponent<Projectile>();
-        return SavePrefab(go).GetComponent<Projectile>();
-    }
-
-    static Tower CreateTowerPrefab(string name, Sprite square, Sprite circle, Projectile projectile, Color color,
-        string displayName, int cost, float range, float fireRate, float damage, float splash, float speed)
-    {
-        var root = new GameObject(name);
-        CreateSprite("Base", square, color * 0.7f + new Color(0, 0, 0, 0.3f), root.transform, Vector2.zero, Vector2.one * 0.8f, 0);
-
-        var head = new GameObject("Head").transform;
-        head.SetParent(root.transform, false);
-        CreateSprite("Turret", circle, color, head, Vector2.zero, Vector2.one * 0.55f, 1);
-        CreateSprite("Barrel", square, color * 0.6f + new Color(0, 0, 0, 0.4f), head, new Vector2(0f, 0.35f), new Vector2(0.18f, 0.45f), 1);
-
-        var tower = root.AddComponent<Tower>();
-        tower.displayName = displayName;
-        tower.cost = cost;
-        tower.range = range;
-        tower.fireRate = fireRate;
-        tower.damage = damage;
-        tower.splashRadius = splash;
-        tower.projectileSpeed = speed;
-        tower.head = head;
-        tower.projectilePrefab = projectile;
-        return SavePrefab(root).GetComponent<Tower>();
-    }
-
-    static Tower CreateDreamcatcherTowerPrefab()
-    {
-        Sprite[] idle = LoadTowerFrames("dreamcatcher_idle", 7);
-        Sprite[] attack = LoadTowerFrames("dreamcatcher_attack", 7);
-        Sprite[] build = LoadTowerFrames("dreamcatcher_build", 2);
-        Sprite feather = LoadTowerSprite("feather_projectile.png");
-        if (idle == null || attack == null || feather == null) return null;
-
-        var featherGo = CreateSprite("Feather", feather, Color.white, null, Vector2.zero, Vector2.one, 5);
-        featherGo.AddComponent<Projectile>();
-        Projectile projectile = SavePrefab(featherGo).GetComponent<Projectile>();
-
-        var root = new GameObject("BasicTower");
-        // 고리 중심이 건설 칸보다 살짝 위에 오도록 올린다(깃털이 칸 위로 늘어진다).
-        var ringCenter = new Vector2(0f, 0.45f);
-        GameObject visualGo = CreateSprite("Visual", idle[0], Color.white, root.transform, ringCenter, Vector2.one, 1);
-        var visual = visualGo.AddComponent<TowerVisual>();
-        visual.buildFrames = build ?? new Sprite[0];
-        visual.idleFrames = idle;
-        visual.attackFrames = attack;
-
-        var firePoint = new GameObject("FirePoint").transform;
-        firePoint.SetParent(root.transform, false);
-        firePoint.localPosition = ringCenter;
-
-        var tower = root.AddComponent<Tower>();
-        tower.displayName = "기본 타워";
-        tower.cost = 50;
-        tower.range = 2.6f;
-        tower.fireRate = 2f;
-        tower.damage = 1f;
-        tower.splashRadius = 0f;
-        tower.projectileSpeed = 9f;
-        tower.firePoint = firePoint;
-        tower.visual = visual;
-        tower.projectilePrefab = projectile;
-        tower.icon = LoadTowerSprite("icon_tower.png");
-        tower.iconDisabled = LoadTowerSprite("icon_tower_disabled.png");
-        return SavePrefab(root).GetComponent<Tower>();
-    }
+    // ───────── 공통 ─────────
 
     static Sprite[] LoadTowerFrames(string prefix, int count)
     {
@@ -334,18 +385,6 @@ public static class DemoSceneBuilder
         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 
-    static Enemy CreateEnemyPrefab(Sprite square, Sprite circle)
-    {
-        var root = new GameObject("Enemy");
-        CreateSprite("Body", circle, new Color(0.85f, 0.25f, 0.3f), root.transform, Vector2.zero, Vector2.one * 0.6f, 2);
-        CreateSprite("HealthBack", square, new Color(0.1f, 0.1f, 0.1f), root.transform, new Vector2(0f, 0.5f), new Vector2(0.7f, 0.1f), 3);
-        var fill = CreateSprite("HealthFill", square, new Color(0.3f, 0.9f, 0.3f), root.transform, new Vector2(0f, 0.5f), new Vector2(0.7f, 0.1f), 4);
-
-        var enemy = root.AddComponent<Enemy>();
-        enemy.healthFill = fill.transform;
-        return SavePrefab(root).GetComponent<Enemy>();
-    }
-
     static GameObject CreateSprite(string name, Sprite sprite, Color color, Transform parent, Vector2 position, Vector2 scale, int order)
     {
         var go = new GameObject(name);
@@ -357,13 +396,6 @@ public static class DemoSceneBuilder
         renderer.color = color;
         renderer.sortingOrder = order;
         return go;
-    }
-
-    static GameObject SavePrefab(GameObject go)
-    {
-        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(go, $"{PrefabDir}/{go.name}.prefab");
-        Object.DestroyImmediate(go);
-        return prefab;
     }
 
     /// <summary>흰색 사각형/원 PNG를 만들어 스프라이트로 임포트한다. 나중에 실제 아트로 교체하면 된다.</summary>
@@ -409,13 +441,13 @@ public static class DemoSceneBuilder
 }
 
 /// <summary>
-/// 프로젝트를 열었을 때 데모 게임이 없거나 오래된 버전이면(Title 씬 없음, 기본 타워에 드림캐처 그림 미적용)
-/// 데모 게임을 다시 만들고 Title 씬을 연다.
+/// 프로젝트를 열었을 때 Title 또는 Battle 씬이 없으면(처음 열었거나 이전 버전에서 업데이트한 경우)
+/// 데모 게임을 만들고 Title 씬을 연다.
 /// </summary>
 [InitializeOnLoad]
 static class DemoSceneAutoSetup
 {
-    const string SessionKey = "DefenseGame.AutoSetupChecked.v3";
+    const string SessionKey = "DefenseGame.AutoSetupChecked.v4";
 
     static DemoSceneAutoSetup()
     {
@@ -432,9 +464,6 @@ static class DemoSceneAutoSetup
 
     static bool NeedsBuild()
     {
-        if (!File.Exists(DemoSceneBuilder.TitleScenePath)) return true;
-        bool hasArt = File.Exists($"{DemoSceneBuilder.DreamcatcherDir}/dreamcatcher_idle_0.png");
-        var basic = AssetDatabase.LoadAssetAtPath<Tower>("Assets/Prefabs/BasicTower.prefab");
-        return hasArt && basic != null && basic.visual == null;
+        return !File.Exists(DemoSceneBuilder.TitleScenePath) || !File.Exists(DemoSceneBuilder.BattleScenePath);
     }
 }
