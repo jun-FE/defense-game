@@ -21,6 +21,7 @@ public static class DemoSceneBuilder
     const string PrefabDir = "Assets/Prefabs";
     const string SceneDir = "Assets/Scenes";
     const string DataDir = "Assets/Data";
+    public const string DreamcatcherDir = "Assets/Art/Towers/Dreamcatcher";
     const string ResourcesDir = "Assets/Resources";
 
     static readonly Vector2[] PathPoints =
@@ -58,8 +59,13 @@ public static class DemoSceneBuilder
 
         Projectile bullet = CreateProjectilePrefab("Bullet", circle, new Color(1f, 0.95f, 0.4f), 0.18f);
         Projectile shell = CreateProjectilePrefab("CannonShell", circle, new Color(1f, 0.55f, 0.2f), 0.3f);
-        Tower basic = CreateTowerPrefab("BasicTower", square, circle, bullet, new Color(0.35f, 0.55f, 0.9f),
-            "기본 타워", 50, range: 2.6f, fireRate: 2f, damage: 1f, splash: 0f, speed: 10f);
+        // 드림캐처 그림이 있으면 기본 타워에 쓰고, 없으면 도형으로 만든다.
+        Tower basic = CreateDreamcatcherTowerPrefab();
+        if (basic == null)
+        {
+            basic = CreateTowerPrefab("BasicTower", square, circle, bullet, new Color(0.35f, 0.55f, 0.9f),
+                "기본 타워", 50, range: 2.6f, fireRate: 2f, damage: 1f, splash: 0f, speed: 10f);
+        }
         Tower cannon = CreateTowerPrefab("CannonTower", square, circle, shell, new Color(0.85f, 0.45f, 0.25f),
             "대포 타워", 90, range: 2.2f, fireRate: 0.6f, damage: 3f, splash: 1.2f, speed: 6f);
         Enemy enemy = CreateEnemyPrefab(square, circle);
@@ -267,6 +273,67 @@ public static class DemoSceneBuilder
         return SavePrefab(root).GetComponent<Tower>();
     }
 
+    static Tower CreateDreamcatcherTowerPrefab()
+    {
+        Sprite[] idle = LoadTowerFrames("dreamcatcher_idle", 7);
+        Sprite[] attack = LoadTowerFrames("dreamcatcher_attack", 7);
+        Sprite[] build = LoadTowerFrames("dreamcatcher_build", 2);
+        Sprite feather = LoadTowerSprite("feather_projectile.png");
+        if (idle == null || attack == null || feather == null) return null;
+
+        var featherGo = CreateSprite("Feather", feather, Color.white, null, Vector2.zero, Vector2.one, 5);
+        featherGo.AddComponent<Projectile>();
+        Projectile projectile = SavePrefab(featherGo).GetComponent<Projectile>();
+
+        var root = new GameObject("BasicTower");
+        // 고리 중심이 건설 칸보다 살짝 위에 오도록 올린다(깃털이 칸 위로 늘어진다).
+        var ringCenter = new Vector2(0f, 0.45f);
+        GameObject visualGo = CreateSprite("Visual", idle[0], Color.white, root.transform, ringCenter, Vector2.one, 1);
+        var visual = visualGo.AddComponent<TowerVisual>();
+        visual.buildFrames = build ?? new Sprite[0];
+        visual.idleFrames = idle;
+        visual.attackFrames = attack;
+
+        var firePoint = new GameObject("FirePoint").transform;
+        firePoint.SetParent(root.transform, false);
+        firePoint.localPosition = ringCenter;
+
+        var tower = root.AddComponent<Tower>();
+        tower.displayName = "기본 타워";
+        tower.cost = 50;
+        tower.range = 2.6f;
+        tower.fireRate = 2f;
+        tower.damage = 1f;
+        tower.splashRadius = 0f;
+        tower.projectileSpeed = 9f;
+        tower.firePoint = firePoint;
+        tower.visual = visual;
+        tower.projectilePrefab = projectile;
+        tower.icon = LoadTowerSprite("icon_tower.png");
+        tower.iconDisabled = LoadTowerSprite("icon_tower_disabled.png");
+        return SavePrefab(root).GetComponent<Tower>();
+    }
+
+    static Sprite[] LoadTowerFrames(string prefix, int count)
+    {
+        var frames = new Sprite[count];
+        for (int i = 0; i < count; i++)
+        {
+            frames[i] = LoadTowerSprite($"{prefix}_{i}.png");
+            if (frames[i] == null) return null;
+        }
+        return frames;
+    }
+
+    static Sprite LoadTowerSprite(string fileName)
+    {
+        string path = $"{DreamcatcherDir}/{fileName}";
+        var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer == null) return null;
+        if (TowerArtImporter.Apply(importer, path)) importer.SaveAndReimport();
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
     static Enemy CreateEnemyPrefab(Sprite square, Sprite circle)
     {
         var root = new GameObject("Enemy");
@@ -341,11 +408,14 @@ public static class DemoSceneBuilder
     }
 }
 
-/// <summary>프로젝트를 열었을 때 Title 씬이 없으면 데모 게임을 만들고 Title 씬을 연다.</summary>
+/// <summary>
+/// 프로젝트를 열었을 때 데모 게임이 없거나 오래된 버전이면(Title 씬 없음, 기본 타워에 드림캐처 그림 미적용)
+/// 데모 게임을 다시 만들고 Title 씬을 연다.
+/// </summary>
 [InitializeOnLoad]
 static class DemoSceneAutoSetup
 {
-    const string SessionKey = "DefenseGame.AutoSetupChecked.v2";
+    const string SessionKey = "DefenseGame.AutoSetupChecked.v3";
 
     static DemoSceneAutoSetup()
     {
@@ -354,9 +424,17 @@ static class DemoSceneAutoSetup
 
         EditorApplication.delayCall += () =>
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode || File.Exists(DemoSceneBuilder.TitleScenePath)) return;
+            if (EditorApplication.isPlayingOrWillChangePlaymode || !NeedsBuild()) return;
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             DemoSceneBuilder.Build();
         };
+    }
+
+    static bool NeedsBuild()
+    {
+        if (!File.Exists(DemoSceneBuilder.TitleScenePath)) return true;
+        bool hasArt = File.Exists($"{DemoSceneBuilder.DreamcatcherDir}/dreamcatcher_idle_0.png");
+        var basic = AssetDatabase.LoadAssetAtPath<Tower>("Assets/Prefabs/BasicTower.prefab");
+        return hasArt && basic != null && basic.visual == null;
     }
 }

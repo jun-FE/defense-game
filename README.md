@@ -73,6 +73,20 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - **새로 만들기**: Project 창에서 우클릭 → **Create → Defense → Story** 또는 **Stage**를 고릅니다. 만든 스테이지는 StageDatabase에 추가하세요.
 - 지금은 모든 스테이지가 같은 맵을 씁니다. 스테이지별 맵은 다음 단계에서 붙일 수 있습니다.
 
+## 타워 아트
+
+- **기본 타워 = 드림캐처**: `Assets/Art/Towers/Dreamcatcher/`
+  - `dreamcatcher_build_0~1`: 설치 연출 (마법진에서 나타남, 1회)
+  - `dreamcatcher_idle_0~6`: 대기 (흔들림, 반복)
+  - `dreamcatcher_attack_0~6`: 공격 (충전 → 깃털 폭발, 발사할 때마다 1회)
+  - `feather_projectile`: 날아가는 깃털 (오른쪽이 앞, 비행 방향으로 자동 회전)
+  - `icon_tower`, `icon_tower_disabled`: 하단 건설 버튼 아이콘 (골드 부족 시 회색)
+  - `icon_feather/crystal/star/lantern`: 아직 안 쓰는 아이콘 (업그레이드 등에 사용 예정)
+- 원본 시트: `ArtSource/Towers/dreamcatcher_sheet.jpg`. 다시 자르려면 프로젝트 폴더에서
+  `python3 Tools/Art/slice_dreamcatcher.py`를 실행합니다(검은 배경을 투명하게 바꾸고 고리 중심을 기준으로 정렬).
+- `Assets/Art/Towers/` 아래 PNG는 자동으로 스프라이트로 가져옵니다(타워 150 PPU, 투사체 220 PPU).
+- 애니메이션 속도는 `BasicTower` 프리팹의 `Visual` 오브젝트 → `TowerVisual`에서 조정합니다.
+
 ## 3. 프로젝트 구조
 
 ```

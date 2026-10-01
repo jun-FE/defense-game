@@ -68,8 +68,8 @@ public class HUD : MonoBehaviour
 
     void DrawTowerButtons(GameManager gm)
     {
-        const float width = 190f;
-        const float height = 56f;
+        const float width = 220f;
+        const float height = 72f;
         Tower[] towers = buildManager.towerPrefabs;
         float x = (Screen.width - towers.Length * (width + 10f)) * 0.5f;
         float y = Screen.height - height - 12f;
@@ -79,9 +79,12 @@ public class HUD : MonoBehaviour
         {
             Tower tower = towers[i];
             bool selected = i == buildManager.SelectedIndex;
-            GUI.color = gm.Gold >= tower.cost ? Color.white : new Color(1f, 0.6f, 0.6f);
+            bool affordable = gm.Gold >= tower.cost;
+            GUI.color = affordable ? Color.white : new Color(1f, 0.6f, 0.6f);
             string text = $"{(selected ? "▶ " : "")}[{i + 1}] {tower.displayName}\n{tower.cost} 골드";
-            if (GUI.Button(new Rect(x + i * (width + 10f), y, width, height), text, button)) buildManager.Select(i);
+            Sprite icon = affordable || tower.iconDisabled == null ? tower.icon : tower.iconDisabled;
+            var content = new GUIContent(text, icon != null ? icon.texture : null);
+            if (GUI.Button(new Rect(x + i * (width + 10f), y, width, height), content, button)) buildManager.Select(i);
         }
         GUI.color = old;
     }

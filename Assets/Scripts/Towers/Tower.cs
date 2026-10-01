@@ -5,6 +5,9 @@ public class Tower : MonoBehaviour
 {
     public string displayName = "기본 타워";
     public int cost = 50;
+    [Tooltip("하단 건설 버튼 아이콘 (골드가 충분할 때 / 부족할 때)")]
+    public Sprite icon;
+    public Sprite iconDisabled;
 
     [Header("공격")]
     public float range = 2.5f;
@@ -14,8 +17,13 @@ public class Tower : MonoBehaviour
     public float projectileSpeed = 8f;
 
     [Header("참조")]
+    [Tooltip("타겟 쪽으로 회전하는 포신 (없으면 회전 안 함)")]
     public Transform head;
+    [Tooltip("투사체가 나가는 위치 (없으면 head, 그것도 없으면 타워 중심)")]
+    public Transform firePoint;
     public Projectile projectilePrefab;
+    [Tooltip("스프라이트 애니메이션 (없으면 생략)")]
+    public TowerVisual visual;
 
     Enemy target;
     float cooldown;
@@ -57,7 +65,8 @@ public class Tower : MonoBehaviour
 
     void Fire()
     {
-        Vector3 origin = head != null ? head.position : transform.position;
+        if (visual != null) visual.PlayAttack(1f / fireRate);
+        Vector3 origin = firePoint != null ? firePoint.position : head != null ? head.position : transform.position;
         Projectile projectile = Instantiate(projectilePrefab, origin, Quaternion.identity);
         projectile.Launch(target, damage, projectileSpeed, splashRadius);
     }
