@@ -31,6 +31,12 @@ public class WaveSpawner : MonoBehaviour
 
     void Start()
     {
+        StageData stage = SceneFlow.CurrentStage;
+        if (stage != null)
+        {
+            totalWaves = stage.totalWaves;
+            baseHealth *= stage.enemyHealthMultiplier;
+        }
         Countdown = firstWaveDelay;
     }
 

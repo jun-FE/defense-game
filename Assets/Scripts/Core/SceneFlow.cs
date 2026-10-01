@@ -1,0 +1,71 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+/// <summary>
+/// 화면 흐름: 타이틀 → (스토리) → 게임.
+/// 어떤 스테이지를 플레이 중인지도 여기서 기억한다.
+/// </summary>
+public static class SceneFlow
+{
+    public const string TitleScene = "Title";
+    public const string StoryScene = "Story";
+    public const string GameScene = "Main";
+
+    public static int CurrentStageIndex { get; private set; }
+    public static StageData CurrentStage => StageDatabase.Instance.Get(CurrentStageIndex);
+    public static bool HasNextStage => CurrentStageIndex + 1 < StageDatabase.Instance.Count;
+
+    /// <summary>재생할 스토리. 스토리 씬이 읽고 나면 비운다.</summary>
+    public static StoryData PendingStory { get; private set; }
+
+    /// <summary>타이틀로 돌아갈 때 스테이지 선택 화면을 바로 열지.</summary>
+    public static bool OpenStageSelectOnTitle { get; set; }
+
+    public static void StartStage(int index, bool showStory = true)
+    {
+        CurrentStageIndex = index;
+        StoryData story = CurrentStage != null ? CurrentStage.introStory : null;
+        if (showStory && story != null && story.lines.Length > 0)
+        {
+            PendingStory = story;
+            Load(StoryScene);
+        }
+        else
+        {
+            Load(GameScene);
+        }
+    }
+
+    public static void FinishStory()
+    {
+        PendingStory = null;
+        Load(GameScene);
+    }
+
+    public static void RestartStage() => StartStage(CurrentStageIndex, showStory: false);
+
+    public static void StartNextStage() => StartStage(CurrentStageIndex + 1);
+
+    public static void GoToTitle() => Load(TitleScene);
+
+    public static void GoToStageSelect()
+    {
+        OpenStageSelectOnTitle = true;
+        Load(TitleScene);
+    }
+
+    public static void QuitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
+    static void Load(string scene)
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(scene);
+    }
+}

@@ -1,9 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// 프로토타입용 화면 UI와 입력 처리(IMGUI).
+/// 게임 화면 UI와 입력 처리(IMGUI).
 /// IMGUI 이벤트는 Input Manager / Input System 설정과 상관없이 동작한다.
-/// 나중에 uGUI나 UI Toolkit으로 바꾸면 된다.
 /// </summary>
 public class HUD : MonoBehaviour
 {
@@ -12,7 +11,7 @@ public class HUD : MonoBehaviour
     public WaveSpawner spawner;
 
     GUIStyle label;
-    GUIStyle title;
+    GUIStyle centerLabel;
     GUIStyle button;
     string message;
     float messageUntil;
@@ -23,12 +22,18 @@ public class HUD : MonoBehaviour
         if (gm == null) return;
         CreateStyles();
 
+        // 일시정지/결과 화면이 떠 있으면 아래 UI는 클릭되지 않게 한다.
+        bool overlay = gm.State != GameState.Playing || gm.IsPaused;
+        GUI.enabled = !overlay;
         DrawTopBar(gm);
         DrawTowerButtons(gm);
         DrawMessage();
-        if (gm.State != GameState.Playing) DrawResult(gm);
+        GUI.enabled = true;
 
-        HandleInput(gm, Event.current);
+        if (gm.State != GameState.Playing) DrawResult(gm);
+        else if (gm.IsPaused) DrawPause(gm);
+
+        HandleInput(gm, Event.current, overlay);
     }
 
     void CreateStyles()
@@ -36,7 +41,7 @@ public class HUD : MonoBehaviour
         if (label != null) return;
         label = new GUIStyle(GUI.skin.label) { fontSize = 20, fontStyle = FontStyle.Bold };
         label.normal.textColor = Color.white;
-        title = new GUIStyle(label) { fontSize = 48, alignment = TextAnchor.MiddleCenter };
+        centerLabel = new GUIStyle(label) { alignment = TextAnchor.MiddleCenter };
         button = new GUIStyle(GUI.skin.button) { fontSize = 18 };
     }
 
@@ -44,17 +49,19 @@ public class HUD : MonoBehaviour
     {
         GUILayout.BeginArea(new Rect(12, 8, Screen.width - 24, 44));
         GUILayout.BeginHorizontal();
-        GUILayout.Label($"골드 {gm.Gold}", label, GUILayout.Width(140));
-        GUILayout.Label($"라이프 {gm.Lives}", label, GUILayout.Width(140));
-        GUILayout.Label($"웨이브 {spawner.CurrentWave}/{spawner.totalWaves}", label, GUILayout.Width(160));
+        if (gm.Stage != null) GUILayout.Label($"{gm.Stage.stageId} {gm.Stage.title}", label, GUILayout.Width(220));
+        GUILayout.Label($"골드 {gm.Gold}", label, GUILayout.Width(120));
+        GUILayout.Label($"라이프 {gm.Lives}", label, GUILayout.Width(120));
+        GUILayout.Label($"웨이브 {spawner.CurrentWave}/{spawner.totalWaves}", label, GUILayout.Width(140));
         if (!spawner.IsSpawning && spawner.HasMoreWaves)
         {
-            GUILayout.Label($"다음 웨이브 {Mathf.CeilToInt(spawner.Countdown)}초", label, GUILayout.Width(200));
-            if (GUILayout.Button("지금 시작 [Space]", button, GUILayout.Width(180))) spawner.CallNextWaveEarly();
+            GUILayout.Label($"다음 웨이브 {Mathf.CeilToInt(spawner.Countdown)}초", label, GUILayout.Width(180));
+            if (GUILayout.Button("지금 시작 [Space]", button, GUILayout.Width(170))) spawner.CallNextWaveEarly();
         }
         GUILayout.FlexibleSpace();
-        if (GUILayout.Button("x1", button, GUILayout.Width(50))) SetSpeed(gm, 1f);
-        if (GUILayout.Button("x2", button, GUILayout.Width(50))) SetSpeed(gm, 2f);
+        if (GUILayout.Button(gm.GameSpeed == 1f ? "▶ x1" : "x1", button, GUILayout.Width(60))) gm.SetSpeed(1f);
+        if (GUILayout.Button(gm.GameSpeed == 2f ? "▶ x2" : "x2", button, GUILayout.Width(60))) gm.SetSpeed(2f);
+        if (GUILayout.Button("일시정지 [Esc]", button, GUILayout.Width(140))) gm.TogglePause();
         GUILayout.EndHorizontal();
         GUILayout.EndArea();
     }
@@ -67,6 +74,7 @@ public class HUD : MonoBehaviour
         float x = (Screen.width - towers.Length * (width + 10f)) * 0.5f;
         float y = Screen.height - height - 12f;
 
+        Color old = GUI.color;
         for (int i = 0; i < towers.Length; i++)
         {
             Tower tower = towers[i];
@@ -75,28 +83,64 @@ public class HUD : MonoBehaviour
             string text = $"{(selected ? "▶ " : "")}[{i + 1}] {tower.displayName}\n{tower.cost} 골드";
             if (GUI.Button(new Rect(x + i * (width + 10f), y, width, height), text, button)) buildManager.Select(i);
         }
-        GUI.color = Color.white;
+        GUI.color = old;
     }
 
     void DrawMessage()
     {
         if (string.IsNullOrEmpty(message) || Time.unscaledTime > messageUntil) return;
-        GUI.Label(new Rect(0, Screen.height - 120, Screen.width, 30), message,
-            new GUIStyle(label) { alignment = TextAnchor.MiddleCenter });
+        GUI.Label(new Rect(0, Screen.height - 120, Screen.width, 30), message, centerLabel);
+    }
+
+    void DrawPause(GameManager gm)
+    {
+        UIKit.Begin();
+        UIKit.DimScreen();
+        float w = UIKit.Width;
+        UIKit.ShadowLabel(new Rect(0f, 260f, w, 100f), "일시정지", UIKit.Heading);
+
+        float x = (w - 400f) * 0.5f;
+        if (UIKit.DrawButton(new Rect(x, 420f, 400f, 80f), "계속하기")) gm.TogglePause();
+        if (UIKit.DrawButton(new Rect(x, 520f, 400f, 80f), "다시 하기")) gm.Restart();
+        if (UIKit.DrawButton(new Rect(x, 620f, 400f, 80f), "스테이지 선택")) SceneFlow.GoToStageSelect();
+        if (UIKit.DrawButton(new Rect(x, 720f, 400f, 80f), "메인 메뉴")) SceneFlow.GoToTitle();
+        UIKit.End();
     }
 
     void DrawResult(GameManager gm)
     {
-        GUI.Box(new Rect(0, 0, Screen.width, Screen.height), GUIContent.none);
-        string text = gm.State == GameState.Victory ? "승리!" : "패배...";
-        GUI.Label(new Rect(0, Screen.height * 0.5f - 80, Screen.width, 80), text, title);
-        if (GUI.Button(new Rect(Screen.width * 0.5f - 100, Screen.height * 0.5f + 10, 200, 50), "다시 하기", button))
-            gm.Restart();
+        UIKit.Begin();
+        UIKit.DimScreen();
+        float w = UIKit.Width;
+        bool victory = gm.State == GameState.Victory;
+        UIKit.ShadowLabel(new Rect(0f, 230f, w, 130f), victory ? "승리!" : "패배...", UIKit.Title);
+        if (gm.Stage != null)
+            GUI.Label(new Rect(0f, 360f, w, 50f), $"{gm.Stage.stageId} {gm.Stage.title}", UIKit.Small);
+
+        float x = (w - 400f) * 0.5f;
+        float y = 440f;
+        if (victory && SceneFlow.HasNextStage)
+        {
+            if (UIKit.DrawButton(new Rect(x, y, 400f, 80f), "다음 스테이지")) SceneFlow.StartNextStage();
+            y += 100f;
+        }
+        if (UIKit.DrawButton(new Rect(x, y, 400f, 80f), "다시 하기")) gm.Restart();
+        y += 100f;
+        if (UIKit.DrawButton(new Rect(x, y, 400f, 80f), "스테이지 선택")) SceneFlow.GoToStageSelect();
+        y += 100f;
+        if (UIKit.DrawButton(new Rect(x, y, 400f, 80f), "메인 메뉴")) SceneFlow.GoToTitle();
+        UIKit.End();
     }
 
-    void HandleInput(GameManager gm, Event e)
+    void HandleInput(GameManager gm, Event e, bool overlay)
     {
-        if (gm.State != GameState.Playing) return;
+        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+        {
+            gm.TogglePause();
+            e.Use();
+            return;
+        }
+        if (overlay) return;
 
         if (e.type == EventType.KeyDown)
         {
@@ -115,11 +159,6 @@ public class HUD : MonoBehaviour
             ShowMessage(buildManager.TryBuildAt(world));
             e.Use();
         }
-    }
-
-    void SetSpeed(GameManager gm, float scale)
-    {
-        if (gm.State == GameState.Playing) Time.timeScale = scale;
     }
 
     void ShowMessage(string text)

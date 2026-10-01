@@ -138,7 +138,7 @@ cat <<MSG
   2. Hub의 [Projects] > [Add] > [Add project from disk]에서 아래 폴더를 선택하세요.
      $PROJECT_ROOT
      (경로가 클립보드에 복사돼 있습니다. 폴더 선택 창에서 Cmd+Shift+G 후 붙여넣기)
-  3. 프로젝트가 열리면 데모 씬이 자동으로 만들어집니다. 상단의 Play 버튼을 누르세요.
+  3. 프로젝트가 열리면 데모 게임이 자동으로 만들어집니다. 상단의 Play 버튼을 누르세요.
 
 MSG
 [ -d "/Applications/Unity Hub.app" ] && open -a "Unity Hub"
