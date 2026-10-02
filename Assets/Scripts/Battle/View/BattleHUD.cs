@@ -158,7 +158,7 @@ public class BattleHUD : MonoBehaviour
         float x = rect.x + 24, y = rect.y + 18;
         GUI.Label(new Rect(x, y, PanelWidth - 48, 40), $"{selectedTower.Def.Name}  {selectedTower.LevelIndex + 1}단계", hudLabel);
         y += 52;
-        GUI.Label(new Rect(x, y, PanelWidth - 48, 30), $"공격력 {level.Damage:0.#}   간격 {BattleMath.AttackInterval(level.AttackSec, Session.Rules):0.##}초", hudSmall);
+        GUI.Label(new Rect(x, y, PanelWidth - 48, 30), $"공격력 {level.Damage:0.#}   공격속도 {BattleMath.AttackInterval(level.AttackSec, Session.Rules):0.##}초", hudSmall);
         y += 34;
         GUI.Label(new Rect(x, y, PanelWidth - 48, 30), $"사거리 {level.Range:0.#}   치명 {level.CritChance * 100:0}% ×{level.CritMult:0.##}", hudSmall);
         y += 34;

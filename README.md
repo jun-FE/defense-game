@@ -79,12 +79,13 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 
 | 에셋 | 기획서 테이블 | 고치는 것 |
 | --- | --- | --- |
-| `RULE_BASE` | GameRule | 방어력 상수, 공격 간격 하한, 틱 간격, 이동 배율 하한·상한 |
+| `RULE_BASE` | GameRule | 방어력 상수, 공격속도 하한, 틱 간격, 이동 배율 하한·상한 |
 | `EN_TOY`, `EN_RUSH`, `EN_HEAVY` | Enemy | HP, 방어력, 이동 속도, 누수 피해, 처치 재화, 색·크기 |
-| `TW_LAMP` | Tower + TowerLevel | 설치 비용, 단계별 공격력·사거리·간격·치명타·강화 비용, 프리팹·아이콘 |
+| `TW_LAMP` | Tower + TowerLevel | 설치 비용, 단계별 공격력·사거리·공격속도·치명타·강화 비용, 프리팹·아이콘 |
 | `MAP_ROOM` | Map + SpawnPoint | 중심 위치, 출현 경로, 건설 구역, 카메라 범위 |
 | `STG_Q01` | Stage + Wave + SpawnGroup | 시작 재화, 중심 HP, 지을 수 있는 타워, 웨이브별 준비 시간·생성 묶음 |
 
+- **공격속도**는 "한 번 공격한 뒤 다음 공격까지 걸리는 초"입니다. 낮을수록 빠르고, 최소 0.2초입니다(기획서 `attack_sec`).
 - 고친 뒤 메뉴 **Defense → 전투 데이터 검사**로 중복 ID, 없는 참조, 범위를 벗어난 값을 확인하세요. 오류가 있으면 전투 화면에도 표시되고 시작되지 않습니다.
 - "데모 게임 다시 만들기"는 이미 있는 데이터 에셋을 덮어쓰지 않습니다.
 

@@ -7,7 +7,8 @@ public class TowerLevelData
     public string id;
     public float damage = 20f;
     public float range = 4f;
-    [Tooltip("공격 사이 간격(초). 최소 0.2")]
+    [Label("공격속도 (초)")]
+    [Tooltip("한 번 공격한 뒤 다음 공격까지 걸리는 시간(초). 낮을수록 빠르다. 최소 0.2초 (기획서 TowerLevel.attack_sec)")]
     public float attackSec = 1f;
     [Range(0f, 1f)] public float critChance = 0.1f;
     public float critMult = 1.5f;
