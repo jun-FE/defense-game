@@ -15,8 +15,9 @@ using UnityEngine;
 /// - vignette: 화면 가장자리를 어둡게(0~1).
 /// - 설정의 "배경 밝기"(GameSettings.BackgroundBrightness)가 ambient에 곱해진다.
 ///
-/// 화면비: 16:9보다 넓은(울트라와이드·창 모드) 화면에서도 양옆이 비지 않게, 그림이 화면을 꽉 채우도록
-/// 확대하고 위아래를 조금 자른다(cover). 그림 위 좌표에 붙는 UI는 CanvasToScreen으로 위치를 맞춘다.
+/// 화면비: 16:9보다 넓은 화면에서는 그림을 maxZoom까지만 확대해(위아래를 조금 자름) 양옆을 채우고,
+/// 그보다 더 넓으면 양옆을 배경색으로 부드럽게 어둡게 이어 붙인다(위아래가 너무 잘리지 않게).
+/// 그림 위 좌표에 붙는 UI는 CanvasToScreen으로 위치를 맞춘다.
 /// </summary>
 public class LayeredBackground : MonoBehaviour
 {
@@ -88,6 +89,8 @@ public class LayeredBackground : MonoBehaviour
     public float pixelsPerUnit = 100f;
     [Tooltip("가장 앞 레이어가 움직이는 최대 픽셀")]
     public float parallaxPixels = 14f;
+    [Tooltip("넓은 화면에서 양옆을 채우려고 확대하는 최대 배율. 1이면 확대하지 않고 양옆을 어둡게 둔다.")]
+    public float maxZoom = 1.15f;
     [Tooltip("숨쉬기 연출을 넣을 레이어 이름")]
     public string[] breathingLayers = new string[0];
     [Tooltip("조명 빛 번짐에 쓰는 가산(Additive) 머티리얼. 비어 있으면 일반 반투명으로 그린다.")]
@@ -182,6 +185,7 @@ public class LayeredBackground : MonoBehaviour
         if (layout.lights != null)
             for (int i = 0; i < layout.lights.Length; i++) CreateLight(layout, layout.lights[i], layerIndex, i);
         if (layout.vignette > 0f) CreateVignette(layout);
+        CreateSideFades(layout);
         ApplyColors(Time.time);
     }
 
@@ -197,6 +201,7 @@ public class LayeredBackground : MonoBehaviour
         float aspect = Screen.height > 0 ? (float)Screen.width / Screen.height : 16f / 9f;
         float usableWidth = layout.canvasWidth - 2f * parallaxPixels;
         float halfHeight = Mathf.Min(layout.canvasHeight / 2f, usableWidth / aspect / 2f); // 배치 픽셀 단위
+        halfHeight = Mathf.Max(halfHeight, layout.canvasHeight / 2f / Mathf.Max(1f, maxZoom));
         cam.orthographicSize = halfHeight / pixelsPerUnit;
         Zoom = (UIKit.Height / 2f) / halfHeight;
     }
@@ -263,6 +268,41 @@ public class LayeredBackground : MonoBehaviour
         renderer.sortingOrder = -1;
         float width = layout.canvasWidth / pixelsPerUnit * 1.04f; // 시차로 가장자리가 드러나지 않게 살짝 크게
         go.transform.localScale = new Vector3(width, width, 1f);
+    }
+
+    /// <summary>
+    /// 아주 넓은 화면에서 그림 밖으로 드러나는 양옆을 배경색으로 부드럽게 덮는다.
+    /// 16:9에서 보이는 가장자리 바로 바깥부터 어두워지므로 보통 화면에서는 보이지 않는다.
+    /// </summary>
+    void CreateSideFades(Layout layout)
+    {
+        Color background;
+        if (!ColorUtility.TryParseHtmlString(layout.background, out background)) background = Color.black;
+        const int w = 64;
+        var texture = new Texture2D(w, 1, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var pixels = new Color32[w];
+        for (int x = 0; x < w; x++)
+        {
+            float a = Mathf.Clamp01(x / (w * 0.25f)); // 앞 1/4에서 서서히 짙어지고 나머지는 꽉 찬 색
+            pixels[x] = new Color32((byte)(background.r * 255f), (byte)(background.g * 255f), (byte)(background.b * 255f), (byte)(a * a * 255f));
+        }
+        texture.SetPixels32(pixels);
+        texture.Apply();
+        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, w, 1), new Vector2(0f, 0.5f), w); // 1유닛 폭, 왼쪽이 기준
+
+        float edge = (layout.canvasWidth / 2f - parallaxPixels) / pixelsPerUnit;
+        float fade = 640f / pixelsPerUnit;   // 그라데이션 160px + 나머지 꽉 찬 색
+        float height = layout.canvasHeight * 2f / pixelsPerUnit;
+        for (int side = -1; side <= 1; side += 2)
+        {
+            var go = new GameObject(side < 0 ? "SideFadeLeft" : "SideFadeRight");
+            go.transform.SetParent(transform, false);
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sortingOrder = -1;
+            go.transform.localPosition = new Vector3(side * edge, 0f, 0f);
+            go.transform.localScale = new Vector3(side * fade, height * w, 1f); // 스프라이트 높이가 1/w유닛이라 w배. 왼쪽은 좌우 반전
+        }
     }
 
     /// <summary>가운데가 밝고 가장자리로 부드럽게 사라지는 원형 빛(1유닛 폭).</summary>
