@@ -1,21 +1,23 @@
 {
   "canvasWidth": 1920,
   "canvasHeight": 1080,
-  "background": "#14122a",
+  "background": "#0b0a1c",
   "layers": [
     {
       "name": "bg_night_forest",
       "x": 960,
       "y": 380,
       "width": 2000,
-      "depth": 0.0
+      "depth": 0.0,
+      "shade": 0.75
     },
     {
       "name": "wall_frame_b",
       "x": 960,
       "y": 470,
       "width": 2150,
-      "depth": 0.15
+      "depth": 0.15,
+      "shade": 0.85
     },
     {
       "name": "wall_decor",
@@ -50,7 +52,8 @@
       "x": 650,
       "y": 445,
       "width": 400,
-      "depth": 0.6
+      "depth": 0.6,
+      "shade": 1.25
     },
     {
       "name": "workbench",
@@ -64,35 +67,172 @@
       "x": 330,
       "y": 598,
       "width": 250,
-      "depth": 0.7
+      "depth": 0.7,
+      "shade": 1.2
     },
     {
       "name": "fg_floor",
       "x": 960,
       "y": 1035,
       "width": 1950,
-      "depth": 0.85
+      "depth": 0.85,
+      "shade": 0.6
     },
     {
       "name": "fg_plants_left",
       "x": 200,
       "y": 790,
       "width": 520,
-      "depth": 0.9
+      "depth": 0.9,
+      "shade": 0.5
     },
     {
       "name": "fg_books_left",
       "x": 170,
       "y": 925,
       "width": 460,
-      "depth": 0.95
+      "depth": 0.95,
+      "shade": 0.5
     },
     {
       "name": "fg_crystal_right",
       "x": 1740,
       "y": 900,
       "width": 420,
-      "depth": 0.95
+      "depth": 0.95,
+      "shade": 0.75
+    }
+  ],
+  "ambient": "#8c84bc",
+  "vignette": 0.6,
+  "lights": [
+    {
+      "x": 522,
+      "y": 37,
+      "size": 170,
+      "color": "#ffb257",
+      "twinkle": 0.25,
+      "layer": "hanging_decor"
+    },
+    {
+      "x": 518,
+      "y": 170,
+      "size": 110,
+      "color": "#ffb257",
+      "twinkle": 0.2,
+      "layer": "hanging_decor"
+    },
+    {
+      "x": 1110,
+      "y": 45,
+      "size": 170,
+      "color": "#ffb257",
+      "twinkle": 0.25,
+      "layer": "hanging_decor"
+    },
+    {
+      "x": 890,
+      "y": 642,
+      "size": 230,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "toys_shelf"
+    },
+    {
+      "x": 1328,
+      "y": 342,
+      "size": 130,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "shelves_decorated"
+    },
+    {
+      "x": 1500,
+      "y": 590,
+      "size": 140,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "shelves_decorated"
+    },
+    {
+      "x": 1767,
+      "y": 462,
+      "size": 140,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "shelves_decorated"
+    },
+    {
+      "x": 1660,
+      "y": 504,
+      "size": 120,
+      "color": "#ffb257",
+      "twinkle": 0.25,
+      "layer": "shelves_decorated"
+    },
+    {
+      "x": 1662,
+      "y": 938,
+      "size": 160,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "fg_crystal_right"
+    },
+    {
+      "x": 1283,
+      "y": 566,
+      "size": 110,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "shelves_decorated"
+    },
+    {
+      "x": 1046,
+      "y": 438,
+      "size": 70,
+      "color": "#ffb257",
+      "twinkle": 0.35,
+      "layer": "shelves_decorated"
+    },
+    {
+      "x": 990,
+      "y": 443,
+      "size": 70,
+      "color": "#ffb257",
+      "twinkle": 0.35,
+      "layer": "shelves_decorated"
+    },
+    {
+      "x": 63,
+      "y": 825,
+      "size": 120,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "fg_books_left"
+    },
+    {
+      "x": 1775,
+      "y": 885,
+      "size": 220,
+      "color": "#b48cff",
+      "twinkle": 0.15,
+      "layer": "fg_crystal_right"
+    },
+    {
+      "x": 1340,
+      "y": 690,
+      "size": 150,
+      "color": "#b48cff",
+      "twinkle": 0.15,
+      "layer": "toys_shelf"
+    },
+    {
+      "x": 645,
+      "y": 128,
+      "size": 260,
+      "color": "#9fb6ff",
+      "twinkle": 0.08,
+      "layer": "bg_night_forest"
     }
   ]
 }

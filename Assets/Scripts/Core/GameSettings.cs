@@ -5,6 +5,10 @@ public static class GameSettings
 {
     const string VolumeKey = "Settings.MasterVolume";
     const string TextSpeedKey = "Settings.TextSpeed";
+    const string BrightnessKey = "Settings.BackgroundBrightness";
+
+    public const float MinBackgroundBrightness = 0.6f;
+    public const float MaxBackgroundBrightness = 1.4f;
 
     public static readonly string[] TextSpeedNames = { "느림", "보통", "빠름", "즉시" };
     static readonly float[] TextSpeedCharsPerSecond = { 20f, 40f, 80f, 0f };
@@ -18,6 +22,13 @@ public static class GameSettings
             PlayerPrefs.SetFloat(VolumeKey, volume);
             AudioListener.volume = volume;
         }
+    }
+
+    /// <summary>로비·수선소 배경 밝기 배율(1 = 아트 기본 분위기). 배경 배치 JSON의 ambient에 곱해진다.</summary>
+    public static float BackgroundBrightness
+    {
+        get => Mathf.Clamp(PlayerPrefs.GetFloat(BrightnessKey, 1f), MinBackgroundBrightness, MaxBackgroundBrightness);
+        set => PlayerPrefs.SetFloat(BrightnessKey, Mathf.Clamp(value, MinBackgroundBrightness, MaxBackgroundBrightness));
     }
 
     public static int TextSpeed

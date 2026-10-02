@@ -21,7 +21,15 @@ public class SettingsPanel
         float volume = GUI.HorizontalSlider(new Rect(valueX, y + 24f, 420f, 30f), GameSettings.MasterVolume, 0f, 1f);
         if (!Mathf.Approximately(volume, GameSettings.MasterVolume)) GameSettings.MasterVolume = volume;
         GUI.Label(new Rect(valueX + 440f, y, 120f, 60f), $"{Mathf.RoundToInt(volume * 100f)}%", UIKit.Body);
-        y += 120f;
+        y += 100f;
+
+        // 배경 밝기(로비·수선소 배경)
+        GUI.Label(new Rect(labelX, y, 300f, 60f), "배경 밝기", UIKit.Body);
+        float brightness = GUI.HorizontalSlider(new Rect(valueX, y + 24f, 420f, 30f), GameSettings.BackgroundBrightness,
+            GameSettings.MinBackgroundBrightness, GameSettings.MaxBackgroundBrightness);
+        if (!Mathf.Approximately(brightness, GameSettings.BackgroundBrightness)) GameSettings.BackgroundBrightness = brightness;
+        GUI.Label(new Rect(valueX + 440f, y, 120f, 60f), $"{Mathf.RoundToInt(brightness * 100f)}%", UIKit.Body);
+        y += 100f;
 
         // 텍스트 속도
         GUI.Label(new Rect(labelX, y, 300f, 60f), "스토리 텍스트 속도", UIKit.Body);
@@ -31,14 +39,14 @@ public class SettingsPanel
             if (GUI.Button(new Rect(valueX + i * 135f, y + 4f, 125f, 56f), GameSettings.TextSpeedNames[i], style))
                 GameSettings.TextSpeed = i;
         }
-        y += 120f;
+        y += 100f;
 
         // 전체 화면
         GUI.Label(new Rect(labelX, y, 300f, 60f), "전체 화면", UIKit.Body);
         bool fullscreen = GameSettings.Fullscreen;
         if (GUI.Button(new Rect(valueX, y + 4f, 125f, 56f), "켜기", fullscreen ? UIKit.ButtonSelected : UIKit.ButtonSmall)) GameSettings.Fullscreen = true;
         if (GUI.Button(new Rect(valueX + 135f, y + 4f, 125f, 56f), "끄기", fullscreen ? UIKit.ButtonSmall : UIKit.ButtonSelected)) GameSettings.Fullscreen = false;
-        y += 120f;
+        y += 100f;
 
         // 진행 초기화
         GUI.Label(new Rect(labelX, y, 300f, 60f), "진행 상황", UIKit.Body);

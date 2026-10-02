@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "9";
+    public const string BuildVersion = "10";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -137,6 +137,7 @@ public static class DemoSceneBuilder
         background.layoutJson = AssetDatabase.LoadAssetAtPath<TextAsset>($"{MainArtDir}/main_layout.json");
         background.sprites = LoadScreenSprites(MainArtDir).ToArray();
         background.breathingLayers = new[] { "ian", "doha" };
+        background.glowMaterial = GlowMaterial();
 
         var ui = new GameObject("MainUI").AddComponent<MainUI>();
         List<Sprite> uiSprites = LoadScreenSprites(MainUIDir);
@@ -159,12 +160,31 @@ public static class DemoSceneBuilder
         background.layoutJson = layout;
         background.sprites = sprites.ToArray();
         background.parallaxPixels = 18f;
+        background.glowMaterial = GlowMaterial();
 
         var menu = new GameObject("LobbyMenu").AddComponent<LobbyMenu>();
         menu.layoutJson = layout;
         menu.menuSprites = sprites.FindAll(sp => sp.name.StartsWith("menu_")).ToArray();
 
         EditorSceneManager.SaveScene(scene, LobbyScenePath);
+    }
+
+    /// <summary>배경 조명용 가산 머티리얼(Assets/Materials/GlowAdditive.mat). 씬이 참조하므로 빌드에도 포함된다.</summary>
+    static Material GlowMaterial()
+    {
+        const string path = "Assets/Materials/GlowAdditive.mat";
+        var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (material != null) return material;
+        var shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Shaders/SpriteAdditive.shader") ?? Shader.Find("Akmong/SpriteAdditive");
+        if (shader == null)
+        {
+            Debug.LogWarning("[빌더] Akmong/SpriteAdditive 셰이더를 찾지 못해 조명을 일반 반투명으로 그립니다.");
+            return null;
+        }
+        EnsureFolder("Assets/Materials");
+        material = new Material(shader);
+        AssetDatabase.CreateAsset(material, path);
+        return material;
     }
 
     /// <summary>폴더 안 PNG를 화면 배경용 설정(100 PPU)으로 맞추고 스프라이트로 불러온다.</summary>
