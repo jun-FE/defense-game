@@ -25,6 +25,24 @@ namespace Akmong.Battle
             },
         };
 
+        /// <summary>
+        /// 병정인형: 근거리 저지(타워 역할 기획서). 접근한 적을 붙잡아 다른 타워가 칠 시간을 번다.
+        /// 2단계는 방패로 더 많이·오래 붙잡고, 3단계는 방패 밀치기로 일반 적을 뒤로 민다(보스 면역).
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
+        public static TowerDef Soldier() => new TowerDef
+        {
+            Id = "TW_SOLDIER",
+            Name = "병정인형",
+            BuildCost = 40,
+            Levels =
+            {
+                new TowerLevelDef { Id = "TL_SOLDIER_1", Damage = 16, Range = 1.5f, AttackSec = 0.8f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 60, BlockCount = 1, BlockSec = 3f },
+                new TowerLevelDef { Id = "TL_SOLDIER_2", Damage = 22, Range = 1.5f, AttackSec = 0.8f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 90, BlockCount = 2, BlockSec = 4f },
+                new TowerLevelDef { Id = "TL_SOLDIER_3", Damage = 30, Range = 1.6f, AttackSec = 0.75f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 0, BlockCount = 2, BlockSec = 4f, Knockback = 0.6f },
+            },
+        };
+
         /// <summary>MAP_ROOM: 북쪽 (0,12)와 동쪽 (12,0)에서 중심 (0,0)까지 길이 12인 직선 경로 2개.</summary>
         public static MapDef Room() => new MapDef
         {
@@ -60,7 +78,7 @@ namespace Akmong.Battle
                 Map = Room(),
                 StartCoin = 120,
                 CoreMaxHp = 100,
-                Towers = { Lamp() },
+                Towers = { Lamp(), Soldier() },
                 Waves =
                 {
                     new WaveDef

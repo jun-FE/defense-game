@@ -79,6 +79,9 @@ public class BattleView : MonoBehaviour
         go.transform.position = new Vector3(tower.TileX, tower.TileY, 0f);
         TowerView view = go.AddComponent<TowerView>();
         view.Init(tower, asset, controller.Content.Rules);
+        // 처음에는 가장 가까운 길 쪽을 바라본다.
+        System.Numerics.Vector2 toPath = NearestPathPoint(tower.Position) - tower.Position;
+        view.Face(new Vector2(toPath.X, toPath.Y));
         towerViews[tower] = view;
     }
 
@@ -92,12 +95,31 @@ public class BattleView : MonoBehaviour
     {
         TowerView towerView = FindTowerView(hit.Tower);
         if (towerView == null) return;
-        towerView.PlayAttack();
-
         EnemyView target;
         enemyViews.TryGetValue(hit.Target, out target);
         Vector3 to = target != null ? target.transform.position : (Vector3)BattleContentBuilder.ToUnity(hit.Target.Position);
+        towerView.PlayAttack(to);
+        if (towerView.Melee)
+        {
+            // 찌르기는 투사체 없이 맞은 적이 번쩍인다(6프레임 중 4번째가 타격).
+            if (target != null) target.Flash(0.15f);
+            return;
+        }
         ProjectileView.Spawn(transform, towerView.FirePoint, to, towerView.ProjectileSprite != null ? towerView.ProjectileSprite : circle, hit.Crit);
+    }
+
+    System.Numerics.Vector2 NearestPathPoint(System.Numerics.Vector2 from)
+    {
+        var best = from;
+        float bestSq = float.MaxValue;
+        foreach (SpawnPointDef spawn in controller.Session.Stage.Map.SpawnPoints)
+            for (float d = 0f; d <= spawn.Length; d += 0.25f)
+            {
+                System.Numerics.Vector2 p = spawn.PointAt(d);
+                float sq = System.Numerics.Vector2.DistanceSquared(p, from);
+                if (sq < bestSq) { bestSq = sq; best = p; }
+            }
+        return best;
     }
 
     GameObject CreateFallbackTower()

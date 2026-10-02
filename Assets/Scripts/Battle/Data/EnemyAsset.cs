@@ -12,6 +12,8 @@ public class EnemyAsset : DefinitionAsset
     public int coreDamage = 5;
     [Tooltip("처치 시 전투 재화")]
     public int killCoin = 3;
+    [Tooltip("보스는 밀어내기에 면역")]
+    public bool isBoss;
 
     [Header("표시")]
     public Sprite sprite;

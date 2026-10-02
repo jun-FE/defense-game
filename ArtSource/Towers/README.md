@@ -7,6 +7,7 @@
 2. **Add file → Upload files**를 누릅니다.
 3. **타워별 폴더째로** 끌어다 놓습니다. 폴더 구조가 그대로 올라갑니다.
 4. **Commit changes**를 누릅니다.
+   파일 하나가 25MB를 넘으면 웹 업로드가 실패합니다. 그때는 Mac의 `defense-game/ArtSource/Towers`에 넣고 `Setup/UploadArt.command`를 더블클릭하세요.
 
 ```
 ArtSource/Towers/
@@ -24,5 +25,6 @@ ArtSource/Towers/
   - `build_01.png …` 설치(있으면)
   - `upgrade_1.png, upgrade_2.png` 강화 단계별 모습(있으면)
 - 투사체·이펙트는 `projectile_…`, `effect_…`, 건설 버튼·도감용 아이콘은 `icon.png`로 주세요.
+- 병정인형처럼 `방향/L단계/방향_L단계_F프레임.svg` 구조의 SVG(400×400, 받침 기준점 200,370)도 그대로 받습니다.
 - 한 장에 여러 프레임을 모은 시트도 괜찮습니다. 그때는 칸 수와 순서를 알려 주세요.
 - 타워 설명(이름, 공격 방식, 공격속도 등)이 있으면 `설명.txt`로 같이 넣어 주세요.

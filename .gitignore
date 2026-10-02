@@ -112,3 +112,6 @@ InitTestScene*.unity*
 /[Bb]uilds/
 /Tools/Steam/sdk/
 /Tools/Steam/output/
+
+# macOS Finder
+.DS_Store

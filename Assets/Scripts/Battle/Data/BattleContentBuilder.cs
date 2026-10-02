@@ -121,6 +121,7 @@ public static class BattleContentBuilder
         MoveSpeed = asset.moveSpeed,
         CoreDamage = asset.coreDamage,
         KillCoin = asset.killCoin,
+        IsBoss = asset.isBoss,
     };
 
     static TowerDef ToTower(TowerAsset asset)
@@ -137,6 +138,9 @@ public static class BattleContentBuilder
                 CritChance = level.critChance,
                 CritMult = level.critMult,
                 UpgradeCost = level.upgradeCost,
+                BlockCount = level.blockCount,
+                BlockSec = level.blockSec,
+                Knockback = level.knockback,
             });
         }
         return tower;

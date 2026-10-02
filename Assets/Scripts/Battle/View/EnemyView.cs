@@ -41,6 +41,22 @@ public class EnemyView : MonoBehaviour
         healthFill.localPosition = new Vector3(-barWidth * (1f - t) * 0.5f, healthFill.localPosition.y, 0f);
     }
 
+    /// <summary>근거리 타격 연출: delay 뒤(찌르기 모션의 타격 프레임) 잠깐 밝게 번쩍인다.</summary>
+    public void Flash(float delay)
+    {
+        if (!finishing && isActiveAndEnabled) StartCoroutine(FlashRoutine(delay));
+    }
+
+    System.Collections.IEnumerator FlashRoutine(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (finishing) yield break;
+        Color original = body.color;
+        body.color = Color.Lerp(original, Color.white, 0.75f);
+        yield return new WaitForSeconds(0.08f);
+        if (!finishing) body.color = original;
+    }
+
     /// <summary>처치되면 작아지며 사라지고, 중심에 닿으면 바로 사라진다.</summary>
     public void Finish(bool killed)
     {

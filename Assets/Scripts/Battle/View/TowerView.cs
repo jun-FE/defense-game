@@ -22,14 +22,25 @@ public class TowerView : MonoBehaviour
         firePoint = transform.Find("FirePoint");
     }
 
-    public void PlayAttack()
+    /// <summary>근거리 타워(저지)는 투사체 없이 찌르기 모션만 보인다.</summary>
+    public bool Melee => State.Blocks;
+
+    public void Face(Vector2 direction)
     {
-        if (visual != null) visual.PlayAttack(BattleMath.AttackInterval(State.Level.AttackSec, rules));
+        if (visual != null) visual.Face(direction);
     }
 
-    /// <summary>2단계 아트가 나오기 전까지는 크기를 조금 키워 단계를 표시한다.</summary>
+    public void PlayAttack(Vector3 target)
+    {
+        if (visual == null) return;
+        visual.Face(target - transform.position);
+        visual.PlayAttack(BattleMath.AttackInterval(State.Level.AttackSec, rules));
+    }
+
+    /// <summary>단계별 아트가 있으면 외형을 바꾸고, 없으면 크기를 조금 키워 단계를 표시한다.</summary>
     public void OnUpgraded()
     {
-        transform.localScale = Vector3.one * (1f + 0.12f * State.LevelIndex);
+        if (visual != null && visual.levels != null && visual.levels.Length > State.LevelIndex) visual.SetLevel(State.LevelIndex);
+        else transform.localScale = Vector3.one * (1f + 0.12f * State.LevelIndex);
     }
 }

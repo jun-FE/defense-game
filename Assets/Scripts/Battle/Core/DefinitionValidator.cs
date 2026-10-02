@@ -107,6 +107,9 @@ namespace Akmong.Battle
                 if (level.CritChance < 0 || level.CritChance > 1) errors.Add($"{levelWhere}: crit_chance는 0~1이어야 합니다.");
                 if (level.CritMult < 1) errors.Add($"{levelWhere}: crit_mult는 1 이상이어야 합니다.");
                 if (level.UpgradeCost < 0) errors.Add($"{levelWhere}: upgrade_cost는 0 이상이어야 합니다.");
+                if (level.BlockCount < 0) errors.Add($"{levelWhere}: block_count는 0 이상이어야 합니다.");
+                if (level.BlockCount > 0 && level.BlockSec <= 0) errors.Add($"{levelWhere}: 저지하는 타워는 block_sec가 0보다 커야 합니다.");
+                if (level.Knockback < 0) errors.Add($"{levelWhere}: knockback은 0 이상이어야 합니다.");
             }
         }
 

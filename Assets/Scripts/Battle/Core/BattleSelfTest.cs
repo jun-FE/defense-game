@@ -53,6 +53,9 @@ namespace Akmong.Battle
             run("강화: 잔액 69로 70 강화 실패, 70이면 2단계", UpgradeCases);
             run("타겟: 중심에 가까운 적 우선, 동률은 먼저 생성된 적", TargetingCase);
             run("같은 시드는 같은 결과(재현성)", DeterminismCase);
+            run("병정인형: 적을 멈춰 세우고 저지 시간이 지나면 보낸다", BlockCase);
+            run("병정인형: 1단계는 1명만, 2단계는 2명 저지", BlockCountCase);
+            run("병정인형 3단계: 일반 적은 밀어내고 보스는 면역", KnockbackCase);
             return cases;
         }
 
@@ -278,6 +281,102 @@ namespace Akmong.Battle
             };
             string a = play(), b = play();
             Check(cases, name, a == b, $"1회차 {a}, 2회차 {b}");
+        }
+
+        // ───────── 병정인형(근거리 저지) ─────────
+
+        /// <summary>북쪽 길에 적만 나오고 타워는 병정인형 하나. 피해 0이라 저지만 본다.</summary>
+        static StageDef SoldierStage(int level, EnemyDef enemy, int count)
+        {
+            StageDef stage = SingleTargetStage(enemy, 12);
+            stage.Waves[0].Groups[0].Count = count;
+            stage.Waves[0].Groups[0].IntervalSec = 0.5f;
+            stage.StartCoin = 1000;
+            TowerDef soldier = SampleContent.Soldier();
+            foreach (TowerLevelDef l in soldier.Levels) { l.CritChance = 0; l.Damage = 0; }
+            stage.Towers = new List<TowerDef> { soldier };
+            return stage;
+        }
+
+        static TowerState BuildSoldier(BattleSession session, int level)
+        {
+            TowerState tower;
+            session.TryBuild(session.Stage.Towers[0], 1, 5, out tower);
+            for (int i = 1; i < level; i++) session.TryUpgrade(tower);
+            return tower;
+        }
+
+        static void BlockCase(List<Case> cases, string name)
+        {
+            StageDef stage = SoldierStage(1, SampleContent.Toy(), 1);
+            var session = new BattleSession(stage, new GameRules(), new FixedRandom(0.99));
+            BuildSoldier(session, 1);
+            EnemyState enemy = null;
+            session.EnemySpawned += e => enemy = e;
+            double blockedAt = -1, releasedAt = -1;
+            float heldY = 0;
+            bool stayed = true;
+            while (session.Phase != BattlePhase.Ended && session.CombatTime < 30)
+            {
+                session.Tick(session.Rules.FixedDt);
+                if (enemy == null) continue;
+                if (enemy.BlockedBy != null && blockedAt < 0) { blockedAt = session.CombatTime; heldY = enemy.Position.Y; }
+                if (blockedAt >= 0 && releasedAt < 0)
+                {
+                    if (enemy.BlockedBy == null) releasedAt = session.CombatTime;
+                    else stayed &= Math.Abs(enemy.Position.Y - heldY) < 1e-4;
+                }
+                if (releasedAt >= 0 && enemy.BlockedBy != null) stayed = false; // 같은 타워에 다시 붙잡히면 안 됨
+            }
+            double held = releasedAt - blockedAt;
+            Check(cases, name, blockedAt > 0 && stayed && Math.Abs(held - 3.0) < 0.051 && session.CoreHp == 95 && heldY > 5.9,
+                $"붙잡은 위치 y={heldY:0.00}, 붙잡은 시간 {held:0.00}초(3), 멈춤 유지 {stayed}, 결국 통과해 중심 HP {session.CoreHp}(95)");
+        }
+
+        static void BlockCountCase(List<Case> cases, string name)
+        {
+            Func<int, int> maxBlocked = level =>
+            {
+                StageDef stage = SoldierStage(level, SampleContent.Toy(), 3);
+                var session = new BattleSession(stage, new GameRules(), new FixedRandom(0.99));
+                TowerState tower = BuildSoldier(session, level);
+                int max = 0;
+                while (session.Phase != BattlePhase.Ended && session.CombatTime < 30)
+                {
+                    session.Tick(session.Rules.FixedDt);
+                    max = Math.Max(max, tower.BlockingCount);
+                }
+                return max;
+            };
+            int one = maxBlocked(1), two = maxBlocked(2);
+            Check(cases, name, one == 1 && two == 2, $"1단계 최대 {one}명(1), 2단계 최대 {two}명(2)");
+        }
+
+        static void KnockbackCase(List<Case> cases, string name)
+        {
+            Func<bool, float> pushed = isBoss =>
+            {
+                EnemyDef enemy = SampleContent.Heavy();
+                enemy.MaxHp = 100000;
+                enemy.IsBoss = isBoss;
+                StageDef stage = SoldierStage(3, enemy, 1);
+                var session = new BattleSession(stage, new GameRules(), new FixedRandom(0.99));
+                BuildSoldier(session, 3);
+                EnemyState target = null;
+                session.EnemySpawned += e => target = e;
+                float lastTraveled = 0, back = 0;
+                while (session.Phase != BattlePhase.Ended && session.CombatTime < 20)
+                {
+                    session.Tick(session.Rules.FixedDt);
+                    if (target == null) continue;
+                    back = Math.Max(back, lastTraveled - target.Traveled);
+                    lastTraveled = target.Traveled;
+                }
+                return back;
+            };
+            float normal = pushed(false), bossPushed = pushed(true);
+            // 밀린 같은 틱에 저지가 풀려 한 틱(0.8×0.05=0.04)만큼 다시 걷는다.
+            Check(cases, name, Math.Abs(normal - 0.56f) < 1e-3 && bossPushed == 0f, $"일반 적 한 틱 동안 뒤로 {normal:0.00}(0.6 밀림 − 0.04 걸음), 보스 {bossPushed:0.00}(0)");
         }
 
         static void Run(BattleSession session, double seconds)

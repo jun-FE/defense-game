@@ -152,9 +152,10 @@ public class BattleHUD : MonoBehaviour
     void DrawTowerPanel()
     {
         float w = UIKit.Width;
-        var rect = new Rect(w - PanelWidth - 24, TopBarHeight + 24, PanelWidth, 330);
-        GUI.Box(rect, GUIContent.none, UIKit.Panel);
         TowerLevelDef level = selectedTower.Level;
+        bool blocks = selectedTower.Blocks;
+        var rect = new Rect(w - PanelWidth - 24, TopBarHeight + 24, PanelWidth, blocks ? 400 : 330);
+        GUI.Box(rect, GUIContent.none, UIKit.Panel);
         float x = rect.x + 24, y = rect.y + 18;
         GUI.Label(new Rect(x, y, PanelWidth - 48, 40), $"{selectedTower.Def.Name}  {selectedTower.LevelIndex + 1}단계", hudLabel);
         y += 52;
@@ -162,14 +163,24 @@ public class BattleHUD : MonoBehaviour
         y += 34;
         GUI.Label(new Rect(x, y, PanelWidth - 48, 30), $"사거리 {level.Range:0.#}   치명 {level.CritChance * 100:0}% ×{level.CritMult:0.##}", hudSmall);
         y += 34;
+        if (blocks)
+        {
+            string push = level.Knockback > 0f ? " · 밀어내기" : "";
+            GUI.Label(new Rect(x, y, PanelWidth - 48, 30), $"저지 {level.BlockCount}명 · {level.BlockSec:0.#}초{push}", hudSmall);
+            y += 34;
+        }
         GUI.Label(new Rect(x, y, PanelWidth - 48, 30), $"투자 {selectedTower.TotalSpent}", hudSmall);
         y += 52;
 
         if (selectedTower.CanUpgrade)
         {
             TowerLevelDef next = selectedTower.Def.Levels[selectedTower.LevelIndex + 1];
-            GUI.Label(new Rect(x, y, PanelWidth - 48, 30), $"다음: 공격력 {next.Damage:0.#}, 사거리 {next.Range:0.#}", hudSmall);
-            y += 40;
+            string nextText = blocks
+                ? $"다음: 공격력 {next.Damage:0.#}\n저지 {next.BlockCount}명 · {next.BlockSec:0.#}초{(next.Knockback > level.Knockback ? " · 밀어내기" : "")}"
+                : $"다음: 공격력 {next.Damage:0.#}, 사거리 {next.Range:0.#}";
+            float nextH = blocks ? 62f : 30f;
+            GUI.Label(new Rect(x, y, PanelWidth - 48, nextH), nextText, hudSmall);
+            y += nextH + 10f;
             if (GUI.Button(new Rect(x, y, PanelWidth - 48, 56), $"강화 ({level.UpgradeCost})", UIKit.ButtonSmall))
             {
                 CommandError error = Session.TryUpgrade(selectedTower);

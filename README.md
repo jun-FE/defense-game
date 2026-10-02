@@ -58,7 +58,7 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
   - 클릭, `Space`, `Enter`: 글자가 나오는 중이면 대사를 바로 완성하고, 다 나왔으면 다음 대사로 넘어갑니다.
   - 우상단 **스킵 ▶▶** 버튼이나 `Esc`: 스토리를 건너뛰고 바로 게임을 시작합니다.
 - **전투 화면** (다방향 디펜스: 북쪽·동쪽에서 적이 꿈의 중심으로 온다)
-  - 하단 타워 카드나 `1` 키로 타워를 고르고, 밝은 칸을 클릭해 짓습니다. 초록 칸은 건설 가능, 빨간 칸은 불가입니다. 우클릭·`Esc`로 취소합니다.
+  - 하단 타워 카드나 `1`·`2` 키로 타워를 고르고, 밝은 칸을 클릭해 짓습니다. 초록 칸은 건설 가능, 빨간 칸은 불가입니다. 우클릭·`Esc`로 취소합니다.
   - 지은 타워를 클릭하면 오른쪽에 정보와 **강화** 버튼이 나옵니다.
   - 웨이브 사이 준비 시간에 `Space`(바로 시작)로 웨이브를 당길 수 있습니다.
   - `x1`/`x2`/`x4` 속도, `Esc` 일시정지(계속 / 처음부터 / 중도 귀환 / 메인 메뉴).
@@ -117,11 +117,12 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 | --- | --- | --- |
 | `RULE_BASE` | GameRule | 방어력 상수, 공격속도 하한, 틱 간격, 이동 배율 하한·상한 |
 | `EN_TOY`, `EN_RUSH`, `EN_HEAVY` | Enemy | HP, 방어력, 이동 속도, 누수 피해, 처치 재화, 색·크기 |
-| `TW_LAMP` | Tower + TowerLevel | 설치 비용, 단계별 공격력·사거리·공격속도·치명타·강화 비용, 프리팹·아이콘 |
+| `TW_LAMP`, `TW_SOLDIER` | Tower + TowerLevel | 설치 비용, 단계별 공격력·사거리·공격속도·치명타·강화 비용, 저지 인원·저지 시간·밀어내기, 프리팹·아이콘 |
 | `MAP_ROOM` | Map + SpawnPoint | 중심 위치, 출현 경로, 건설 구역, 카메라 범위 |
 | `STG_Q01` | Stage + Wave + SpawnGroup | 시작 재화, 중심 HP, 지을 수 있는 타워, 웨이브별 준비 시간·생성 묶음 |
 
 - **공격속도**는 "한 번 공격한 뒤 다음 공격까지 걸리는 초"입니다. 낮을수록 빠르고, 최소 0.2초입니다(기획서 `attack_sec`).
+- **병정인형(TW_SOLDIER)** 은 근거리 저지 타워입니다. 사거리 안에 들어온 적을 **저지 인원**만큼 붙잡아 세우고, 한 적을 **저지 시간**만큼 붙잡으면 그 적은 이 타워를 지나갑니다(다른 병정인형에는 다시 붙잡힐 수 있음). **밀어내기**가 있으면 칠 때마다 적을 길 뒤로 밀고(보스 면역, Enemy의 `isBoss`), 밀린 적은 다시 걸어와 남은 저지 시간만큼 붙잡힙니다. 임시값은 1단계 1명·3초, 2단계 2명·4초, 3단계 2명·4초·밀어내기 0.6칸입니다.
 - 고친 뒤 메뉴 **Defense → 전투 데이터 검사**로 중복 ID, 없는 참조, 범위를 벗어난 값을 확인하세요. 오류가 있으면 전투 화면에도 표시되고 시작되지 않습니다.
 - "데모 게임 다시 만들기"는 이미 있는 데이터 에셋을 덮어쓰지 않습니다.
 
@@ -132,7 +133,7 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - 시스템 기획서의 계산 사례(16피해, 7회 7초 처치, 잔액 76, 강화 실패 시 변화 없음 등)를 자동으로 검사합니다.
   - Unity: 메뉴 **Defense → 전투 검산 테스트 실행** (Console에 결과)
   - 터미널(Mono 필요): `bash Tools/CoreTests/run.sh`
-- 밸런스 모의 플레이: `bash Tools/CoreTests/balance.sh` → 성공률, 잔여 중심 HP, 소요 시간을 기획 목표와 함께 보여줍니다.
+- 밸런스 모의 플레이: `bash Tools/CoreTests/balance.sh` (병정인형을 섞어 지으려면 `balance.sh 200 mix`) → 성공률, 잔여 중심 HP, 소요 시간을 기획 목표와 함께 보여줍니다.
 - 첫 의뢰 웨이브는 기획서 샘플보다 적을 줄인 1차 밸런스입니다(기획서 샘플은 시작 재화 120으로 막기 어려운 스트레스 테스트). 기획서 샘플 그대로의 웨이브는 테스트 전용(`SampleContent.SpecSampleStage`)으로 남겨 두었습니다.
 
 ## 타워 아트
@@ -146,7 +147,13 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
   - `icon_feather/crystal/star/lantern`: 아직 안 쓰는 아이콘 (업그레이드 등에 사용 예정)
 - 원본 시트: `ArtSource/Towers/dreamcatcher_sheet.jpg`. 다시 자르려면 프로젝트 폴더에서
   `python3 Tools/Art/slice_dreamcatcher.py`를 실행합니다(검은 배경을 투명하게 바꾸고 고리 중심을 기준으로 정렬).
-- `Assets/Art/Towers/` 아래 PNG는 자동으로 스프라이트로 가져옵니다(타워 150 PPU, 투사체 220 PPU).
+- **병정인형(TW_SOLDIER)**: `Assets/Art/Towers/Soldier/`
+  - `soldier_<방향>_L<단계>_0~5`: 위·아래·좌·우 × 1~3단계 × 6프레임(정지 → 준비 → 발동 → 타격 → 회수 → 복귀). 대기 중에는 0번 프레임, 공격할 때마다 적 쪽 방향으로 6프레임을 재생합니다. 강화하면 그 단계 외형으로 바뀝니다.
+  - `icon`, `icon_disabled`: 건설 버튼 아이콘
+  - 원본: `ArtSource/Towers/병정인형_4방향_3단계_공격모션_SVG`. 다시 만들려면
+    `python3 Tools/Art/import_tower_svg.py ArtSource/Towers/병정인형_4방향_3단계_공격모션_SVG Soldier soldier`
+    (같은 구조의 SVG라면 다른 타워에도 그대로 씁니다. `rsvg-convert` 필요)
+- `Assets/Art/Towers/` 아래 PNG는 자동으로 스프라이트로 가져옵니다(타워 150 PPU, 병정인형 230 PPU, 투사체 220 PPU).
 - 애니메이션 속도는 `Assets/Prefabs/Towers/TW_LAMP` 프리팹의 `Visual` 오브젝트 → `TowerVisual`에서 조정합니다.
 
 ## 3. 프로젝트 구조

@@ -9,6 +9,8 @@ public class TowerArtImporter : AssetPostprocessor
     public const string Folder = "Assets/Art/Towers/";
     public const float TowerPixelsPerUnit = 150f;
     public const float ProjectilePixelsPerUnit = 220f;
+    /// <summary>병정인형 400px 캔버스(인물 약 260px) → 약 1.1칸 높이.</summary>
+    public const float SoldierPixelsPerUnit = 230f;
 
     void OnPreprocessTexture()
     {
@@ -18,7 +20,9 @@ public class TowerArtImporter : AssetPostprocessor
     /// <summary>설정이 바뀌었으면 true.</summary>
     public static bool Apply(TextureImporter importer, string path)
     {
-        float ppu = path.Contains("projectile") ? ProjectilePixelsPerUnit : TowerPixelsPerUnit;
+        float ppu = path.Contains("projectile") ? ProjectilePixelsPerUnit
+                  : path.Contains("/Soldier/soldier_") ? SoldierPixelsPerUnit
+                  : TowerPixelsPerUnit;
         bool changed = importer.textureType != TextureImporterType.Sprite
                        || importer.spriteImportMode != SpriteImportMode.Single
                        || importer.spritePixelsPerUnit != ppu

@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "8";
+    public const string BuildVersion = "9";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -34,6 +34,7 @@ public static class DemoSceneBuilder
     const string DataDir = "Assets/Data";
     const string BattleDataDir = "Assets/Data/Battle";
     public const string DreamcatcherDir = "Assets/Art/Towers/Dreamcatcher";
+    public const string SoldierDir = "Assets/Art/Towers/Soldier";
     const string ResourcesDir = "Assets/Resources";
 
     // 이전 버전(단일 경로 디펜스)이 만든 파일. 업데이트할 때 지운다.
@@ -261,6 +262,7 @@ public static class DemoSceneBuilder
                 e.moveSpeed = def.MoveSpeed;
                 e.coreDamage = def.CoreDamage;
                 e.killCoin = def.KillCoin;
+                e.isBoss = def.IsBoss;
                 e.sprite = circle;
                 e.tint = enemyColors.ContainsKey(def.Id) ? enemyColors[def.Id] : Color.white;
                 e.scale = enemyScales.ContainsKey(def.Id) ? enemyScales[def.Id] : 0.6f;
@@ -278,6 +280,7 @@ public static class DemoSceneBuilder
                 {
                     id = l.Id, damage = l.Damage, range = l.Range, attackSec = l.AttackSec,
                     critChance = l.CritChance, critMult = l.CritMult, upgradeCost = l.UpgradeCost,
+                    blockCount = l.BlockCount, blockSec = l.BlockSec, knockback = l.Knockback,
                 }).ToArray();
             }));
         }
@@ -289,6 +292,15 @@ public static class DemoSceneBuilder
             if (tower.icon == null) tower.icon = LoadTowerSprite("icon_tower.png");
             if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_tower_disabled.png");
             if (tower.projectile == null) tower.projectile = LoadTowerSprite("feather_projectile.png");
+            EditorUtility.SetDirty(tower);
+        }
+        // 병정인형(TW_SOLDIER): 4방향·3단계 아트.
+        foreach (TowerAsset tower in towers)
+        {
+            if (tower.id != "TW_SOLDIER") continue;
+            if (tower.prefab == null) tower.prefab = CreateSoldierPrefab(tower.id);
+            if (tower.icon == null) tower.icon = LoadTowerSprite("icon.png", SoldierDir);
+            if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_disabled.png", SoldierDir);
             EditorUtility.SetDirty(tower);
         }
 
@@ -305,7 +317,7 @@ public static class DemoSceneBuilder
             m.cameraBounds = new Rect(mapDef.CameraX, mapDef.CameraY, mapDef.CameraWidth, mapDef.CameraHeight);
         });
 
-        return LoadOrCreate<StageAsset>(sample.Id, st =>
+        StageAsset stageAsset = LoadOrCreate<StageAsset>(sample.Id, st =>
         {
             st.displayName = sample.Name;
             st.map = map;
@@ -324,6 +336,18 @@ public static class DemoSceneBuilder
                 }).ToArray(),
             }).ToArray();
         });
+
+        // 이미 있던 스테이지에는 새로 생긴 타워(예: 병정인형)만 뒤에 붙인다. 고친 수치는 그대로 둔다.
+        var stageTowers = new List<TowerAsset>(stageAsset.towers ?? new TowerAsset[0]);
+        bool added = false;
+        foreach (TowerAsset tower in towers)
+            if (!stageTowers.Contains(tower)) { stageTowers.Add(tower); added = true; }
+        if (added)
+        {
+            stageAsset.towers = stageTowers.ToArray();
+            EditorUtility.SetDirty(stageAsset);
+        }
+        return stageAsset;
     }
 
     /// <summary>Assets/Data/Battle/{id}.asset 이 있으면 그대로 쓰고, 없으면 만들어서 fill로 채운다.</summary>
@@ -359,6 +383,45 @@ public static class DemoSceneBuilder
         var firePoint = new GameObject("FirePoint").transform;
         firePoint.SetParent(root.transform, false);
         firePoint.localPosition = ringCenter;
+
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
+        Object.DestroyImmediate(root);
+        return prefab;
+    }
+
+    /// <summary>병정인형: 단계(L1~L3)별 위·아래·좌·우 6프레임. 받침 기준점(200,370)을 타일 중심 조금 아래에 맞춘다.</summary>
+    static GameObject CreateSoldierPrefab(string id)
+    {
+        string[] dirs = { "up", "down", "left", "right" };
+        var levels = new TowerVisual.DirectionalFrames[3];
+        for (int level = 0; level < 3; level++)
+        {
+            var frames = new Sprite[4][];
+            for (int d = 0; d < 4; d++)
+            {
+                frames[d] = new Sprite[6];
+                for (int f = 0; f < 6; f++)
+                {
+                    frames[d][f] = LoadTowerSprite($"soldier_{dirs[d]}_L{level + 1}_{f}.png", SoldierDir);
+                    if (frames[d][f] == null) return null;
+                }
+            }
+            levels[level] = new TowerVisual.DirectionalFrames { up = frames[0], down = frames[1], left = frames[2], right = frames[3] };
+        }
+
+        EnsureFolder($"{PrefabDir}/Towers");
+        var root = new GameObject(id);
+        // 400px 캔버스의 받침 기준점은 중심에서 170px 아래. 받침이 타일 중심보다 0.3칸 아래에 오게 올린다.
+        float baseOffset = 170f / TowerArtImporter.SoldierPixelsPerUnit;
+        var visualOffset = new Vector2(0f, baseOffset - 0.3f);
+        GameObject visualGo = CreateSprite("Visual", levels[0].down[0], Color.white, root.transform, visualOffset, Vector2.one, 1);
+        var visual = visualGo.AddComponent<TowerVisual>();
+        visual.levels = levels;
+        visual.attackFps = 12f;
+
+        var firePoint = new GameObject("FirePoint").transform;
+        firePoint.SetParent(root.transform, false);
+        firePoint.localPosition = new Vector3(0f, 0.3f, 0f);
 
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
         Object.DestroyImmediate(root);
@@ -466,9 +529,9 @@ public static class DemoSceneBuilder
         return frames;
     }
 
-    static Sprite LoadTowerSprite(string fileName)
+    static Sprite LoadTowerSprite(string fileName, string folder = DreamcatcherDir)
     {
-        string path = $"{DreamcatcherDir}/{fileName}";
+        string path = $"{folder}/{fileName}";
         var importer = AssetImporter.GetAtPath(path) as TextureImporter;
         if (importer == null) return null;
         if (TowerArtImporter.Apply(importer, path)) importer.SaveAndReimport();

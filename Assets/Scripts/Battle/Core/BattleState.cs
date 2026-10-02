@@ -17,6 +17,12 @@ namespace Akmong.Battle
         public Vector2 PreviousPosition { get; internal set; }
         public bool Alive { get; internal set; } = true;
         public bool ReachedCore { get; internal set; }
+        /// <summary>이 적을 붙잡고 있는 저지 타워. 없으면 null.</summary>
+        public TowerState BlockedBy { get; internal set; }
+        /// <summary>저지가 풀리기까지 남은 시간(초).</summary>
+        public double BlockRemaining { get; internal set; }
+        /// <summary>타워별로 남은 저지 시간. 0 이하면 그 타워를 뚫고 지나간 것이라 다시 붙잡히지 않는다.</summary>
+        internal readonly System.Collections.Generic.Dictionary<int, double> BlockLeft = new System.Collections.Generic.Dictionary<int, double>();
 
         /// <summary>중심까지 남은 경로 거리. NEAREST_CORE 타겟팅 기준.</summary>
         public float RemainingDistance => Spawn.Length - Traveled;
@@ -37,6 +43,9 @@ namespace Akmong.Battle
 
         public TowerLevelDef Level => Def.Levels[LevelIndex];
         public bool CanUpgrade => LevelIndex + 1 < Def.Levels.Count;
+        public bool Blocks => Level.BlockCount > 0;
+        /// <summary>지금 붙잡고 있는 적 수.</summary>
+        public int BlockingCount { get; internal set; }
     }
 
     public enum BattlePhase { Prepare, Combat, Ended }
@@ -68,5 +77,7 @@ namespace Akmong.Battle
         public float HpBefore;
         public float HpAfter;
         public bool Killed;
+        /// <summary>이 공격으로 적을 밀어냈는지.</summary>
+        public bool Knockback;
     }
 }

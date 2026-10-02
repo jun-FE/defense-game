@@ -28,6 +28,8 @@ namespace Akmong.Battle
         public float MoveSpeed = 1.5f;
         public int CoreDamage = 5;
         public int KillCoin = 3;
+        /// <summary>보스: 밀어내기 면역(타워 역할 기획).</summary>
+        public bool IsBoss;
     }
 
     public enum TargetRule { NearestCore }
@@ -42,6 +44,14 @@ namespace Akmong.Battle
         public float CritMult = 1.5f;
         /// <summary>다음 단계로 강화하는 비용. 마지막 단계는 0.</summary>
         public int UpgradeCost;
+
+        // 근거리 저지(병정인형). 타워 역할 기획서 기준이며 수치는 밸런싱에서 확정한다.
+        /// <summary>동시에 붙잡아 둘 수 있는 적 수. 0이면 저지하지 않는 타워.</summary>
+        public int BlockCount;
+        /// <summary>한 적을 붙잡아 두는 최대 시간(초). 지나면 그 적은 이 타워를 뚫고 지나간다.</summary>
+        public float BlockSec;
+        /// <summary>공격할 때 적을 경로 뒤로 미는 거리(타일). 보스는 면역.</summary>
+        public float Knockback;
     }
 
     public sealed class TowerDef
