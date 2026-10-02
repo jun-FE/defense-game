@@ -1,0 +1,98 @@
+{
+  "canvasWidth": 1920,
+  "canvasHeight": 1080,
+  "background": "#14122a",
+  "layers": [
+    {
+      "name": "bg_night_forest",
+      "x": 960,
+      "y": 380,
+      "width": 2000,
+      "depth": 0.0
+    },
+    {
+      "name": "wall_frame_b",
+      "x": 960,
+      "y": 470,
+      "width": 2150,
+      "depth": 0.15
+    },
+    {
+      "name": "wall_decor",
+      "x": 360,
+      "y": 400,
+      "width": 640,
+      "depth": 0.25
+    },
+    {
+      "name": "shelves_decorated",
+      "x": 1260,
+      "y": 560,
+      "width": 1150,
+      "depth": 0.3
+    },
+    {
+      "name": "hanging_decor",
+      "x": 960,
+      "y": 90,
+      "width": 1300,
+      "depth": 0.4
+    },
+    {
+      "name": "toys_shelf",
+      "x": 1120,
+      "y": 650,
+      "width": 600,
+      "depth": 0.45
+    },
+    {
+      "name": "ian",
+      "x": 650,
+      "y": 445,
+      "width": 400,
+      "depth": 0.6
+    },
+    {
+      "name": "workbench",
+      "x": 620,
+      "y": 885,
+      "width": 1000,
+      "depth": 0.65
+    },
+    {
+      "name": "doha",
+      "x": 330,
+      "y": 598,
+      "width": 250,
+      "depth": 0.7
+    },
+    {
+      "name": "fg_floor",
+      "x": 960,
+      "y": 1035,
+      "width": 1950,
+      "depth": 0.85
+    },
+    {
+      "name": "fg_plants_left",
+      "x": 200,
+      "y": 790,
+      "width": 520,
+      "depth": 0.9
+    },
+    {
+      "name": "fg_books_left",
+      "x": 170,
+      "y": 925,
+      "width": 460,
+      "depth": 0.95
+    },
+    {
+      "name": "fg_crystal_right",
+      "x": 1740,
+      "y": 900,
+      "width": 420,
+      "depth": 0.95
+    }
+  ]
+}

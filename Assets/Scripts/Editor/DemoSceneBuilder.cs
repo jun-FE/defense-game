@@ -7,7 +7,7 @@ using UnityEngine;
 
 /// <summary>
 /// 데모 게임 전체를 코드로 만든다.
-/// - 씬: Title(메인 메뉴), Story(스토리), Battle(전투)
+/// - 씬: Title(메인 메뉴), Lobby(수선소), Story(스토리), Battle(전투)
 /// - 임시 스프라이트, 타워 프리팹
 /// - 전투 데이터(Assets/Data/Battle): 시스템 기획서 샘플(SampleContent)에서 처음 한 번만 만든다
 /// - 스테이지/스토리 데이터
@@ -19,6 +19,9 @@ public static class DemoSceneBuilder
     public const string TitleScenePath = "Assets/Scenes/Title.unity";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
+    public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
+    public const string LobbyArtDir = "Assets/Art/Lobby";
+    const string QuestDir = "Assets/Data/Quests";
 
     const string ArtDir = "Assets/Art";
     const string PrefabDir = "Assets/Prefabs";
@@ -65,14 +68,18 @@ public static class DemoSceneBuilder
         GameRulesAsset rules;
         StageAsset battleStage = CreateBattleData(circle, out rules);
         StageDatabase database = CreateStageData(battleStage);
+        EnsureFolder(QuestDir);
+        CreateQuestData();
 
         BuildBattleScene(battleStage, rules, square, circle);
         BuildTitleScene(square, circle);
+        BuildLobbyScene();
         BuildStoryScene(database);
 
         EditorBuildSettings.scenes = new[]
         {
             new EditorBuildSettingsScene(TitleScenePath, true),
+            new EditorBuildSettingsScene(LobbyScenePath, true),
             new EditorBuildSettingsScene(StoryScenePath, true),
             new EditorBuildSettingsScene(BattleScenePath, true),
         };
@@ -110,6 +117,75 @@ public static class DemoSceneBuilder
         hud.circle = circle;
 
         EditorSceneManager.SaveScene(scene, BattleScenePath);
+    }
+
+    // ───────── 수선소(로비) ─────────
+
+    static void BuildLobbyScene()
+    {
+        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        CreateCamera(new Color(0.08f, 0.07f, 0.16f));
+
+        var background = new GameObject("LobbyBackground").AddComponent<LobbyBackground>();
+        background.layoutJson = AssetDatabase.LoadAssetAtPath<TextAsset>($"{LobbyArtDir}/lobby_layout.json");
+        var sprites = new List<Sprite>();
+        if (AssetDatabase.IsValidFolder(LobbyArtDir))
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { LobbyArtDir }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer == null) continue;
+                if (LobbyArtImporter.Apply(importer)) importer.SaveAndReimport();
+                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                if (sprite != null) sprites.Add(sprite);
+            }
+        }
+        background.sprites = sprites.ToArray();
+
+        new GameObject("LobbyUI").AddComponent<LobbyUI>();
+        EditorSceneManager.SaveScene(scene, LobbyScenePath);
+    }
+
+    /// <summary>시안의 의뢰 5개(임시 문구). 이미 있으면 그대로 둔다.</summary>
+    static QuestDatabase CreateQuestData()
+    {
+        string databasePath = $"{ResourcesDir}/{QuestDatabase.ResourcePath}.asset";
+        var existing = AssetDatabase.LoadAssetAtPath<QuestDatabase>(databasePath);
+        if (existing != null) return existing;
+
+        var database = ScriptableObject.CreateInstance<QuestDatabase>();
+        database.capacity = 10;
+        database.quests = new[]
+        {
+            CreateQuest("Q_MAIN_01", "잊힌 토끼의 꿈", new[] { "인형", "상실", "어린 시절" },
+                "\"언니가 다시 안아줬으면 좋겠어요…\"\n오래된 토끼 인형에게서 온 편지입니다. 낡았지만, 여전히 누군가를 기다리는 꿈이 남아 있는 것 같아요.",
+                new[] { "달빛 조각", "푸른 실타래", "낡은 쪽지" }, 0),
+            CreateQuest("Q_MAIN_02", "꺼지지 않는 불빛", new[] { "등불", "불안", "어둠" },
+                "(편지 내용은 기획 확정 후 채워집니다.)", new[] { "달빛 조각" }, 1),
+            CreateQuest("Q_MAIN_03", "비를 피하는 우산", new[] { "우산", "그림자", "이별" },
+                "(편지 내용은 기획 확정 후 채워집니다.)", new[] { "달빛 조각" }, 2),
+            CreateQuest("Q_SUB_01", "말하지 못한 편지", new[] { "편지", "후회", "용서" }, "", new string[0], -1),
+            CreateQuest("Q_SUB_02", "먼지 속의 멜로디", new[] { "음악", "기억", "오래됨" }, "", new string[0], -1),
+        };
+        AssetDatabase.CreateAsset(database, databasePath);
+        return database;
+    }
+
+    static QuestData CreateQuest(string id, string title, string[] tags, string letter, string[] rewards, int stageIndex)
+    {
+        string path = $"{QuestDir}/{id}.asset";
+        var existing = AssetDatabase.LoadAssetAtPath<QuestData>(path);
+        if (existing != null) return existing;
+        var quest = ScriptableObject.CreateInstance<QuestData>();
+        quest.questId = id;
+        quest.title = title;
+        quest.tags = tags;
+        quest.letter = letter;
+        quest.rewards = rewards;
+        quest.stageIndex = stageIndex;
+        AssetDatabase.CreateAsset(quest, path);
+        return quest;
     }
 
     // ───────── 전투 데이터 (기획서 샘플 → 에셋, 처음 한 번) ─────────
@@ -441,13 +517,13 @@ public static class DemoSceneBuilder
 }
 
 /// <summary>
-/// 프로젝트를 열었을 때 Title 또는 Battle 씬이 없으면(처음 열었거나 이전 버전에서 업데이트한 경우)
+/// 프로젝트를 열었을 때 Title·Lobby·Battle 씬 중 하나라도 없으면(처음 열었거나 이전 버전에서 업데이트한 경우)
 /// 데모 게임을 만들고 Title 씬을 연다.
 /// </summary>
 [InitializeOnLoad]
 static class DemoSceneAutoSetup
 {
-    const string SessionKey = "DefenseGame.AutoSetupChecked.v4";
+    const string SessionKey = "DefenseGame.AutoSetupChecked.v5";
 
     static DemoSceneAutoSetup()
     {
@@ -464,6 +540,7 @@ static class DemoSceneAutoSetup
 
     static bool NeedsBuild()
     {
-        return !File.Exists(DemoSceneBuilder.TitleScenePath) || !File.Exists(DemoSceneBuilder.BattleScenePath);
+        return !File.Exists(DemoSceneBuilder.TitleScenePath) || !File.Exists(DemoSceneBuilder.BattleScenePath)
+            || !File.Exists(DemoSceneBuilder.LobbyScenePath);
     }
 }

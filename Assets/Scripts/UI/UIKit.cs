@@ -95,7 +95,7 @@ public static class UIKit
         return style;
     }
 
-    static Texture2D MakeTexture(Color color)
+    public static Texture2D MakeTexture(Color color)
     {
         var texture = new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave };
         texture.SetPixel(0, 0, color);

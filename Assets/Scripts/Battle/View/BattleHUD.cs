@@ -198,7 +198,7 @@ public class BattleHUD : MonoBehaviour
         if (UIKit.DrawButton(new Rect(x, 380, 420, 80), "계속하기")) SetPauseMenu(false);
         if (UIKit.DrawButton(new Rect(x, 480, 420, 80), "처음부터 다시")) SceneFlow.RestartStage();
         if (UIKit.DrawButton(new Rect(x, 580, 420, 80), "중도 귀환")) { SetPauseMenu(false); Session.Retreat(); }
-        if (UIKit.DrawButton(new Rect(x, 680, 420, 80), "메인 메뉴")) SceneFlow.GoToTitle();
+        if (UIKit.DrawButton(new Rect(x, 680, 420, 80), "수선소로")) SceneFlow.GoToLobby();
     }
 
     void DrawResult()
@@ -219,7 +219,7 @@ public class BattleHUD : MonoBehaviour
         }
         if (UIKit.DrawButton(new Rect(x, y, 420, 80), "다시 도전")) SceneFlow.RestartStage();
         y += 100;
-        if (UIKit.DrawButton(new Rect(x, y, 420, 80), "메인 메뉴")) SceneFlow.GoToTitle();
+        if (UIKit.DrawButton(new Rect(x, y, 420, 80), "수선소로")) SceneFlow.GoToLobby();
     }
 
     void DrawDataErrors()
@@ -228,7 +228,7 @@ public class BattleHUD : MonoBehaviour
         GUI.Label(new Rect(80, 80, UIKit.Width - 160, 60), "전투 데이터 오류로 시작할 수 없어요", UIKit.Heading);
         string list = controller.Content == null ? "" : string.Join("\n", controller.Content.Errors);
         GUI.Label(new Rect(80, 170, UIKit.Width - 160, UIKit.Height - 300), list, hudSmall);
-        if (UIKit.DrawButton(new Rect(80, UIKit.Height - 120, 300, 70), "메인 메뉴", UIKit.ButtonSmall)) SceneFlow.GoToTitle();
+        if (UIKit.DrawButton(new Rect(80, UIKit.Height - 120, 300, 70), "수선소로", UIKit.ButtonSmall)) SceneFlow.GoToLobby();
     }
 
     void DrawBar(Rect rect, float t, Color color)

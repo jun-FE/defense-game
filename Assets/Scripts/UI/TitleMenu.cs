@@ -9,7 +9,7 @@ public class TitleMenu : MonoBehaviour
     public string subtitle = "마지막 왕국을 지켜라";
 
     Page page = Page.Main;
-    bool confirmReset;
+    readonly SettingsPanel settings = new SettingsPanel();
     GUIStyle stageCardStyle;
 
     void Awake()
@@ -53,7 +53,7 @@ public class TitleMenu : MonoBehaviour
         float x = (w - buttonWidth) * 0.5f;
         float y = 480f;
 
-        if (UIKit.DrawButton(new Rect(x, y, buttonWidth, buttonHeight), "시작하기")) SceneFlow.StartStage(0);
+        if (UIKit.DrawButton(new Rect(x, y, buttonWidth, buttonHeight), "시작하기")) SceneFlow.GoToLobby();
         y += 104f;
         if (UIKit.DrawButton(new Rect(x, y, buttonWidth, buttonHeight), "스테이지 선택")) OpenPage(Page.StageSelect);
         y += 104f;
@@ -100,53 +100,13 @@ public class TitleMenu : MonoBehaviour
     {
         float w = UIKit.Width;
         UIKit.ShadowLabel(new Rect(0f, 70f, w, 80f), "설정", UIKit.Heading);
-
-        var panel = new Rect((w - 1000f) * 0.5f, 200f, 1000f, 620f);
-        UIKit.DrawPanel(panel);
-        float labelX = panel.x + 60f;
-        float valueX = panel.x + 380f;
-        float y = panel.y + 60f;
-
-        // 볼륨
-        GUI.Label(new Rect(labelX, y, 300f, 60f), "마스터 볼륨", UIKit.Body);
-        float volume = GUI.HorizontalSlider(new Rect(valueX, y + 24f, 420f, 30f), GameSettings.MasterVolume, 0f, 1f);
-        if (!Mathf.Approximately(volume, GameSettings.MasterVolume)) GameSettings.MasterVolume = volume;
-        GUI.Label(new Rect(valueX + 440f, y, 120f, 60f), $"{Mathf.RoundToInt(volume * 100f)}%", UIKit.Body);
-        y += 120f;
-
-        // 텍스트 속도
-        GUI.Label(new Rect(labelX, y, 300f, 60f), "스토리 텍스트 속도", UIKit.Body);
-        for (int i = 0; i < GameSettings.TextSpeedNames.Length; i++)
-        {
-            GUIStyle style = i == GameSettings.TextSpeed ? UIKit.ButtonSelected : UIKit.ButtonSmall;
-            if (GUI.Button(new Rect(valueX + i * 135f, y + 4f, 125f, 56f), GameSettings.TextSpeedNames[i], style))
-                GameSettings.TextSpeed = i;
-        }
-        y += 120f;
-
-        // 전체 화면
-        GUI.Label(new Rect(labelX, y, 300f, 60f), "전체 화면", UIKit.Body);
-        bool fullscreen = GameSettings.Fullscreen;
-        if (GUI.Button(new Rect(valueX, y + 4f, 125f, 56f), "켜기", fullscreen ? UIKit.ButtonSelected : UIKit.ButtonSmall)) GameSettings.Fullscreen = true;
-        if (GUI.Button(new Rect(valueX + 135f, y + 4f, 125f, 56f), "끄기", fullscreen ? UIKit.ButtonSmall : UIKit.ButtonSelected)) GameSettings.Fullscreen = false;
-        y += 120f;
-
-        // 진행 초기화
-        GUI.Label(new Rect(labelX, y, 300f, 60f), "진행 상황", UIKit.Body);
-        string resetText = confirmReset ? "정말 초기화할까요?" : "초기화";
-        if (GUI.Button(new Rect(valueX, y + 4f, 395f, 56f), resetText, confirmReset ? UIKit.ButtonSelected : UIKit.ButtonSmall))
-        {
-            if (confirmReset) Progress.ResetAll();
-            confirmReset = !confirmReset;
-        }
-
+        settings.Draw(new Rect((w - SettingsPanel.Width) * 0.5f, 200f, SettingsPanel.Width, SettingsPanel.Height));
         if (UIKit.DrawButton(new Rect(60f, UIKit.Height - 130f, 220f, 70f), "← 뒤로", UIKit.ButtonSmall)) OpenPage(Page.Main);
     }
 
     void OpenPage(Page next)
     {
-        if (page == Page.Settings) GameSettings.Save();
-        confirmReset = false;
+        if (page == Page.Settings) settings.Close();
         page = next;
     }
 }
