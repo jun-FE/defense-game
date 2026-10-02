@@ -94,6 +94,20 @@ namespace Akmong.Battle
             return Path[Path.Count - 1];
         }
 
+        /// <summary>점에서 경로(선분들)까지 가장 가까운 거리.</summary>
+        public float DistanceTo(Vector2 point)
+        {
+            float best = float.MaxValue;
+            for (int i = 1; i < Path.Count; i++)
+            {
+                Vector2 a = Path[i - 1], ab = Path[i] - a;
+                float lengthSq = ab.LengthSquared();
+                float t = lengthSq <= 0f ? 0f : Math.Max(0f, Math.Min(1f, Vector2.Dot(point - a, ab) / lengthSq));
+                best = Math.Min(best, Vector2.Distance(point, a + ab * t));
+            }
+            return best;
+        }
+
         void EnsureCache()
         {
             if (cumulative != null && cumulative.Length == Path.Count) return;
@@ -124,14 +138,22 @@ namespace Akmong.Battle
         public List<BuildZone> BuildZones = new List<BuildZone>();
         /// <summary>카메라가 보여줄 영역 (x, y, 폭, 높이).</summary>
         public float CameraX, CameraY, CameraWidth, CameraHeight;
+        /// <summary>건설 칸 중심이 길 중심선에서 이만큼(타일) 이상 떨어져야 한다. 0이면 검사하지 않는다(건설 구역만으로 판단).
+        /// 그림 맵처럼 길이 구불구불해서 사각형 구역만으로 길을 피하기 어려울 때 쓴다.</summary>
+        public float PathClearance;
 
         public SpawnPointDef FindSpawn(string id) => SpawnPoints.Find(s => s.Id == id);
 
         public bool IsBuildable(Vector2 tileCenter)
         {
+            bool inZone = false;
             foreach (BuildZone zone in BuildZones)
-                if (zone.Contains(tileCenter)) return true;
-            return false;
+                if (zone.Contains(tileCenter)) { inZone = true; break; }
+            if (!inZone) return false;
+            if (PathClearance <= 0f) return true;
+            foreach (SpawnPointDef spawn in SpawnPoints)
+                if (spawn.DistanceTo(tileCenter) < PathClearance) return false;
+            return true;
         }
     }
 
@@ -163,6 +185,8 @@ namespace Akmong.Battle
         public List<WaveDef> Waves = new List<WaveDef>();
         public int StartCoin = 120;
         public int CoreMaxHp = 100;
+        /// <summary>이 스테이지에서 나오는 모든 적의 HP 배율(같은 적 데이터를 맵 난이도에 맞춰 쓰기 위함).</summary>
+        public float EnemyHpScale = 1f;
         /// <summary>이 스테이지에서 지을 수 있는 타워(기획서 Stage 테이블에 없는 프로토타입 추가 필드).</summary>
         public List<TowerDef> Towers = new List<TowerDef>();
     }

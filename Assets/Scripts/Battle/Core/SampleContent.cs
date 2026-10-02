@@ -64,6 +64,103 @@ namespace Akmong.Battle
         };
 
         /// <summary>
+        /// MAP_GARDEN: 달빛 재봉 정원(맵 시안 1672×941, 1타일 = 75px). 오른쪽 아래 입구에서 시작해
+        /// 바깥 고리 → 가운데 고리 → 안쪽 S자를 돌아 정원 한가운데(꿈의 중심)에 닿는 한 줄 길(약 49타일).
+        /// 좌표: x = 픽셀/75, y = (941 - 픽셀)/75. 타워는 풀밭 구역 안, 길 중심에서 0.8타일 이상 떨어진 칸에 짓는다.
+        /// </summary>
+        public static MapDef Garden()
+        {
+            var path = new List<Vector2>();
+            int[,] px =
+            {
+                // 그림에서 돌길 중심선을 따 왔다(오른쪽 바깥 길은 원근 때문에 아래로 갈수록 오른쪽으로 기운다).
+                { 1140, 725 }, { 1295, 722 }, { 1320, 690 }, { 1318, 640 }, { 1268, 268 }, { 1245, 244 }, { 450, 244 },
+                { 428, 266 }, { 428, 620 }, { 450, 641 }, { 1085, 641 }, { 1105, 620 }, { 1105, 388 }, { 1085, 366 },
+                { 680, 366 }, { 660, 388 }, { 660, 476 }, { 680, 497 }, { 925, 497 },
+            };
+            for (int i = 0; i < px.GetLength(0); i++) path.Add(new Vector2(px[i, 0] / 75f, (941 - px[i, 1]) / 75f));
+            return new MapDef
+            {
+                Id = "MAP_GARDEN",
+                CorePos = path[path.Count - 1],
+                SpawnPoints = { new SpawnPointDef { Id = "SP_GARDEN", Path = path } },
+                BuildZones = { new BuildZone(4.4f, 3.0f, 18.7f, 10.6f) }, // 길이 지나는 풀밭(울타리 안쪽)
+                PathClearance = 0.8f,
+                CameraX = 0f, CameraY = 0f, CameraWidth = 1672f / 75f, CameraHeight = 941f / 75f,
+            };
+        }
+
+        /// <summary>
+        /// 첫 의뢰(정원 맵): 길이 길고(약 49타일) 한 타워가 여러 줄을 칠 수 있어서 MAP_ROOM보다 적이 많고 촘촘하다.
+        /// 5웨이브, 적 HP 1.55배. 모의 플레이(봇 300회) 성공률: 병정인형 섞어 짓기 약 79%, 스탠드만 약 90%.
+        /// 길이 길어 한 판이 약 5~6분으로 기획 목표(2~3분)보다 길다.
+        /// </summary>
+        public static StageDef StageGarden()
+        {
+            EnemyDef toy = Toy(), rush = Rush(), heavy = Heavy();
+            return new StageDef
+            {
+                Id = "STG_Q01",
+                Name = "달빛 재봉 정원",
+                Map = Garden(),
+                StartCoin = 120,
+                CoreMaxHp = 100,
+                EnemyHpScale = 1.55f, // 길이 길어 맞는 시간이 길므로 적 HP를 올린다
+                Towers = { Lamp(), Soldier() },
+                Waves =
+                {
+                    new WaveDef
+                    {
+                        Id = "W_GD_01", PrepareSec = 20, ClearCoin = 20,
+                        Groups =
+                        {
+                            new SpawnGroupDef { Id = "SG_GD1_1", SpawnId = "SP_GARDEN", Enemy = toy, Count = 6, StartSec = 0f, IntervalSec = 2f },
+                            new SpawnGroupDef { Id = "SG_GD1_2", SpawnId = "SP_GARDEN", Enemy = rush, Count = 3, StartSec = 5f, IntervalSec = 2.5f },
+                        },
+                    },
+                    new WaveDef
+                    {
+                        Id = "W_GD_02", PrepareSec = 15, ClearCoin = 25,
+                        Groups =
+                        {
+                            new SpawnGroupDef { Id = "SG_GD2_1", SpawnId = "SP_GARDEN", Enemy = toy, Count = 10, StartSec = 0f, IntervalSec = 1.6f },
+                            new SpawnGroupDef { Id = "SG_GD2_2", SpawnId = "SP_GARDEN", Enemy = rush, Count = 6, StartSec = 4f, IntervalSec = 1.8f },
+                        },
+                    },
+                    new WaveDef
+                    {
+                        Id = "W_GD_03", PrepareSec = 15, ClearCoin = 30,
+                        Groups =
+                        {
+                            new SpawnGroupDef { Id = "SG_GD3_1", SpawnId = "SP_GARDEN", Enemy = toy, Count = 12, StartSec = 0f, IntervalSec = 1.3f },
+                            new SpawnGroupDef { Id = "SG_GD3_2", SpawnId = "SP_GARDEN", Enemy = rush, Count = 8, StartSec = 3f, IntervalSec = 1.5f },
+                            new SpawnGroupDef { Id = "SG_GD3_3", SpawnId = "SP_GARDEN", Enemy = heavy, Count = 2, StartSec = 12f, IntervalSec = 6f },
+                        },
+                    },
+                    new WaveDef
+                    {
+                        Id = "W_GD_04", PrepareSec = 15, ClearCoin = 35,
+                        Groups =
+                        {
+                            new SpawnGroupDef { Id = "SG_GD4_1", SpawnId = "SP_GARDEN", Enemy = rush, Count = 14, StartSec = 0f, IntervalSec = 1f },
+                            new SpawnGroupDef { Id = "SG_GD4_2", SpawnId = "SP_GARDEN", Enemy = heavy, Count = 3, StartSec = 5f, IntervalSec = 5f },
+                        },
+                    },
+                    new WaveDef
+                    {
+                        Id = "W_GD_05", PrepareSec = 15, ClearCoin = 40,
+                        Groups =
+                        {
+                            new SpawnGroupDef { Id = "SG_GD5_1", SpawnId = "SP_GARDEN", Enemy = toy, Count = 16, StartSec = 0f, IntervalSec = 1f },
+                            new SpawnGroupDef { Id = "SG_GD5_2", SpawnId = "SP_GARDEN", Enemy = rush, Count = 12, StartSec = 4f, IntervalSec = 1.1f },
+                            new SpawnGroupDef { Id = "SG_GD5_3", SpawnId = "SP_GARDEN", Enemy = heavy, Count = 5, StartSec = 8f, IntervalSec = 4f },
+                        },
+                    },
+                },
+            };
+        }
+
+        /// <summary>
         /// 플레이용 첫 의뢰 스테이지(프로토타입 1차 밸런스).
         /// 기획서 샘플 웨이브(SpecSampleStage)는 시작 재화 120으로 막기 어려운 스트레스 테스트라서
         /// 적 수와 간격을 줄였다. 모의 플레이(봇 200회) 기준 성공률 약 73%, 총 소요 약 2분(준비 포함).

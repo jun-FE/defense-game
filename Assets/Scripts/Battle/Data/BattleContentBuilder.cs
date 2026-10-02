@@ -34,6 +34,7 @@ public static class BattleContentBuilder
             Name = stageAsset.displayName,
             StartCoin = stageAsset.startCoin,
             CoreMaxHp = stageAsset.coreMaxHp,
+            EnemyHpScale = stageAsset.enemyHpScale,
             Map = ToMap(stageAsset.map),
         };
 
@@ -100,6 +101,7 @@ public static class BattleContentBuilder
             CameraY = asset.cameraBounds.y,
             CameraWidth = asset.cameraBounds.width,
             CameraHeight = asset.cameraBounds.height,
+            PathClearance = asset.pathClearance,
         };
         foreach (SpawnPointData spawnData in asset.spawnPoints)
         {

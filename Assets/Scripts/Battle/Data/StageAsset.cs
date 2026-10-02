@@ -29,6 +29,8 @@ public class StageAsset : DefinitionAsset
     public MapAsset map;
     public int startCoin = 120;
     public int coreMaxHp = 100;
+    [Tooltip("이 스테이지에 나오는 모든 적의 HP 배율")]
+    public float enemyHpScale = 1f;
     public TowerAsset[] towers = new TowerAsset[0];
     public WaveData[] waves = new WaveData[0];
 }

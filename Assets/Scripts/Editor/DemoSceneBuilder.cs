@@ -19,13 +19,15 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "11";
+    public const string BuildVersion = "12";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
     public const string MainScenePath = "Assets/Scenes/Main.unity";
     public const string MainArtDir = "Assets/Art/Main/Depth";
     public const string MainUIDir = "Assets/Art/Main/UI";
+    public const string BattleUIDir = "Assets/Art/Battle/UI";
+    public const string GardenMapDir = "Assets/Art/Maps/Garden";
     const string QuestDir = "Assets/Data/Quests";
 
     const string ArtDir = "Assets/Art";
@@ -122,6 +124,10 @@ public static class DemoSceneBuilder
         hud.worldCamera = cam;
         hud.square = square;
         hud.circle = circle;
+        List<Sprite> uiSprites = LoadScreenSprites(MainUIDir);
+        uiSprites.AddRange(LoadScreenSprites(BattleUIDir));
+        hud.uiSprites = uiSprites.ToArray();
+        hud.uiBorders = AssetDatabase.LoadAssetAtPath<TextAsset>($"{MainUIDir}/ui_borders.json");
 
         EditorSceneManager.SaveScene(scene, BattleScenePath);
     }
@@ -259,7 +265,8 @@ public static class DemoSceneBuilder
             r.maxMoveRatio = source.MaxMoveRatio;
         });
 
-        StageDef sample = SampleContent.StageQ01();
+        // 첫 의뢰 = 정원 맵(달빛 재봉 정원). 예전 샘플(MAP_ROOM)로 만든 스테이지는 아래에서 정원으로 옮긴다.
+        StageDef sample = SampleContent.StageGarden();
         var enemyColors = new Dictionary<string, Color>
         {
             { "EN_TOY", new Color(0.85f, 0.3f, 0.35f) },
@@ -335,14 +342,21 @@ public static class DemoSceneBuilder
             }).ToArray();
             m.buildZones = mapDef.BuildZones.ConvertAll(z => Rect.MinMaxRect(z.XMin, z.YMin, z.XMax, z.YMax)).ToArray();
             m.cameraBounds = new Rect(mapDef.CameraX, mapDef.CameraY, mapDef.CameraWidth, mapDef.CameraHeight);
+            m.pathClearance = mapDef.PathClearance;
         });
+        // 맵 그림: Assets/Art/Maps/Garden/base.png(바닥), front.png(앞 가림, 있으면)
+        List<Sprite> mapArt = LoadScreenSprites(GardenMapDir);
+        if (map.background == null) map.background = mapArt.Find(sp => sp.name == "base");
+        if (map.foreground == null) map.foreground = mapArt.Find(sp => sp.name == "front");
+        EditorUtility.SetDirty(map);
 
-        StageAsset stageAsset = LoadOrCreate<StageAsset>(sample.Id, st =>
+        System.Action<StageAsset> fillStage = st =>
         {
             st.displayName = sample.Name;
             st.map = map;
             st.startCoin = sample.StartCoin;
             st.coreMaxHp = sample.CoreMaxHp;
+            st.enemyHpScale = sample.EnemyHpScale;
             st.towers = towers.ToArray();
             st.waves = sample.Waves.ConvertAll(w => new WaveData
             {
@@ -355,7 +369,15 @@ public static class DemoSceneBuilder
                     count = g.Count, startSec = g.StartSec, intervalSec = g.IntervalSec,
                 }).ToArray(),
             }).ToArray();
-        });
+        };
+        StageAsset stageAsset = LoadOrCreate<StageAsset>(sample.Id, fillStage);
+        // 예전 임시 맵(MAP_ROOM, 직선 길 2개)으로 만든 첫 의뢰는 정원 맵과 그 웨이브로 한 번 옮긴다.
+        if (stageAsset.map == null || stageAsset.map.id == "MAP_ROOM")
+        {
+            fillStage(stageAsset);
+            EditorUtility.SetDirty(stageAsset);
+            Debug.Log("[빌더] 첫 의뢰 전투를 정원 맵(MAP_GARDEN)으로 옮겼습니다.");
+        }
 
         // 이미 있던 스테이지에는 새로 생긴 타워(예: 병정인형)만 뒤에 붙인다. 고친 수치는 그대로 둔다.
         var stageTowers = new List<TowerAsset>(stageAsset.towers ?? new TowerAsset[0]);

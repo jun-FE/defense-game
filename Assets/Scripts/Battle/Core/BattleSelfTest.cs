@@ -43,6 +43,7 @@ namespace Akmong.Battle
                 Check(c, n, errors.Count == 0, string.Join(" / ", errors));
             });
             run("검사기: 중복 ID와 없는 출현 지점", ValidatorCatchesErrors);
+            run("정원 맵: 데이터 검사 통과, 길 위에는 못 짓고 풀밭에는 지음", GardenCase);
             run("HP 100·방어 25 적은 16피해 7회, 설치 7초 뒤 처치", KillTimeCase);
             run("1웨이브: 12마리 생성, 북 10.5초·동 10초 마지막 생성", WaveSpawnCase);
             run("경제: 스탠드 2개 + 전부 처치 = 잔액 76", EconomyCase);
@@ -111,6 +112,21 @@ namespace Akmong.Battle
             bool duplicate = errors.Exists(e => e.Contains("중복"));
             bool missing = errors.Exists(e => e.Contains("SP_NOWHERE"));
             Check(cases, name, duplicate && missing, string.Join(" / ", errors));
+        }
+
+        static void GardenCase(List<Case> cases, string name)
+        {
+            StageDef stage = SampleContent.StageGarden();
+            List<string> errors = DefinitionValidator.Validate(stage);
+            MapDef map = stage.Map;
+            int buildable = 0;
+            for (int x = 0; x < 23; x++)
+                for (int y = 0; y < 13; y++)
+                    if (map.IsBuildable(new Vector2(x, y))) buildable++;
+            bool onPath = map.IsBuildable(new Vector2(17, 6));   // 오른쪽 바깥 길(x 17.67) 바로 위
+            bool onGrass = map.IsBuildable(new Vector2(16, 6));  // 오른쪽 풀밭
+            Check(cases, name, errors.Count == 0 && !onPath && onGrass && buildable >= 15,
+                $"오류 {errors.Count}개 {string.Join(" / ", errors)}, 길 위 건설 {onPath}(False), 풀밭 {onGrass}(True), 지을 수 있는 칸 {buildable}개");
         }
 
         // ───────── 시뮬레이션 ─────────

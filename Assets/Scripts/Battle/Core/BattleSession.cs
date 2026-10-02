@@ -229,7 +229,8 @@ namespace Akmong.Battle
         void Spawn(SpawnGroupDef group)
         {
             SpawnPointDef spawn = Stage.Map.FindSpawn(group.SpawnId);
-            float hp = (float)Math.Ceiling(group.Enemy.MaxHp * 1.0); // 2주차: 침식 단계 HP 배율(신규 생성 적에만)
+            // 스테이지 HP 배율. 2주차: 침식 단계 HP 배율도 여기서 곱한다(신규 생성 적에만).
+            float hp = (float)Math.Ceiling(group.Enemy.MaxHp * (double)Stage.EnemyHpScale);
             var enemy = new EnemyState
             {
                 EntityId = nextEntityId++,

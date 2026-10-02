@@ -23,6 +23,7 @@ namespace Akmong.Battle
             CheckId(ids, errors, "Stage", stage.Id, where);
             if (stage.StartCoin < 0) errors.Add($"{where}: start_coin은 0 이상이어야 합니다.");
             if (stage.CoreMaxHp < 1) errors.Add($"{where}: core_max_hp는 1 이상이어야 합니다.");
+            if (stage.EnemyHpScale <= 0f) errors.Add($"{where}: 적 HP 배율은 0보다 커야 합니다.");
             if (stage.Waves.Count == 0) errors.Add($"{where}: 웨이브가 하나도 없습니다.");
             if (stage.Towers.Count == 0) errors.Add($"{where}: 지을 수 있는 타워가 없습니다.");
 

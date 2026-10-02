@@ -18,4 +18,12 @@ public class MapAsset : DefinitionAsset
     public Rect[] buildZones = new Rect[0];
     [Tooltip("카메라가 보여줄 영역 (x, y, 폭, 높이)")]
     public Rect cameraBounds = new Rect(-8, -4, 26, 17);
+    [Tooltip("건설 칸 중심이 길 중심선에서 이만큼(타일) 떨어져야 지을 수 있다. 0이면 건설 구역만 본다.")]
+    public float pathClearance;
+
+    [Header("그림 (없으면 임시 도형으로 그린다)")]
+    [Tooltip("맵 바닥 그림. 카메라 영역(cameraBounds)에 꽉 맞춰 깔린다.")]
+    public Sprite background;
+    [Tooltip("몬스터·타워보다 앞에 보이는 투명 PNG(선택). background와 같은 크기.")]
+    public Sprite foreground;
 }
