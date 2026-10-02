@@ -69,22 +69,36 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 
 | 이름 | 화면 | 원본 아트(기획 → GitHub 업로드) | 게임 안 에셋 |
 | --- | --- | --- | --- |
-| 로비 | 게임을 켜면 처음 보이는 화면(게임 시작, 이어하기 등). 지금은 임시 `Title` 씬 | `ArtSource/Lobby_depth` | `Assets/Art/Lobby` (아트 도착 후) |
-| 메인 | 수선소. 의뢰함·편지·탭이 있는 거점 화면 (`Main` 씬) | 배경 층 `ArtSource/Main_depth`, UI `ArtSource/Main_UI` | `Assets/Art/Main/Depth`, `Assets/Art/Main/UI` |
+| 로비 | 게임을 켜면 처음 보이는 화면: 이어하기·새로하기·설정·종료 (`Lobby` 씬) | `ArtSource/Lobby_depth` | `Assets/Art/Lobby` |
+| 메인 | 수선소. 의뢰함·의뢰 상세·탭이 있는 거점 화면 (`Main` 씬) | 배경 층 `ArtSource/Main_depth`, UI `ArtSource/Main_UI` | `Assets/Art/Main/Depth`, `Assets/Art/Main/UI` |
 | 전투 | 꿈 속 디펜스 (`Battle` 씬) | `ArtSource/Towers` 등 | `Assets/Art/Towers` |
 
-각 `ArtSource` 폴더의 README에 넣는 방법과 파일 규칙이 있습니다.
+각 `ArtSource` 폴더의 README에 넣는 방법과 파일 규칙이 있습니다. 원본이 바뀌면 아래 도구로 다시 가져옵니다.
+
+| 도구 | 하는 일 |
+| --- | --- |
+| `bash Tools/Art/main_depth_import.sh` | 메인 배경 원본(01~16) → `Assets/Art/Main/Depth` (여백 자르기, 영문 이름) |
+| `python3 Tools/Art/import_layers.py` | 투명 PNG 레이어 가져오기(범용). 로비처럼 같은 캔버스를 쓰면 `--keep-canvas` |
+| `python3 Tools/Art/build_main_ui.py` | UI 벡터 팩(SVG) → 글자 없는 틀·버튼·아이콘 PNG + 9-slice 모서리 폭 (`rsvg-convert` 필요) |
+| `python3 Tools/Art/preview_layers.py 출력.png [--lobby]` | Unity 없이 배경 배치 미리보기 |
+| `python3 Tools/Art/key_black.py` | 검은 배경 이미지 → 투명 PNG (메신저로 받은 JPEG 등) |
+
+## 로비(첫 화면)
+
+- 층 5장(도시 원경, 골목, 창문 안, 공방 외관, 전경)을 같은 캔버스로 겹치고, 마우스를 움직이면 층마다 다르게 움직입니다. 창문 불빛은 은은하게 깜빡입니다.
+- 로고와 메뉴 글자는 로비 아트 06번 층에서 잘라낸 이미지입니다. 배치는 `Assets/Art/Lobby/lobby_layout.json`의 `menu`에 있습니다.
+- **이어하기**: 진행 기록이 있을 때만 활성. **새로하기**: 기록이 있으면 확인 후 초기화하고 메인으로(프롤로그는 4주차에 이 자리에). **설정**, **종료**.
+- 마우스를 올리거나 ↑↓ 키로 고르면 ✦ 표시와 금색 밑줄이 붙고, 클릭·Enter로 실행합니다.
 
 ## 메인(수선소) 화면
 
-로비(타이틀) **시작하기** → 메인 → 의뢰함에서 편지 선택 → **의뢰 시작하기** → (스토리) → 전투 → 결과 화면 **수선소로** 순서입니다.
+로비 **이어하기/새로하기** → 메인 → 의뢰함에서 의뢰 선택 → **의뢰 시작하기** → (스토리) → 전투 → 결과 화면 **수선소로** 순서입니다.
 
-- **배경**: `Assets/Art/Main/Depth`의 레이어를 `main_layout.json` 배치대로 실행 중에 조립합니다. 마우스를 움직이면 레이어 깊이(depth)에 따라 살짝 시차가 생기고, 이안·도하는 숨쉬듯 움직입니다.
-  - 배치 고치기: JSON의 `x`, `y`(이미지 중심), `width`(화면에서의 폭)는 1920×1080 화면 기준 픽셀이라 포토샵 좌표처럼 읽으면 됩니다. 순서는 위에서 아래로 뒤→앞입니다.
-  - Unity 없이 미리보기: `python3 Tools/Art/preview_main.py 미리보기.png` (`--ui`를 붙이면 UI 자리도 표시)
-- **원본 이미지**: `ArtSource/Main_depth`. 지금은 카카오톡으로 받은 검은 배경 JPEG이라 `bash Tools/Art/main_depth_keys.sh`로 배경을 투명하게 바꿔 넣었습니다. 투명 PNG 원본이 오면 교체합니다.
-- **UI**: 의뢰함·편지 카드·말풍선·탭 바는 UI 아트가 들어오기 전까지 임시로 그립니다(`Assets/Scripts/Main/MainUI.cs`).
-- **의뢰**: `Assets/Data/Quests`의 의뢰 에셋(제목, 태그, 편지, 보상 문구, 연결 스테이지)을 고치고, 목록 순서는 `Assets/Resources/QuestDatabase`에서 정합니다. `stageIndex`가 -1이면 "아직 도착하지 않은 의뢰"로 잠겨 보입니다. 앞 스테이지를 클리어하면 다음 의뢰가 열립니다.
+- **배경**: `Assets/Art/Main/Depth`의 레이어를 `main_layout.json` 배치대로 조립합니다(시차, 이안·도하 숨쉬기). JSON의 `x`, `y`(이미지 중심), `width`는 1920×1080 화면 기준 픽셀입니다.
+- **UI**: 메인 UI 벡터 팩의 조각(`Assets/Art/Main/UI`)으로 그립니다. 로고, 해명도 게이지, 재화 바(결정·동전·열쇠), 의뢰함(전체/진행 중/완료), 의뢰 상세(상태·태그·사진·편지·보상·시작 버튼), 도하 말풍선, 하단 탭 6개.
+  - 의뢰 사진·썸네일은 의뢰 에셋의 `photo`, `thumbnail`에 넣으면 나오고, 비어 있으면 자리표시 그림이 나옵니다.
+  - 해명도와 재화 값은 아직 0(저장·정산 연결은 4주차 이후).
+- **의뢰**: `Assets/Data/Quests`의 의뢰 에셋(제목, 태그, 편지, 보상 문구, 연결 스테이지)을 고치고, 목록 순서는 `Assets/Resources/QuestDatabase`에서 정합니다. `stageIndex`가 -1이면 "아직 도착하지 않은 의뢰"로 잠겨 보입니다.
 - 탭: 수선소·의뢰함만 동작하고, 기술(마스터리)은 4주차, 도감·가방·지도는 잠금 표시입니다.
 
 ## 스테이지와 스토리 고치기
@@ -147,9 +161,10 @@ Assets/
     Core/      SceneFlow(화면 전환), Progress(클리어 기록), GameSettings(설정 저장)
     Data/      StageData(스테이지 목록 항목), StoryData, StageDatabase
     Story/     StoryPlayer (대사 출력, 클릭으로 넘기기, 스킵)
-    Main/      MainBackground(레이어 배경·시차), MainUI(의뢰함·편지·탭)
+    Lobby/     LobbyMenu(첫 화면 메뉴)
+    Main/      MainUI(의뢰함·의뢰 상세·탭·재화·해명도)
     Towers/    TowerVisual(타워 스프라이트 애니메이션)
-    UI/        TitleMenu(메인 메뉴), SettingsPanel(설정), UIKit(공통 스타일)
+    UI/        LayeredBackground(층별 배경·시차), SettingsPanel(설정), UIKit(공통 스타일)
     Steam/     SteamManager (Steam API 초기화)
     Editor/    DemoSceneBuilder(데모 게임 생성), BattleToolsMenu(검산·데이터 검사), BuildMenu(빌드)
   Art/ Prefabs/ Scenes/ Data/ Resources/   ← 처음 열 때 자동 생성

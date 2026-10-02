@@ -20,6 +20,9 @@ public static class QuestProgress
         PlayerPrefs.Save();
     }
 
+    /// <summary>수락한 의뢰가 하나라도 있으면 true(로비의 "이어하기" 판단).</summary>
+    public static bool HasAny => PlayerPrefs.GetString(KnownKey, "").Length > 0;
+
     public static void ResetAll()
     {
         foreach (string id in PlayerPrefs.GetString(KnownKey, "").Split(','))

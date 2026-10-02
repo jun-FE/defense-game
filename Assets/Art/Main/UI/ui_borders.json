@@ -1,0 +1,68 @@
+{
+ "items": [
+  {
+   "name": "panel_indigo",
+   "border": 30
+  },
+  {
+   "name": "panel_paper",
+   "border": 30
+  },
+  {
+   "name": "card_dark",
+   "border": 18
+  },
+  {
+   "name": "card_dark_hover",
+   "border": 18
+  },
+  {
+   "name": "card_paper",
+   "border": 18
+  },
+  {
+   "name": "tab_on",
+   "border": 12
+  },
+  {
+   "name": "tab_off",
+   "border": 12
+  },
+  {
+   "name": "button_primary",
+   "border": 56
+  },
+  {
+   "name": "button_primary_hover",
+   "border": 56
+  },
+  {
+   "name": "bar_indigo",
+   "border": 22
+  },
+  {
+   "name": "chip_tag",
+   "border": 14
+  },
+  {
+   "name": "badge",
+   "border": 19
+  },
+  {
+   "name": "gauge_track",
+   "border": 12
+  },
+  {
+   "name": "gauge_fill",
+   "border": 8
+  },
+  {
+   "name": "slot_reward",
+   "border": 22
+  },
+  {
+   "name": "line_gold",
+   "border": 2
+  }
+ ]
+}

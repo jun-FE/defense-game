@@ -1,0 +1,80 @@
+{
+  "canvasWidth": 1920,
+  "canvasHeight": 1080,
+  "background": "#0C0F20",
+  "layers": [
+    {
+      "name": "city",
+      "x": 960,
+      "y": 540,
+      "width": 1976.6,
+      "depth": 0.05
+    },
+    {
+      "name": "alley",
+      "x": 960,
+      "y": 540,
+      "width": 1976.6,
+      "depth": 0.15
+    },
+    {
+      "name": "window_interior",
+      "x": 960,
+      "y": 540,
+      "width": 1976.6,
+      "depth": 0.35,
+      "flicker": 0.08
+    },
+    {
+      "name": "workshop_exterior",
+      "x": 960,
+      "y": 540,
+      "width": 1976.6,
+      "depth": 0.35
+    },
+    {
+      "name": "foreground",
+      "x": 960,
+      "y": 540,
+      "width": 1976.6,
+      "depth": 1.0
+    },
+    {
+      "name": "logo",
+      "depth": 0.0,
+      "x": 412.0,
+      "y": 300.7,
+      "width": 655.3
+    }
+  ],
+  "menu": [
+    {
+      "name": "menu_continue",
+      "x": 231.8,
+      "y": 486.6,
+      "width": 148.1,
+      "height": 57.4
+    },
+    {
+      "name": "menu_new",
+      "x": 231.2,
+      "y": 556.6,
+      "width": 158.4,
+      "height": 64.3
+    },
+    {
+      "name": "menu_settings",
+      "x": 199.1,
+      "y": 643.3,
+      "width": 84.9,
+      "height": 60.8
+    },
+    {
+      "name": "menu_quit",
+      "x": 199.6,
+      "y": 717.3,
+      "width": 88.4,
+      "height": 59.7
+    }
+  ]
+}

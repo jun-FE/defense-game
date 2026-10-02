@@ -7,7 +7,7 @@ using UnityEngine;
 
 /// <summary>
 /// 데모 게임 전체를 코드로 만든다.
-/// - 씬: Title(첫 화면, 로비 아트가 오면 Lobby로 교체), Main(메인=수선소), Story(스토리), Battle(전투)
+/// - 씬: Lobby(첫 화면: 이어하기·새로하기·설정·종료), Main(메인=수선소), Story(스토리), Battle(전투)
 /// - 임시 스프라이트, 타워 프리팹
 /// - 전투 데이터(Assets/Data/Battle): 시스템 기획서 샘플(SampleContent)에서 처음 한 번만 만든다
 /// - 스테이지/스토리 데이터
@@ -16,14 +16,16 @@ using UnityEngine;
 /// </summary>
 public static class DemoSceneBuilder
 {
-    public const string TitleScenePath = "Assets/Scenes/Title.unity";
+    public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
+    public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "6";
+    public const string BuildVersion = "8";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
     public const string MainScenePath = "Assets/Scenes/Main.unity";
     public const string MainArtDir = "Assets/Art/Main/Depth";
+    public const string MainUIDir = "Assets/Art/Main/UI";
     const string QuestDir = "Assets/Data/Quests";
 
     const string ArtDir = "Assets/Art";
@@ -37,7 +39,7 @@ public static class DemoSceneBuilder
     // 이전 버전(단일 경로 디펜스)이 만든 파일. 업데이트할 때 지운다.
     static readonly string[] ObsoleteAssets =
     {
-        "Assets/Scenes/Lobby.unity",      // 메인(수선소)의 예전 이름. 로비는 이제 첫 화면(게임 시작·이어하기)을 뜻한다.
+        "Assets/Scenes/Title.unity",      // 임시 타이틀. 로비(첫 화면) 아트로 교체됨
         "Assets/Prefabs/BasicTower.prefab",
         "Assets/Prefabs/CannonTower.prefab",
         "Assets/Prefabs/Enemy.prefab",
@@ -75,21 +77,21 @@ public static class DemoSceneBuilder
         CreateQuestData();
 
         BuildBattleScene(battleStage, rules, square, circle);
-        BuildTitleScene(square, circle);
+        BuildLobbyScene();
         BuildMainScene();
         BuildStoryScene(database);
 
         EditorBuildSettings.scenes = new[]
         {
-            new EditorBuildSettingsScene(TitleScenePath, true),
+            new EditorBuildSettingsScene(LobbyScenePath, true),
             new EditorBuildSettingsScene(MainScenePath, true),
             new EditorBuildSettingsScene(StoryScenePath, true),
             new EditorBuildSettingsScene(BattleScenePath, true),
         };
         AssetDatabase.SaveAssets();
         File.WriteAllText(BuildVersionPath, BuildVersion);
-        EditorSceneManager.OpenScene(TitleScenePath);
-        Debug.Log("[Defense] 데모 게임을 만들었습니다. Title 씬에서 Play 버튼을 눌러 보세요.");
+        EditorSceneManager.OpenScene(LobbyScenePath);
+        Debug.Log("[Defense] 데모 게임을 만들었습니다. Lobby 씬에서 Play 버튼을 눌러 보세요.");
     }
 
     static void BuildBattleScene(StageAsset stage, GameRulesAsset rules, Sprite square, Sprite circle)
@@ -130,25 +132,55 @@ public static class DemoSceneBuilder
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         CreateCamera(new Color(0.08f, 0.07f, 0.16f));
 
-        var background = new GameObject("MainBackground").AddComponent<MainBackground>();
+        var background = new GameObject("MainBackground").AddComponent<LayeredBackground>();
         background.layoutJson = AssetDatabase.LoadAssetAtPath<TextAsset>($"{MainArtDir}/main_layout.json");
-        var sprites = new List<Sprite>();
-        if (AssetDatabase.IsValidFolder(MainArtDir))
-        {
-            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { MainArtDir }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                var importer = AssetImporter.GetAtPath(path) as TextureImporter;
-                if (importer == null) continue;
-                if (MainArtImporter.Apply(importer)) importer.SaveAndReimport();
-                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-                if (sprite != null) sprites.Add(sprite);
-            }
-        }
-        background.sprites = sprites.ToArray();
+        background.sprites = LoadScreenSprites(MainArtDir).ToArray();
+        background.breathingLayers = new[] { "ian", "doha" };
 
-        new GameObject("MainUI").AddComponent<MainUI>();
+        var ui = new GameObject("MainUI").AddComponent<MainUI>();
+        List<Sprite> uiSprites = LoadScreenSprites(MainUIDir);
+        uiSprites.AddRange(LoadScreenSprites(LobbyArtDir).FindAll(sp => sp.name == "logo")); // 로비 로고를 메인에도 쓴다
+        ui.uiSprites = uiSprites.ToArray();
+        ui.uiBorders = AssetDatabase.LoadAssetAtPath<TextAsset>($"{MainUIDir}/ui_borders.json");
         EditorSceneManager.SaveScene(scene, MainScenePath);
+    }
+
+    /// <summary>로비(첫 화면): 층별 배경 + 로고 + 메뉴(이어하기·새로하기·설정·종료).</summary>
+    static void BuildLobbyScene()
+    {
+        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        CreateCamera(new Color(0.05f, 0.06f, 0.13f));
+
+        var layout = AssetDatabase.LoadAssetAtPath<TextAsset>($"{LobbyArtDir}/lobby_layout.json");
+        List<Sprite> sprites = LoadScreenSprites(LobbyArtDir);
+
+        var background = new GameObject("LobbyBackground").AddComponent<LayeredBackground>();
+        background.layoutJson = layout;
+        background.sprites = sprites.ToArray();
+        background.parallaxPixels = 18f;
+
+        var menu = new GameObject("LobbyMenu").AddComponent<LobbyMenu>();
+        menu.layoutJson = layout;
+        menu.menuSprites = sprites.FindAll(sp => sp.name.StartsWith("menu_")).ToArray();
+
+        EditorSceneManager.SaveScene(scene, LobbyScenePath);
+    }
+
+    /// <summary>폴더 안 PNG를 화면 배경용 설정(100 PPU)으로 맞추고 스프라이트로 불러온다.</summary>
+    static List<Sprite> LoadScreenSprites(string folder)
+    {
+        var sprites = new List<Sprite>();
+        if (!AssetDatabase.IsValidFolder(folder)) return sprites;
+        foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { folder }))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null) continue;
+            if (MainArtImporter.Apply(importer)) importer.SaveAndReimport();
+            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite != null) sprites.Add(sprite);
+        }
+        return sprites;
     }
 
     /// <summary>시안의 의뢰 5개(임시 문구). 이미 있으면 그대로 둔다.</summary>
@@ -333,28 +365,6 @@ public static class DemoSceneBuilder
         return prefab;
     }
 
-    static void BuildTitleScene(Sprite square, Sprite circle)
-    {
-        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-        CreateCamera(new Color(0.07f, 0.09f, 0.15f));
-
-        // 배경 장식: 길과 타워 실루엣 (나중에 타이틀 일러스트로 교체)
-        var decor = new GameObject("Decor").transform;
-        var road = new Color(0.16f, 0.2f, 0.3f);
-        CreateSprite("Road", square, road, decor, new Vector2(0f, -4.2f), new Vector2(24f, 1.2f), -10);
-        CreateSprite("Ground", square, new Color(0.1f, 0.13f, 0.2f), decor, new Vector2(0f, -5.6f), new Vector2(24f, 1.8f), -11);
-        float[] towerX = { -9f, -6.5f, 6.5f, 9f };
-        foreach (float x in towerX)
-        {
-            CreateSprite("Tower", square, new Color(0.2f, 0.26f, 0.4f), decor, new Vector2(x, -2.9f), new Vector2(0.9f, 1.4f), -9);
-            CreateSprite("Head", circle, new Color(0.3f, 0.4f, 0.6f), decor, new Vector2(x, -2f), Vector2.one * 0.7f, -8);
-        }
-        CreateSprite("Moon", circle, new Color(0.95f, 0.9f, 0.7f, 0.9f), decor, new Vector2(8.5f, 4.2f), Vector2.one * 1.6f, -12);
-
-        new GameObject("TitleMenu").AddComponent<TitleMenu>();
-        EditorSceneManager.SaveScene(scene, TitleScenePath);
-    }
-
     static void BuildStoryScene(StageDatabase database)
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -522,12 +532,12 @@ public static class DemoSceneBuilder
 
 /// <summary>
 /// 프로젝트를 열었을 때 씬이 없거나 빌더 버전이 바뀌었으면(처음 열었거나 업데이트한 경우)
-/// 데모 게임을 만들고 Title 씬을 연다.
+/// 데모 게임을 만들고 Lobby 씬을 연다.
 /// </summary>
 [InitializeOnLoad]
 static class DemoSceneAutoSetup
 {
-    const string SessionKey = "DefenseGame.AutoSetupChecked.v6";
+    const string SessionKey = "DefenseGame.AutoSetupChecked.v7";
 
     static DemoSceneAutoSetup()
     {
@@ -544,7 +554,7 @@ static class DemoSceneAutoSetup
 
     static bool NeedsBuild()
     {
-        if (!File.Exists(DemoSceneBuilder.TitleScenePath) || !File.Exists(DemoSceneBuilder.BattleScenePath)
+        if (!File.Exists(DemoSceneBuilder.LobbyScenePath) || !File.Exists(DemoSceneBuilder.BattleScenePath)
             || !File.Exists(DemoSceneBuilder.MainScenePath)) return true;
         string version = File.Exists(DemoSceneBuilder.BuildVersionPath) ? File.ReadAllText(DemoSceneBuilder.BuildVersionPath).Trim() : "";
         return version != DemoSceneBuilder.BuildVersion;
