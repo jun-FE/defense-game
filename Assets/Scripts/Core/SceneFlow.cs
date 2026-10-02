@@ -2,13 +2,13 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 화면 흐름: 타이틀 → 수선소(로비) → 의뢰 → (스토리) → 전투 → 수선소.
+/// 화면 흐름: 타이틀 → 메인(수선소) → 의뢰 → (스토리) → 전투 → 수선소.
 /// 어떤 스테이지를 플레이 중인지도 여기서 기억한다.
 /// </summary>
 public static class SceneFlow
 {
     public const string TitleScene = "Title";
-    public const string LobbyScene = "Lobby";
+    public const string MainScene = "Main";
     public const string StoryScene = "Story";
     public const string GameScene = "Battle";
 
@@ -49,8 +49,8 @@ public static class SceneFlow
 
     public static void GoToTitle() => Load(TitleScene);
 
-    /// <summary>수선소(로비)로 돌아간다.</summary>
-    public static void GoToLobby() => Load(LobbyScene);
+    /// <summary>메인(수선소)로 돌아간다.</summary>
+    public static void GoToMain() => Load(MainScene);
 
     /// <summary>의뢰를 수락하고 연결된 스테이지를 시작한다(스토리가 있으면 스토리부터).</summary>
     public static void StartQuest(QuestData quest)

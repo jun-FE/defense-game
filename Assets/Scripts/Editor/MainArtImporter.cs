@@ -1,9 +1,9 @@
 using UnityEditor;
 
-/// <summary>Assets/Art/Lobby 아래 PNG를 로비 배경 레이어용 스프라이트로 가져온다(100 PPU = 1920×1080 화면 픽셀 기준).</summary>
-public class LobbyArtImporter : AssetPostprocessor
+/// <summary>Assets/Art/Main/Depth 아래 PNG를 메인 배경 레이어용 스프라이트로 가져온다(100 PPU = 1920×1080 화면 픽셀 기준).</summary>
+public class MainArtImporter : AssetPostprocessor
 {
-    public const string Folder = "Assets/Art/Lobby/";
+    public const string Folder = "Assets/Art/Main/";
     public const float PixelsPerUnit = 100f;
 
     void OnPreprocessTexture()

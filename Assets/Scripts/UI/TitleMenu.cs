@@ -53,7 +53,7 @@ public class TitleMenu : MonoBehaviour
         float x = (w - buttonWidth) * 0.5f;
         float y = 480f;
 
-        if (UIKit.DrawButton(new Rect(x, y, buttonWidth, buttonHeight), "시작하기")) SceneFlow.GoToLobby();
+        if (UIKit.DrawButton(new Rect(x, y, buttonWidth, buttonHeight), "시작하기")) SceneFlow.GoToMain();
         y += 104f;
         if (UIKit.DrawButton(new Rect(x, y, buttonWidth, buttonHeight), "스테이지 선택")) OpenPage(Page.StageSelect);
         y += 104f;

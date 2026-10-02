@@ -1,10 +1,11 @@
-# 로비(수선소) 화면 이미지
+# 메인(수선소) 화면 UI 이미지
 
-`reference/lobby_mockup.jpg` 시안을 실제 화면으로 만들기 위한 원본 이미지를 이 폴더에 넣어 주세요.
-개발자가 여기서 잘라 `Assets/Art/UI/Lobby`로 가져갑니다(Unity가 원본을 직접 읽지 않도록 Assets 밖에 둡니다).
+`reference/lobby_mockup.jpg`(메인 화면 시안)를 실제 화면으로 만들기 위한 원본 이미지를 이 폴더에 넣어 주세요.
+개발자가 여기서 정리해 `Assets/Art/Main/UI`로 가져갑니다(Unity가 원본을 직접 읽지 않도록 Assets 밖에 둡니다).
+배경 레이어(뎁스)는 `ArtSource/Main_depth`, 첫 화면(로비)은 `ArtSource/Lobby_depth`에 넣습니다.
 
 ## 넣는 방법
-- **GitHub 웹**: 저장소에서 `ArtSource/Lobby` 폴더로 들어가 **Add file → Upload files**에 파일을 끌어다 놓고 **Commit changes**.
+- **GitHub 웹**: 저장소에서 `ArtSource/Main_UI` 폴더로 들어가 **Add file → Upload files**에 파일을 끌어다 놓고 **Commit changes**.
 - 또는 채팅에 첨부해 주시면 개발자가 이 폴더에 넣습니다.
 
 ## 파일 규칙

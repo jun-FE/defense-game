@@ -1,9 +1,9 @@
-"""lobby_layout.json 으로 로비 배경을 1920x1080 미리보기 이미지로 합성한다(Unity 없이 배치 확인용).
-사용: python3 Tools/Art/preview_lobby.py <출력.png> [--ui]   (--ui: 임시 UI 자리 표시)"""
+"""main_layout.json 으로 메인 배경을 1920x1080 미리보기 이미지로 합성한다(Unity 없이 배치 확인용).
+사용: python3 Tools/Art/preview_main.py <출력.png> [--ui]   (--ui: 임시 UI 자리 표시)"""
 import json, sys
 from PIL import Image, ImageDraw
 
-def compose(layout_path='Assets/Art/Lobby/lobby_layout.json', art='Assets/Art/Lobby', ui=False):
+def compose(layout_path='Assets/Art/Main/Depth/main_layout.json', art='Assets/Art/Main/Depth', ui=False):
     L = json.load(open(layout_path))
     W, H = L['canvasWidth'], L['canvasHeight']
     bg = L.get('background', '#000000')

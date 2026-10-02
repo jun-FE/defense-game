@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 수선소(로비) 화면 UI. 기획 시안(ArtSource/Lobby/reference/lobby_mockup.jpg) 배치를 따른다.
+/// 메인(수선소) 화면 UI. 기획 시안(ArtSource/Main_UI/reference/lobby_mockup.jpg) 배치를 따른다.
 /// UI 아트가 오기 전까지 임시 IMGUI로 그린다(1080p 기준 좌표, 오른쪽 요소는 화면 오른쪽 끝 기준).
 /// - 왼쪽 위 로고, 오른쪽 위 재화·설정
 /// - 오른쪽 의뢰함(전체/진행 중/완료) → 가운데 편지 카드 → "의뢰 시작하기"
 /// - 왼쪽 아래 도하 말풍선(클릭하면 다음 말)
 /// - 아래 탭 바: 수선소·의뢰함·도감·가방·기술·지도
 /// </summary>
-public class LobbyUI : MonoBehaviour
+public class MainUI : MonoBehaviour
 {
     enum Filter { All, InProgress, Completed }
 
@@ -49,7 +49,7 @@ public class LobbyUI : MonoBehaviour
     {
         Event e = Event.current;
         if (e.type == EventType.Repaint || e.type == EventType.MouseMove)
-            LobbyBackground.Pointer = new Vector2(e.mousePosition.x / Mathf.Max(1, Screen.width), e.mousePosition.y / Mathf.Max(1, Screen.height));
+            MainBackground.Pointer = new Vector2(e.mousePosition.x / Mathf.Max(1, Screen.width), e.mousePosition.y / Mathf.Max(1, Screen.height));
 
         UIKit.Begin();
         EnsureStyles();

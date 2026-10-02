@@ -65,15 +65,25 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
   - 꿈의 중심 HP가 0이 되면 실패, 모든 웨이브를 막으면 성공입니다.
   - 개발용(에디터·개발 빌드): `F1` 재화 +100, `F2` 적 전부 처치.
 
-## 수선소(로비) 화면
+## 화면 이름과 아트 폴더
 
-타이틀 **시작하기** → 수선소 → 의뢰함에서 편지 선택 → **의뢰 시작하기** → (스토리) → 전투 → 결과 화면 **수선소로** 순서입니다.
+| 이름 | 화면 | 원본 아트(기획 → GitHub 업로드) | 게임 안 에셋 |
+| --- | --- | --- | --- |
+| 로비 | 게임을 켜면 처음 보이는 화면(게임 시작, 이어하기 등). 지금은 임시 `Title` 씬 | `ArtSource/Lobby_depth` | `Assets/Art/Lobby` (아트 도착 후) |
+| 메인 | 수선소. 의뢰함·편지·탭이 있는 거점 화면 (`Main` 씬) | 배경 층 `ArtSource/Main_depth`, UI `ArtSource/Main_UI` | `Assets/Art/Main/Depth`, `Assets/Art/Main/UI` |
+| 전투 | 꿈 속 디펜스 (`Battle` 씬) | `ArtSource/Towers` 등 | `Assets/Art/Towers` |
 
-- **배경**: `Assets/Art/Lobby`의 레이어 13장을 `Assets/Art/Lobby/lobby_layout.json` 배치대로 실행 중에 조립합니다. 마우스를 움직이면 레이어 깊이(depth)에 따라 살짝 시차가 생기고, 이안·도하는 숨쉬듯 움직입니다.
+각 `ArtSource` 폴더의 README에 넣는 방법과 파일 규칙이 있습니다.
+
+## 메인(수선소) 화면
+
+로비(타이틀) **시작하기** → 메인 → 의뢰함에서 편지 선택 → **의뢰 시작하기** → (스토리) → 전투 → 결과 화면 **수선소로** 순서입니다.
+
+- **배경**: `Assets/Art/Main/Depth`의 레이어를 `main_layout.json` 배치대로 실행 중에 조립합니다. 마우스를 움직이면 레이어 깊이(depth)에 따라 살짝 시차가 생기고, 이안·도하는 숨쉬듯 움직입니다.
   - 배치 고치기: JSON의 `x`, `y`(이미지 중심), `width`(화면에서의 폭)는 1920×1080 화면 기준 픽셀이라 포토샵 좌표처럼 읽으면 됩니다. 순서는 위에서 아래로 뒤→앞입니다.
-  - Unity 없이 미리보기: `python3 Tools/Art/preview_lobby.py 미리보기.png` (`--ui`를 붙이면 UI 자리도 표시)
-- **원본 이미지**: `ArtSource/Lobby`. 지금은 카카오톡으로 받은 검은 배경 JPEG이라 `bash Tools/Art/lobby_keys.sh`로 배경을 투명하게 바꿔 `Assets/Art/Lobby`에 넣었습니다. 투명 PNG 원본이 오면 같은 이름으로 `Assets/Art/Lobby`에 바로 덮어쓰면 됩니다.
-- **UI**: 의뢰함·편지 카드·말풍선·탭 바는 UI 아트가 오기 전까지 임시로 그립니다(`Assets/Scripts/Lobby/LobbyUI.cs`). 필요한 UI 이미지 목록은 `ArtSource/Lobby/README.md`에 있습니다.
+  - Unity 없이 미리보기: `python3 Tools/Art/preview_main.py 미리보기.png` (`--ui`를 붙이면 UI 자리도 표시)
+- **원본 이미지**: `ArtSource/Main_depth`. 지금은 카카오톡으로 받은 검은 배경 JPEG이라 `bash Tools/Art/main_depth_keys.sh`로 배경을 투명하게 바꿔 넣었습니다. 투명 PNG 원본이 오면 교체합니다.
+- **UI**: 의뢰함·편지 카드·말풍선·탭 바는 UI 아트가 들어오기 전까지 임시로 그립니다(`Assets/Scripts/Main/MainUI.cs`).
 - **의뢰**: `Assets/Data/Quests`의 의뢰 에셋(제목, 태그, 편지, 보상 문구, 연결 스테이지)을 고치고, 목록 순서는 `Assets/Resources/QuestDatabase`에서 정합니다. `stageIndex`가 -1이면 "아직 도착하지 않은 의뢰"로 잠겨 보입니다. 앞 스테이지를 클리어하면 다음 의뢰가 열립니다.
 - 탭: 수선소·의뢰함만 동작하고, 기술(마스터리)은 4주차, 도감·가방·지도는 잠금 표시입니다.
 
@@ -137,7 +147,7 @@ Assets/
     Core/      SceneFlow(화면 전환), Progress(클리어 기록), GameSettings(설정 저장)
     Data/      StageData(스테이지 목록 항목), StoryData, StageDatabase
     Story/     StoryPlayer (대사 출력, 클릭으로 넘기기, 스킵)
-    Lobby/     LobbyBackground(레이어 배경·시차), LobbyUI(의뢰함·편지·탭)
+    Main/      MainBackground(레이어 배경·시차), MainUI(의뢰함·편지·탭)
     Towers/    TowerVisual(타워 스프라이트 애니메이션)
     UI/        TitleMenu(메인 메뉴), SettingsPanel(설정), UIKit(공통 스타일)
     Steam/     SteamManager (Steam API 초기화)

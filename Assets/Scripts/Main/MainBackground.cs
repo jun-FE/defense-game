@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 수선소 배경을 레이어 배치 파일(Assets/Art/Lobby/lobby_layout.json)대로 조립한다.
+/// 수선소 배경을 레이어 배치 파일(Assets/Art/Main/Depth/main_layout.json)대로 조립한다.
 /// 좌표는 1920×1080 화면 기준 픽셀(왼쪽 위가 0,0)이고, x·y는 이미지 중심, width는 화면에서의 폭이다.
-/// 배치를 바꾸려면 JSON 숫자를 고치면 된다(Unity 없이 미리보기: python3 Tools/Art/preview_lobby.py out.png).
+/// 배치를 바꾸려면 JSON 숫자를 고치면 된다(Unity 없이 미리보기: python3 Tools/Art/preview_main.py out.png).
 /// depth(0=먼 배경, 1=가장 앞)에 따라 마우스를 움직이면 살짝 시차가 생긴다.
 /// </summary>
-public class LobbyBackground : MonoBehaviour
+public class MainBackground : MonoBehaviour
 {
     [Serializable]
     class LayoutLayer
@@ -78,7 +78,7 @@ public class LobbyBackground : MonoBehaviour
             Sprite sprite;
             if (!byName.TryGetValue(layer.name, out sprite))
             {
-                Debug.LogWarning($"[로비] 레이어 '{layer.name}' 이미지가 없습니다 (Assets/Art/Lobby/{layer.name}.png)");
+                Debug.LogWarning($"[메인] 레이어 '{layer.name}' 이미지가 없습니다 (Assets/Art/Main/Depth/{layer.name}.png)");
                 continue;
             }
 
