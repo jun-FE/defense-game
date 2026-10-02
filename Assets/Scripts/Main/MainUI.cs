@@ -45,6 +45,8 @@ public class MainUI : MonoBehaviour
     QuestData selected;
     int dohaLine;
     bool settingsOpen;
+    /// <summary>의뢰함(목록+상세)이 열려 있는지. 의뢰함 탭을 다시 누르거나 수선소 탭을 누르면 닫힌다.</summary>
+    bool questsOpen = true;
     readonly SettingsPanel settings = new SettingsPanel();
     string toast;
     float toastUntil;
@@ -81,8 +83,11 @@ public class MainUI : MonoBehaviour
         DrawLogo();
         DrawGauge(new Rect(48, 196, 420, 128));
         DrawResources(w);
-        DrawQuestList(new Rect(w - 470, 112, 440, 800));
-        if (selected != null) DrawDetail(new Rect(w - 960, 112, 470, 800));
+        if (questsOpen)
+        {
+            DrawQuestList(new Rect(w - 470, 112, 440, 800));
+            if (selected != null) DrawDetail(new Rect(w - 960, 112, 470, 800));
+        }
         DrawDohaBubble(new Rect(48, h - 262, 560, 112));
         DrawNav(w, h);
         DrawToast(w, h);
@@ -283,7 +288,7 @@ public class MainUI : MonoBehaviour
         for (int i = 0; i < TabNames.Length; i++)
         {
             var r = new Rect(x + i * (bw + gap), y, bw, bh);
-            bool active = i == 0;
+            bool active = i == (questsOpen ? 1 : 0);
             bool locked = i == 2 || i == 3 || i == 5;
             Color old = GUI.color;
             if (locked) GUI.color = new Color(1f, 1f, 1f, 0.55f);
@@ -318,8 +323,8 @@ public class MainUI : MonoBehaviour
     {
         switch (index)
         {
-            case 0: break;
-            case 1: filter = Filter.All; ShowToast("오른쪽 의뢰함에서 편지를 골라 주세요"); break;
+            case 0: questsOpen = false; break;
+            case 1: questsOpen = !questsOpen; break;
             case 4: ShowToast("기술(마스터리)은 준비 중이에요"); break;
             default: ShowToast("아직 열리지 않았어요"); break;
         }

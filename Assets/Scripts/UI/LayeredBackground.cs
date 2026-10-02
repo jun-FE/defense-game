@@ -14,6 +14,9 @@ using UnityEngine;
 /// - lights: 랜턴·수정구 위치에 빛 번짐을 더하고 twinkle만큼 일렁이게 한다. layer를 주면 그 레이어와 같이 움직인다.
 /// - vignette: 화면 가장자리를 어둡게(0~1).
 /// - 설정의 "배경 밝기"(GameSettings.BackgroundBrightness)가 ambient에 곱해진다.
+///
+/// 화면비: 16:9보다 넓은(울트라와이드·창 모드) 화면에서도 양옆이 비지 않게, 그림이 화면을 꽉 채우도록
+/// 확대하고 위아래를 조금 자른다(cover). 그림 위 좌표에 붙는 UI는 CanvasToScreen으로 위치를 맞춘다.
 /// </summary>
 public class LayeredBackground : MonoBehaviour
 {
@@ -100,20 +103,34 @@ public class LayeredBackground : MonoBehaviour
 
     static Sprite glowSprite;
 
+    Camera cam;
+    Layout layout;
+    int lastScreenWidth, lastScreenHeight;
+
+    /// <summary>배치 좌표(1920×1080 그림 기준) 1픽셀이 UI 좌표(UIKit, 높이 1080)에서 몇 픽셀인지. 1 이상.</summary>
+    public static float Zoom { get; private set; } = 1f;
+    static float canvasW = 1920f, canvasH = 1080f;
+
+    /// <summary>배경 그림 위 좌표(1920×1080, 왼쪽 위 0,0) → UIKit 화면 좌표. 시차는 무시한다.</summary>
+    public static Vector2 CanvasToScreen(float x, float y) =>
+        new Vector2(UIKit.Width / 2f + (x - canvasW / 2f) * Zoom, UIKit.Height / 2f + (y - canvasH / 2f) * Zoom);
+
     void Start()
     {
         if (layoutJson == null) return;
-        Layout layout = JsonUtility.FromJson<Layout>(layoutJson.text);
+        layout = JsonUtility.FromJson<Layout>(layoutJson.text);
+        canvasW = layout.canvasWidth;
+        canvasH = layout.canvasHeight;
 
-        Camera cam = Camera.main;
+        cam = Camera.main;
         Color parsed;
         if (cam != null)
         {
             cam.orthographic = true;
-            cam.orthographicSize = layout.canvasHeight / pixelsPerUnit / 2f;
             cam.transform.position = new Vector3(0f, 0f, -10f);
             if (ColorUtility.TryParseHtmlString(layout.background, out parsed)) cam.backgroundColor = parsed;
         }
+        FitCamera();
         if (!string.IsNullOrEmpty(layout.ambient) && ColorUtility.TryParseHtmlString(layout.ambient, out parsed)) ambient = parsed;
 
         var byName = new Dictionary<string, Sprite>();
@@ -166,6 +183,22 @@ public class LayeredBackground : MonoBehaviour
             for (int i = 0; i < layout.lights.Length; i++) CreateLight(layout, layout.lights[i], layerIndex, i);
         if (layout.vignette > 0f) CreateVignette(layout);
         ApplyColors(Time.time);
+    }
+
+    /// <summary>
+    /// 그림이 화면을 꽉 채우도록(cover) 카메라 크기를 정한다. 시차로 움직여도 가장자리가 보이지 않게
+    /// 좌우 parallaxPixels만큼 여유를 둔다. 16:9면 위아래는 그대로, 더 넓으면 확대해서 위아래를 조금 자른다.
+    /// </summary>
+    void FitCamera()
+    {
+        lastScreenWidth = Screen.width;
+        lastScreenHeight = Screen.height;
+        if (cam == null || layout == null) return;
+        float aspect = Screen.height > 0 ? (float)Screen.width / Screen.height : 16f / 9f;
+        float usableWidth = layout.canvasWidth - 2f * parallaxPixels;
+        float halfHeight = Mathf.Min(layout.canvasHeight / 2f, usableWidth / aspect / 2f); // 배치 픽셀 단위
+        cam.orthographicSize = halfHeight / pixelsPerUnit;
+        Zoom = (UIKit.Height / 2f) / halfHeight;
     }
 
     Vector3 ToWorld(Layout layout, float x, float y) => new Vector3(
@@ -254,6 +287,7 @@ public class LayeredBackground : MonoBehaviour
 
     void Update()
     {
+        if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight) FitCamera();
         smoothedPointer = Vector2.Lerp(smoothedPointer, Pointer, 1f - Mathf.Exp(-4f * Time.deltaTime));
         Vector2 offset = (smoothedPointer - new Vector2(0.5f, 0.5f)) * 2f; // -1 ~ 1
         float t = Time.time;

@@ -179,11 +179,12 @@ public class LobbyMenu : MonoBehaviour
         settings.Close();
     }
 
-    /// <summary>1920×1080 배치 좌표 → 화면(1080p 기준, 가로는 화면비에 따라 가운데 정렬) 좌표.</summary>
+    /// <summary>1920×1080 배치 좌표 → 화면 좌표. 넓은 화면에서 배경이 확대되면 메뉴도 같이 커지고 옮겨진다.</summary>
     Rect ItemRect(MenuItem item)
     {
-        float offsetX = (UIKit.Width - layout.canvasWidth) / 2f;
-        return new Rect(offsetX + item.x - item.width / 2f, item.y - item.height / 2f, item.width, item.height);
+        Vector2 center = LayeredBackground.CanvasToScreen(item.x, item.y);
+        float z = LayeredBackground.Zoom;
+        return new Rect(center.x - item.width * z / 2f, center.y - item.height * z / 2f, item.width * z, item.height * z);
     }
 
     int IndexOf(string item) => Array.FindIndex(layout.menu, m => m.name == item);
