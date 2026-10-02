@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+<defs>
+  <linearGradient id="g_indigo" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#24213A"/>
+    <stop offset="100%" stop-color="#17162A"/>
+  </linearGradient>
+  <linearGradient id="g_paper" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#E8DCC5"/>
+    <stop offset="100%" stop-color="#D8C6A7"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<rect x="18" y="18" width="156" height="156" rx="24" fill="#24213A" stroke="#C59A59" stroke-width="4"/>
+<path d="M96 44 A44 44 0 1 0 126 116 A32 32 0 1 1 96 44Z" fill="#B7A9FF" filter="url(#softGlow)"/>
+
+</svg>

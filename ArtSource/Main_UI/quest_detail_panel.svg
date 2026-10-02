@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="624" height="880" viewBox="0 0 624 880">
+<defs>
+  <linearGradient id="g_indigo" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#24213A"/>
+    <stop offset="100%" stop-color="#17162A"/>
+  </linearGradient>
+  <linearGradient id="g_paper" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#E8DCC5"/>
+    <stop offset="100%" stop-color="#D8C6A7"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<rect x="18" y="18" rx="22" width="588" height="844" fill="url(#g_paper)" stroke="#C59A59" stroke-width="4"/>
+<path d="M44 64 H580" stroke="#C59A59" stroke-width="2" opacity="0.5"/>
+<rect x="236" y="40" width="152" height="38" rx="19" fill="#514B86"/>
+<text x="312" y="66" fill="#F3EBDD" font-size="16" font-family="sans-serif" text-anchor="middle">진행 가능</text>
+<text x="312" y="122" fill="#2A2330" font-size="34" font-family="sans-serif" font-weight="700" text-anchor="middle">잊힌 토끼의 꿈</text>
+<g transform="translate(170,142)">
+ <rect x="0" y="0" width="86" height="28" rx="14" fill="#D3C4AA"/><text x="43" y="19" fill="#5A4E57" font-size="14" font-family="sans-serif" text-anchor="middle">#인형</text>
+ <rect x="94" y="0" width="86" height="28" rx="14" fill="#D3C4AA"/><text x="137" y="19" fill="#5A4E57" font-size="14" font-family="sans-serif" text-anchor="middle">#상실</text>
+ <rect x="188" y="0" width="110" height="28" rx="14" fill="#D3C4AA"/><text x="243" y="19" fill="#5A4E57" font-size="14" font-family="sans-serif" text-anchor="middle">#어린 시절</text>
+</g>
+<rect x="74" y="194" width="476" height="248" rx="16" fill="#B4A18A" stroke="#C59A59" stroke-width="2"/>
+<path d="M90 422 C188 362, 236 472, 328 404 S468 366,534 424" fill="none" stroke="#8E7B69" stroke-width="6" opacity="0.6"/>
+<text x="82" y="492" fill="#2A2330" font-size="22" font-family="sans-serif">오래된 토끼 인형에서 도착한 의뢰.</text>
+<text x="82" y="526" fill="#5A4E57" font-size="18" font-family="sans-serif">꿈속에서 사라진 기억의 흔적을 찾아야 한다.</text>
+<text x="82" y="594" fill="#2A2330" font-size="20" font-family="sans-serif" font-weight="700">의뢰 보상</text>
+<g transform="translate(82,618)">
+ <rect x="0" y="0" width="82" height="82" rx="16" fill="#24213A" stroke="#C59A59" stroke-width="2"/>
+ <path d="M40 18 A24 24 0 1 0 56 58 A18 18 0 1 1 40 18Z" fill="#B7A9FF"/>
+ <rect x="98" y="0" width="82" height="82" rx="16" fill="#24213A" stroke="#C59A59" stroke-width="2"/>
+ <circle cx="139" cy="41" r="18" fill="#50749D"/><path d="M122 35 H156 M122 47 H156" stroke="#F3EBDD" stroke-width="2"/>
+ <rect x="196" y="0" width="82" height="82" rx="16" fill="#24213A" stroke="#C59A59" stroke-width="2"/>
+ <rect x="216" y="19" width="42" height="46" fill="#E8DCC5" transform="rotate(-8 237 42)"/>
+</g>
+<g transform="translate(78,736)">
+ <rect x="0" y="0" width="468" height="74" rx="18" fill="#514B86" stroke="#E0BE7C" stroke-width="3"/>
+ <text x="234" y="47" fill="#F3EBDD" font-size="26" font-family="sans-serif" text-anchor="middle">의뢰 시작하기</text>
+</g>
+
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="190" viewBox="0 0 512 190">
+<defs>
+  <linearGradient id="g_indigo" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#24213A"/>
+    <stop offset="100%" stop-color="#17162A"/>
+  </linearGradient>
+  <linearGradient id="g_paper" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#E8DCC5"/>
+    <stop offset="100%" stop-color="#D8C6A7"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<rect x="24" y="48" width="464" height="92" rx="22" fill="#514B86" stroke="#E0BE7C" stroke-width="4"/>
+<path d="M40 58 L54 48 L64 58 M448 58 L458 48 L472 58 M40 130 L54 140 L64 130 M448 130 L458 140 L472 130" stroke="#E0BE7C" stroke-width="3" fill="none"/>
+<text x="256" y="107" fill="#F3EBDD" font-size="28" font-family="sans-serif" text-anchor="middle">의뢰 시작하기</text>
+
+</svg>

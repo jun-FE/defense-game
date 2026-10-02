@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="150" viewBox="0 0 512 150">
+<defs>
+  <linearGradient id="g_indigo" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#24213A"/>
+    <stop offset="100%" stop-color="#17162A"/>
+  </linearGradient>
+  <linearGradient id="g_paper" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#E8DCC5"/>
+    <stop offset="100%" stop-color="#D8C6A7"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<rect x="18" y="34" rx="18" width="476" height="84" fill="url(#g_indigo)" stroke="#C59A59" stroke-width="3"/>
+<polygon points="72,52 87,76 72,100 57,76" fill="#B7A9FF" stroke="#E0BE7C" stroke-width="2"/>
+<circle cx="218" cy="76" r="18" fill="#5B4A2F" stroke="#E0BE7C" stroke-width="2"/>
+<circle cx="358" cy="76" r="15" fill="none" stroke="#E0BE7C" stroke-width="6"/>
+<rect x="372" y="71" width="30" height="10" rx="5" fill="#E0BE7C"/>
+<text x="112" y="84" fill="#F3EBDD" font-size="24" font-family="sans-serif">320</text>
+<text x="252" y="84" fill="#F3EBDD" font-size="24" font-family="sans-serif">1,240</text>
+<text x="420" y="84" fill="#F3EBDD" font-size="24" font-family="sans-serif">4</text>
+
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="200" viewBox="0 0 512 200">
+<defs>
+  <linearGradient id="g_indigo" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#24213A"/>
+    <stop offset="100%" stop-color="#17162A"/>
+  </linearGradient>
+  <linearGradient id="g_paper" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#E8DCC5"/>
+    <stop offset="100%" stop-color="#D8C6A7"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<rect x="18" y="18" rx="22" ry="22" width="476" height="164" fill="url(#g_indigo)" stroke="#C59A59" stroke-width="3"/>
+<circle cx="82" cy="82" r="40" fill="#211F37" stroke="#E0BE7C" stroke-width="3"/>
+<path d="M82 48 A34 34 0 1 0 110 102 A27 27 0 1 1 82 48Z" fill="#B7A9FF" opacity="0.95"/>
+<text x="140" y="66" fill="#F3EBDD" font-size="28" font-family="sans-serif" font-weight="700">해명도</text>
+<text x="438" y="66" fill="#F3EBDD" font-size="24" font-family="sans-serif" text-anchor="end">32%</text>
+<rect x="140" y="88" width="300" height="24" rx="12" fill="#11101D" stroke="#C59A59" stroke-width="2"/>
+<rect x="144" y="92" width="94" height="16" rx="8" fill="#E0BE7C"/>
+<circle cx="264" cy="100" r="3.5" fill="#B7A9FF"/>
+<circle cx="324" cy="100" r="3.5" fill="#B7A9FF"/>
+<circle cx="384" cy="100" r="3.5" fill="#B7A9FF"/>
+<text x="140" y="144" fill="#948AA8" font-size="18" font-family="sans-serif">의뢰의 진실을 밝혀 획득</text>
+
+</svg>

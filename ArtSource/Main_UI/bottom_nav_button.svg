@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="180" viewBox="0 0 256 180">
+<defs>
+  <linearGradient id="g_indigo" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#24213A"/>
+    <stop offset="100%" stop-color="#17162A"/>
+  </linearGradient>
+  <linearGradient id="g_paper" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#E8DCC5"/>
+    <stop offset="100%" stop-color="#D8C6A7"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<path d="M40 120 C76 120 80 46 128 46 C176 46 180 120 216 120 L216 154 L40 154 Z" fill="url(#g_indigo)" stroke="#C59A59" stroke-width="3"/>
+<circle cx="128" cy="76" r="26" fill="#211F37" stroke="#E0BE7C" stroke-width="2"/>
+<path d="M116 84 Q128 58 140 84 Z" fill="#B7A9FF"/>
+<text x="128" y="140" fill="#F3EBDD" font-size="20" font-family="sans-serif" text-anchor="middle">수선소</text>
+
+</svg>
