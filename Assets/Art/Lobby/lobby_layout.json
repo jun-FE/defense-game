@@ -76,5 +76,95 @@
       "width": 88.4,
       "height": 59.7
     }
+  ],
+  "lights": [
+    {
+      "x": 1082,
+      "y": 400,
+      "size": 180,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "workshop_exterior"
+    },
+    {
+      "x": 1672,
+      "y": 525,
+      "size": 190,
+      "color": "#ffb257",
+      "twinkle": 0.3,
+      "layer": "workshop_exterior"
+    },
+    {
+      "x": 470,
+      "y": 110,
+      "size": 150,
+      "color": "#ffd08a",
+      "twinkle": 0.15,
+      "layer": "alley"
+    },
+    {
+      "x": 1140,
+      "y": 235,
+      "size": 170,
+      "color": "#ffb257",
+      "twinkle": 0.2,
+      "layer": "workshop_exterior"
+    },
+    {
+      "x": 1505,
+      "y": 660,
+      "size": 200,
+      "color": "#ffb257",
+      "twinkle": 0.25,
+      "layer": "window_interior"
+    },
+    {
+      "x": 485,
+      "y": 500,
+      "size": 80,
+      "color": "#ffd08a",
+      "twinkle": 0.2,
+      "layer": "alley"
+    },
+    {
+      "x": 765,
+      "y": 510,
+      "size": 90,
+      "color": "#ffd08a",
+      "twinkle": 0.25,
+      "layer": "alley"
+    },
+    {
+      "x": 518,
+      "y": 630,
+      "size": 70,
+      "color": "#ffd08a",
+      "twinkle": 0.2,
+      "layer": "alley"
+    },
+    {
+      "x": 588,
+      "y": 555,
+      "size": 60,
+      "color": "#ffd08a",
+      "twinkle": 0.2,
+      "layer": "alley"
+    },
+    {
+      "x": 630,
+      "y": 660,
+      "size": 60,
+      "color": "#ffd08a",
+      "twinkle": 0.2,
+      "layer": "alley"
+    },
+    {
+      "x": 105,
+      "y": 420,
+      "size": 110,
+      "color": "#ffb257",
+      "twinkle": 0.2,
+      "layer": "alley"
+    }
   ]
 }

@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "10";
+    public const string BuildVersion = "11";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -159,7 +159,7 @@ public static class DemoSceneBuilder
         var background = new GameObject("LobbyBackground").AddComponent<LayeredBackground>();
         background.layoutJson = layout;
         background.sprites = sprites.ToArray();
-        background.parallaxPixels = 18f;
+        background.parallaxPixels = 0f; // 로비는 화면을 고정하고 조명만 일렁이게
         background.glowMaterial = GlowMaterial();
 
         var menu = new GameObject("LobbyMenu").AddComponent<LobbyMenu>();
