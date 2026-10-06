@@ -188,6 +188,40 @@ namespace Akmong.Battle
             return points;
         }
 
+        // ───────── 전투 맵으로 ─────────
+
+        public const string SpawnId = "SP_GRID";
+
+        /// <summary>
+        /// 지금 밝혀진 칸으로 전투 맵(MapDef)을 만든다. 몬스터 경로 = 출현 지점 → 목표 최단 경로.
+        /// 월드 좌표: 칸 (x, y) → (x, Height - 1 - y). 타워는 밝힌 바닥과 맞닿은 벽 칸에만 지을 수 있다.
+        /// 아직 이어지지 않았으면 null.
+        /// </summary>
+        public MapDef ToMapDef()
+        {
+            List<Vector2> path = ToWorldPath(ShortestPath());
+            if (path.Count < 2) return null;
+            int height = Height;
+            return new MapDef
+            {
+                Id = Id,
+                CorePos = path[path.Count - 1],
+                SpawnPoints = { new SpawnPointDef { Id = SpawnId, Path = path } },
+                BuildZones = { new BuildZone(0, 0, Width - 1, Height - 1) },
+                BuildCheck = (wx, wy) => IsBuildable(wx, height - 1 - wy),
+                CameraX = -0.5f, CameraY = -0.5f, CameraWidth = Width, CameraHeight = Height,
+            };
+        }
+
+        /// <summary>탐색에서 칸을 밝힌다. 결정이면 값을 돌려주고(그 칸은 길이 됨), 밝힐 수 없으면 -1.</summary>
+        public int OpenCell(int x, int y)
+        {
+            if (!IsOpenable(x, y)) return -1;
+            int value = CrystalValue(Get(x, y));
+            Set(x, y, CellType.Open);
+            return value;
+        }
+
         // ───────── 검사 ─────────
 
         /// <summary>맵 제작 검사. 오류 문장 목록(비어 있으면 통과).</summary>

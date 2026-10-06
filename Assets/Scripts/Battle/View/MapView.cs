@@ -6,6 +6,8 @@ using UnityEngine;
 /// 전장을 그린다. 맵 데이터(MapAsset)에 바닥 그림(background)이 있으면 그 그림을 카메라 영역에 깔고,
 /// 없으면 임시 도형(바닥, 적 경로, 건설 칸, 출현 지점)으로 그린다.
 /// 그림 맵에서는 건설 칸을 평소에 숨기고, 타워를 고를 때만 보여 준다(ShowBuildTiles).
+/// 탐색형 판(DreamRun)이면 탐색에서 밝힌 칸 맵을 그린다: 밝힌 바닥, 몬스터 경로(최단 경로) 칸은 따뜻한 색,
+/// 밝히지 않은 암흑(타워 자리가 되는 벽), 막힌 암흑, 남은 결정.
 /// </summary>
 public class MapView : MonoBehaviour
 {
@@ -25,6 +27,7 @@ public class MapView : MonoBehaviour
 
     readonly List<SpriteRenderer> buildMarkers = new List<SpriteRenderer>();
     bool hasArt;
+    bool grid;
     SpriteRenderer coreGlow;
     MapDef map;
     int lastScreenWidth, lastScreenHeight;
@@ -34,7 +37,8 @@ public class MapView : MonoBehaviour
         if (controller.Session == null) return;
         map = controller.Content.Stage.Map;
         MapAsset asset = controller.Content.StageAsset != null ? controller.Content.StageAsset.map : null;
-        hasArt = asset != null && asset.background != null;
+        grid = DreamRun.Active;
+        hasArt = !grid && asset != null && asset.background != null;
         FitCamera();
 
         var center = new Vector2(map.CameraX + map.CameraWidth / 2f, map.CameraY + map.CameraHeight / 2f);
@@ -43,6 +47,10 @@ public class MapView : MonoBehaviour
         {
             CreateArt("Background", asset.background, center, size, -20);
             if (asset.foreground != null) CreateArt("Foreground", asset.foreground, center, size, 15);
+        }
+        else if (grid)
+        {
+            CreateGridCells(DreamRun.Map);
         }
         else
         {
@@ -53,11 +61,16 @@ public class MapView : MonoBehaviour
         {
             SpriteRenderer marker = Create("BuildTile", square, hasArt ? buildTileOnArt : buildTile, new Vector2(tile.x, tile.y), Vector2.one * (hasArt ? 0.8f : 0.9f), -15)
                 .GetComponent<SpriteRenderer>();
-            marker.enabled = !hasArt;
+            marker.enabled = !hasArt && !grid;
             buildMarkers.Add(marker);
         }
 
-        if (!hasArt)
+        if (grid)
+        {
+            foreach (SpawnPointDef spawnPoint in map.SpawnPoints)
+                Create("Spawn " + spawnPoint.Id, circle, new Color(spawn.r, spawn.g, spawn.b, 0.85f), BattleContentBuilder.ToUnity(spawnPoint.Path[0]), Vector2.one * 0.9f, -16);
+        }
+        else if (!hasArt)
         {
             foreach (SpawnPointDef spawnPoint in map.SpawnPoints)
             {
@@ -73,9 +86,10 @@ public class MapView : MonoBehaviour
         }
 
         // 그림 맵에서는 꿈의 중심을 은은하게 빛나는 원으로만 표시한다.
-        GameObject coreGo = Create("Core", circle, hasArt ? coreOnArt : core, BattleContentBuilder.ToUnity(map.CorePos), Vector2.one * (hasArt ? 1.3f : 1.6f), -10);
+        bool glowCore = hasArt || grid;
+        GameObject coreGo = Create("Core", circle, glowCore ? coreOnArt : core, BattleContentBuilder.ToUnity(map.CorePos), Vector2.one * (glowCore ? 1.3f : 1.6f), -10);
         CoreTransform = coreGo.transform;
-        if (hasArt) coreGlow = coreGo.GetComponent<SpriteRenderer>();
+        if (glowCore) coreGlow = coreGo.GetComponent<SpriteRenderer>();
     }
 
     void Update()
@@ -94,8 +108,51 @@ public class MapView : MonoBehaviour
     /// <summary>타워를 고르는 동안 지을 수 있는 칸을 보여 준다(그림 맵 전용, 임시 도형 맵은 항상 보임).</summary>
     public void ShowBuildTiles(bool show)
     {
-        if (!hasArt) return;
+        if (!hasArt && !grid) return;
         foreach (SpriteRenderer marker in buildMarkers) marker.enabled = show;
+    }
+
+    /// <summary>칸 맵 그리기. 월드 좌표: 칸 (x, y) → (x, Height - 1 - y).</summary>
+    void CreateGridCells(Akmong.Battle.GridMap gridMap)
+    {
+        var floor = new Color(0.62f, 0.53f, 0.41f);
+        var pathColor = new Color(0.86f, 0.66f, 0.38f);
+        var dark = new Color(0.07f, 0.06f, 0.13f);
+        var wall = new Color(0.015f, 0.01f, 0.03f);
+        var wallMark = new Color(0.42f, 0.10f, 0.24f);
+        var small = new Color(0.62f, 0.45f, 1f);
+        var large = new Color(0.40f, 0.85f, 1f);
+
+        var onPath = new HashSet<Vector2Int>();
+        List<Akmong.Battle.GridPoint> path = gridMap.ShortestPath();
+        if (path != null) foreach (Akmong.Battle.GridPoint p in path) onPath.Add(new Vector2Int(p.X, p.Y));
+
+        for (int y = 0; y < gridMap.Height; y++)
+            for (int x = 0; x < gridMap.Width; x++)
+            {
+                var pos = new Vector2(x, gridMap.Height - 1 - y);
+                Akmong.Battle.CellType type = gridMap.Get(x, y);
+                if (gridMap.IsOpen(x, y))
+                {
+                    // 몬스터 경로는 타일 색으로 구분(기획: 전투가 시작되면 경로를 보여 줌)
+                    Create("Floor", square, onPath.Contains(new Vector2Int(x, y)) ? pathColor : floor, pos, Vector2.one * 0.98f, -20);
+                }
+                else if (type == Akmong.Battle.CellType.Wall)
+                {
+                    Create("Wall", square, wall, pos, Vector2.one, -20);
+                    Create("WallMark", square, wallMark, pos, Vector2.one * 0.32f, -19);
+                }
+                else
+                {
+                    Create("Dark", square, dark, pos, Vector2.one, -20);
+                    if (type == Akmong.Battle.CellType.CrystalSmall || type == Akmong.Battle.CellType.CrystalLarge)
+                    {
+                        bool big = type == Akmong.Battle.CellType.CrystalLarge;
+                        GameObject gem = Create("Crystal", square, big ? large : small, pos, Vector2.one * (big ? 0.5f : 0.32f), -19);
+                        gem.transform.rotation = Quaternion.Euler(0f, 0f, 45f);
+                    }
+                }
+            }
     }
 
     /// <summary>건설 구역 안의 정수 칸 중 실제로 지을 수 있는 칸(길 여유 거리 포함).</summary>

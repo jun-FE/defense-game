@@ -374,6 +374,7 @@ public class BattleHUD : MonoBehaviour
         if (GUI.Button(new Rect(x, 480, 420, 80), "처음부터 다시", skin.Button(28))) SceneFlow.RestartStage();
         if (GUI.Button(new Rect(x, 580, 420, 80), "중도 귀환", skin.Button(28))) { SetPauseMenu(false); Session.Retreat(); }
         if (GUI.Button(new Rect(x, 680, 420, 80), "수선소로", skin.Button(28))) SceneFlow.GoToMain();
+        if (DreamRun.TestMode && SceneFlow.DeveloperMode && GUI.Button(new Rect(x, 780, 420, 80), "맵 에디터로", skin.Button(28))) SceneFlow.GoToMapEditor();
     }
 
     void DrawResult()
@@ -392,9 +393,11 @@ public class BattleHUD : MonoBehaviour
             if (GUI.Button(new Rect(x, y, 420, 80), "다음 스테이지", skin.Button(28))) SceneFlow.StartNextStage();
             y += 100;
         }
-        if (GUI.Button(new Rect(x, y, 420, 80), "다시 도전", skin.Button(28))) SceneFlow.RestartStage();
+        if (GUI.Button(new Rect(x, y, 420, 80), DreamRun.Active ? "다시 탐색부터" : "다시 도전", skin.Button(28))) SceneFlow.RestartStage();
         y += 100;
         if (GUI.Button(new Rect(x, y, 420, 80), "수선소로", skin.Button(28))) SceneFlow.GoToMain();
+        y += 100;
+        if (DreamRun.TestMode && SceneFlow.DeveloperMode && GUI.Button(new Rect(x, y, 420, 80), "맵 에디터로", skin.Button(28))) SceneFlow.GoToMapEditor();
     }
 
     void DrawDataErrors()

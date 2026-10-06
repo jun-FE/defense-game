@@ -56,6 +56,7 @@ namespace Akmong.Battle
             run("같은 시드는 같은 결과(재현성)", DeterminismCase);
             run("칸 맵: 최단 경로, 같은 거리면 위·오른쪽·아래·왼쪽 순", GridPathCase);
             run("칸 맵: 막힌 암흑 검사, 설치 칸, 저장 문자열 왕복", GridRulesCase);
+            run("칸 맵 전투: 탐색으로 연 길의 최단 경로로 오고, 벽 가장자리에만 짓는다", GridBattleCase);
             run("병정인형: 적을 멈춰 세우고 저지 시간이 지나면 보낸다", BlockCase);
             run("병정인형: 1단계는 1명만, 2단계는 2명 저지", BlockCountCase);
             run("병정인형 3단계: 일반 적은 밀어내고 보스는 면역", KnockbackCase);
@@ -356,6 +357,36 @@ namespace Akmong.Battle
             bool resized = map.Width == 6 && !map.HasGoal && map.HasSpawn; // 최소 크기 6으로 맞춤
             Check(cases, name, missing && blocked && reachable && buildEdge && roundTrip && resized,
                 $"빈 맵 오류 {missing}, 벽 막힘 {blocked}, 뚫으면 통과 {reachable}, 설치 칸 {buildEdge}, 저장 왕복 {roundTrip}, 크기 변경 {resized}");
+        }
+
+        static void GridBattleCase(List<Case> cases, string name)
+        {
+            // 8×6 맵. 목표(0,2) ← 가로로 연 길 → 출현(7,2). 위로 돌아가는 길도 열어 두지만 더 길다.
+            var map = new GridMap(8, 6) { SpawnX = 7, SpawnY = 2, GoalX = 0, GoalY = 2 };
+            for (int x = 1; x < 7; x++) map.OpenCell(x, 2);
+            for (int x = 0; x < 8; x++) map.OpenCell(x, 0);
+            map.OpenCell(0, 1); map.OpenCell(7, 1);
+            int crystal = 0;
+            map.Set(3, 5, CellType.CrystalLarge);
+            crystal = map.OpenCell(3, 5); // 결정 칸을 열면 값을 받고 길이 된다
+            MapDef def = map.ToMapDef();
+
+            StageDef stage = SingleTargetStage(SampleContent.Toy(), 3);
+            stage.Map = def;
+            stage.Waves[0].Groups[0].SpawnId = GridMap.SpawnId;
+            List<string> errors = DefinitionValidator.Validate(stage);
+            var session = new BattleSession(stage, new GameRules(), new FixedRandom(0.99));
+            // 월드 좌표: 칸 (x, y) → (x, 5 - y). 가로 길(칸 y = 2)은 월드 y = 3.
+            CommandError onPath = session.CanBuild(stage.Towers[0], 3, 3);   // 길 위
+            CommandError wallEdge = session.CanBuild(stage.Towers[0], 3, 2); // 길 아래 벽(칸 (3,3))
+            CommandError farWall = session.CanBuild(stage.Towers[0], 5, 0);  // 길과 안 닿은 벽(칸 (5,5))
+            int leaks = 0;
+            session.EnemyReachedCore += (e, d) => leaks++;
+            Run(session, 30);
+            bool straight = def.SpawnPoints[0].Path.Count == 2 && def.SpawnPoints[0].Length == 7f;
+            Check(cases, name, errors.Count == 0 && straight && crystal == map.LargeCrystalValue && leaks == 1
+                               && onPath == CommandError.OutsideBuildZone && wallEdge == CommandError.None && farWall == CommandError.OutsideBuildZone,
+                $"오류 {errors.Count} {string.Join(" / ", errors)}, 곧은 최단 경로 {straight}(길이 {def.SpawnPoints[0].Length}), 결정 {crystal}, 누수 {leaks}, 길 위 {onPath}, 벽 가장자리 {wallEdge}, 먼 벽 {farWall}");
         }
 
         // ───────── 병정인형(근거리 저지) ─────────

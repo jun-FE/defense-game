@@ -57,9 +57,32 @@ public class MapEditorUI : MonoBehaviour
     List<GridPoint> pathAll;
     List<string> errors = new List<string>();
 
+    /// <summary>테스트 플레이에서 돌아왔을 때 이어서 편집할 맵.</summary>
+    static GridMap resume;
+    static bool resumeDirty;
+
     void Start()
     {
+        if (resume != null)
+        {
+            map = resume;
+            dirty = resumeDirty;
+            resume = null;
+            AfterChange();
+            FitView();
+            return;
+        }
         NewMap(32, 18);
+    }
+
+    /// <summary>지금 맵으로 탐색 → 전투를 해 본다(첫 스테이지의 웨이브·타워 사용). 끝나면 "맵 에디터로"로 돌아온다.</summary>
+    void TestPlay()
+    {
+        Recalculate();
+        if (errors.Count > 0) { ShowMessage("검사 오류를 먼저 고쳐 주세요: " + errors[0]); return; }
+        resume = map;
+        resumeDirty = dirty;
+        SceneFlow.StartDreamTest(map.Clone());
     }
 
     // ───────── 맵 상태 ─────────
@@ -401,6 +424,9 @@ public class MapEditorUI : MonoBehaviour
             for (int i = 0; i < errors.Count && i < 4; i++, y += 24)
                 GUI.Label(new Rect(x, y, w, 24), "· " + errors[i], Text(15, new Color(1f, 0.6f, 0.6f)));
         y = Mathf.Max(y + 30, UIKit.Height - 70);
+        GUI.enabled = errors.Count == 0;
+        if (GUI.Button(new Rect(x, UIKit.Height - 108, w, 44), "▶ 테스트 플레이 (탐색 → 전투)")) TestPlay();
+        GUI.enabled = true;
         if (GUI.Button(new Rect(x, UIKit.Height - 56, w, 40), "로비로")) SceneFlow.GoToLobby();
     }
 

@@ -33,6 +33,7 @@ public class BattleController : MonoBehaviour
         if (selected != null && selected.battleStage != null) stage = selected.battleStage;
 
         Content = BattleContentBuilder.Build(stage, rules);
+        if (DreamRun.Active) ApplyDream(Content);
         if (!Content.IsValid)
         {
             foreach (string error in Content.Errors) Debug.LogError("[전투 데이터] " + error);
@@ -62,10 +63,35 @@ public class BattleController : MonoBehaviour
         Alpha = (float)(accumulator / dt);
     }
 
+    /// <summary>
+    /// 탐색형 판: 전투 데이터의 맵 대신 탐색에서 밝힌 칸 맵을 쓴다. 몬스터 경로 = 밝힌 칸의 최단 경로,
+    /// 타워 자리 = 밝힌 바닥과 맞닿은 벽 칸, 시작 몽결정 = 전투 데이터의 시작 재화 + 탐색에서 모은 몽결정.
+    /// 웨이브와 지을 수 있는 타워는 전투 데이터 그대로.
+    /// </summary>
+    static void ApplyDream(BattleContent content)
+    {
+        if (content.Stage == null) return;
+        MapDef map = DreamRun.Map.ToMapDef();
+        content.Errors.Clear();
+        if (map == null)
+        {
+            content.Errors.Add("탐색한 길이 출현 지점까지 이어지지 않았습니다.");
+            return;
+        }
+        content.Stage.Map = map;
+        if (!string.IsNullOrEmpty(DreamRun.Map.Name)) content.Stage.Name = DreamRun.Map.Name;
+        content.Stage.StartCoin += DreamRun.Collected;
+        StageData stageData = SceneFlow.CurrentStage;
+        content.Stage.EnemyHpScale = stageData != null && stageData.dreamEnemyHpScale > 0f ? stageData.dreamEnemyHpScale : 1f;
+        foreach (WaveDef wave in content.Stage.Waves)
+            foreach (SpawnGroupDef group in wave.Groups) group.SpawnId = GridMap.SpawnId;
+        content.Errors.AddRange(DefinitionValidator.Validate(content.Stage));
+    }
+
     void OnEnded(BattleResult result, EndReason reason)
     {
         // 스테이지 선택 화면의 해금 기록. 의뢰 정산·보상은 4주차에 SettlementService로 옮긴다.
-        if (result == BattleResult.Success) Progress.MarkCleared(SceneFlow.CurrentStageIndex);
+        if (result == BattleResult.Success && !DreamRun.TestMode) Progress.MarkCleared(SceneFlow.CurrentStageIndex);
         Debug.Log($"[전투] 종료: {result} ({reason}), 중심 HP {Session.CoreHp}, 전투 {Session.CombatTime:0.0}초, 틱 {Session.TickCount}, 시드 {Seed}");
     }
 

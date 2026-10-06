@@ -141,11 +141,14 @@ namespace Akmong.Battle
         /// <summary>건설 칸 중심이 길 중심선에서 이만큼(타일) 이상 떨어져야 한다. 0이면 검사하지 않는다(건설 구역만으로 판단).
         /// 그림 맵처럼 길이 구불구불해서 사각형 구역만으로 길을 피하기 어려울 때 쓴다.</summary>
         public float PathClearance;
+        /// <summary>칸 맵(탐색형)처럼 칸마다 지을 수 있는지 정해진 맵. 있으면 건설 구역·길 여유 대신 이것으로 판단한다(월드 타일 좌표).</summary>
+        public Func<int, int, bool> BuildCheck;
 
         public SpawnPointDef FindSpawn(string id) => SpawnPoints.Find(s => s.Id == id);
 
         public bool IsBuildable(Vector2 tileCenter)
         {
+            if (BuildCheck != null) return BuildCheck((int)Math.Round(tileCenter.X), (int)Math.Round(tileCenter.Y));
             bool inZone = false;
             foreach (BuildZone zone in BuildZones)
                 if (zone.Contains(tileCenter)) { inZone = true; break; }

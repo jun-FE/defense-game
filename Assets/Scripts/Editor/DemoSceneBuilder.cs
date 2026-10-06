@@ -19,12 +19,15 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "14";
+    public const string BuildVersion = "15";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
     public const string MainScenePath = "Assets/Scenes/Main.unity";
     public const string MapEditorScenePath = "Assets/Scenes/MapEditor.unity";
+    public const string ExploreScenePath = "Assets/Scenes/Explore.unity";
+    /// <summary>첫 스테이지에 연결하는 탐색 맵(맵 에디터 예시 맵).</summary>
+    const string FirstDreamMapId = "MAP_EXAMPLE_01";
     public const string MainArtDir = "Assets/Art/Main/Depth";
     public const string MainUIDir = "Assets/Art/Main/UI";
     public const string BattleUIDir = "Assets/Art/Battle/UI";
@@ -85,12 +88,15 @@ public static class DemoSceneBuilder
         BuildMainScene();
         BuildStoryScene(database);
         BuildMapEditorScene();
+        BuildExploreScene();
+        LinkFirstDreamMap(database);
 
         EditorBuildSettings.scenes = new[]
         {
             new EditorBuildSettingsScene(LobbyScenePath, true),
             new EditorBuildSettingsScene(MainScenePath, true),
             new EditorBuildSettingsScene(StoryScenePath, true),
+            new EditorBuildSettingsScene(ExploreScenePath, true),
             new EditorBuildSettingsScene(BattleScenePath, true),
             new EditorBuildSettingsScene(MapEditorScenePath, true), // 개발자용(출시 빌드에서는 SceneFlow가 막음)
         };
@@ -492,6 +498,34 @@ public static class DemoSceneBuilder
         EditorSceneManager.SaveScene(scene, MapEditorScenePath);
     }
 
+    /// <summary>탐색 씬: 암흑을 밝혀 길을 만들고 결정을 모은다.</summary>
+    static void BuildExploreScene()
+    {
+        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        CreateCamera(new Color(0.03f, 0.03f, 0.07f));
+        var ui = new GameObject("Explore").AddComponent<ExploreUI>();
+        List<Sprite> uiSprites = LoadScreenSprites(MainUIDir);
+        uiSprites.AddRange(LoadScreenSprites(BattleUIDir));
+        ui.uiSprites = uiSprites.ToArray();
+        ui.uiBorders = AssetDatabase.LoadAssetAtPath<TextAsset>($"{MainUIDir}/ui_borders.json");
+        EditorSceneManager.SaveScene(scene, ExploreScenePath);
+    }
+
+    /// <summary>
+    /// 첫 스테이지를 탐색형으로(예시 맵 연결). 한 번만 한다: 기획자가 StageData의 dreamMapId를 비우거나 바꾸면 그대로 둔다.
+    /// </summary>
+    static void LinkFirstDreamMap(StageDatabase database)
+    {
+        const string key = "Akmong.Builder.FirstDreamMapLinked";
+        if (EditorPrefs.GetBool(key, false) || database == null || database.stages.Length == 0 || database.stages[0] == null) return;
+        if (string.IsNullOrEmpty(database.stages[0].dreamMapId))
+        {
+            database.stages[0].dreamMapId = FirstDreamMapId;
+            EditorUtility.SetDirty(database.stages[0]);
+        }
+        EditorPrefs.SetBool(key, true);
+    }
+
     [MenuItem("Defense/맵 에디터 열기")]
     static void OpenMapEditor()
     {
@@ -691,7 +725,8 @@ static class DemoSceneAutoSetup
     static bool NeedsBuild()
     {
         if (!File.Exists(DemoSceneBuilder.LobbyScenePath) || !File.Exists(DemoSceneBuilder.BattleScenePath)
-            || !File.Exists(DemoSceneBuilder.MainScenePath) || !File.Exists(DemoSceneBuilder.MapEditorScenePath)) return true;
+            || !File.Exists(DemoSceneBuilder.MainScenePath) || !File.Exists(DemoSceneBuilder.MapEditorScenePath)
+            || !File.Exists(DemoSceneBuilder.ExploreScenePath)) return true;
         string version = File.Exists(DemoSceneBuilder.BuildVersionPath) ? File.ReadAllText(DemoSceneBuilder.BuildVersionPath).Trim() : "";
         return version != DemoSceneBuilder.BuildVersion;
     }
