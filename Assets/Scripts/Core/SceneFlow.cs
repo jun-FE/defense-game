@@ -11,6 +11,10 @@ public static class SceneFlow
     public const string MainScene = "Main";
     public const string StoryScene = "Story";
     public const string GameScene = "Battle";
+    public const string MapEditorScene = "MapEditor";
+
+    /// <summary>개발자 기능(맵 에디터 등)을 쓸 수 있는지: Unity 에디터나 개발 빌드에서만.</summary>
+    public static bool DeveloperMode => Application.isEditor || Debug.isDebugBuild;
 
     public static int CurrentStageIndex { get; private set; }
     public static StageData CurrentStage => StageDatabase.Instance.Get(CurrentStageIndex);
@@ -46,6 +50,12 @@ public static class SceneFlow
 
     /// <summary>로비(첫 화면: 이어하기·새로하기·설정·종료)로 간다.</summary>
     public static void GoToLobby() => Load(LobbyScene);
+
+    /// <summary>개발자용 맵 에디터. 출시 빌드에서는 열리지 않는다.</summary>
+    public static void GoToMapEditor()
+    {
+        if (DeveloperMode) Load(MapEditorScene);
+    }
 
     /// <summary>메인(수선소)로 돌아간다.</summary>
     public static void GoToMain() => Load(MainScene);

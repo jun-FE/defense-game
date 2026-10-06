@@ -19,11 +19,12 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "12";
+    public const string BuildVersion = "13";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
     public const string MainScenePath = "Assets/Scenes/Main.unity";
+    public const string MapEditorScenePath = "Assets/Scenes/MapEditor.unity";
     public const string MainArtDir = "Assets/Art/Main/Depth";
     public const string MainUIDir = "Assets/Art/Main/UI";
     public const string BattleUIDir = "Assets/Art/Battle/UI";
@@ -83,6 +84,7 @@ public static class DemoSceneBuilder
         BuildLobbyScene();
         BuildMainScene();
         BuildStoryScene(database);
+        BuildMapEditorScene();
 
         EditorBuildSettings.scenes = new[]
         {
@@ -90,6 +92,7 @@ public static class DemoSceneBuilder
             new EditorBuildSettingsScene(MainScenePath, true),
             new EditorBuildSettingsScene(StoryScenePath, true),
             new EditorBuildSettingsScene(BattleScenePath, true),
+            new EditorBuildSettingsScene(MapEditorScenePath, true), // 개발자용(출시 빌드에서는 SceneFlow가 막음)
         };
         AssetDatabase.SaveAssets();
         File.WriteAllText(BuildVersionPath, BuildVersion);
@@ -101,6 +104,7 @@ public static class DemoSceneBuilder
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         Camera cam = CreateCamera(new Color(0.07f, 0.07f, 0.13f));
+        cam.gameObject.AddComponent<CameraZoom>(); // 마우스 휠 확대·축소, 가운데 드래그·방향키 이동
 
         var battle = new GameObject("Battle");
         var controller = battle.AddComponent<BattleController>();
@@ -470,6 +474,25 @@ public static class DemoSceneBuilder
         return prefab;
     }
 
+    /// <summary>개발자용 맵 에디터 씬. 로비에서 F12, 또는 메뉴 Defense → 맵 에디터 열기.</summary>
+    static void BuildMapEditorScene()
+    {
+        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        CreateCamera(new Color(0.04f, 0.035f, 0.08f));
+        new GameObject("MapEditor").AddComponent<MapEditorUI>();
+        EnsureFolder("Assets/Resources/Maps");
+        EditorSceneManager.SaveScene(scene, MapEditorScenePath);
+    }
+
+    [MenuItem("Defense/맵 에디터 열기")]
+    static void OpenMapEditor()
+    {
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        if (!File.Exists(MapEditorScenePath)) Build();
+        EditorSceneManager.OpenScene(MapEditorScenePath);
+        EditorApplication.isPlaying = true;
+    }
+
     static void BuildStoryScene(StageDatabase database)
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -660,7 +683,7 @@ static class DemoSceneAutoSetup
     static bool NeedsBuild()
     {
         if (!File.Exists(DemoSceneBuilder.LobbyScenePath) || !File.Exists(DemoSceneBuilder.BattleScenePath)
-            || !File.Exists(DemoSceneBuilder.MainScenePath)) return true;
+            || !File.Exists(DemoSceneBuilder.MainScenePath) || !File.Exists(DemoSceneBuilder.MapEditorScenePath)) return true;
         string version = File.Exists(DemoSceneBuilder.BuildVersionPath) ? File.ReadAllText(DemoSceneBuilder.BuildVersionPath).Trim() : "";
         return version != DemoSceneBuilder.BuildVersion;
     }

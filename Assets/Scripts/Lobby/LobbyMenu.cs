@@ -105,6 +105,12 @@ public class LobbyMenu : MonoBehaviour
             return;
         }
         if (settingsOpen || confirmNewGame) return;
+        if (e.keyCode == KeyCode.F12 && SceneFlow.DeveloperMode)
+        {
+            SceneFlow.GoToMapEditor();
+            e.Use();
+            return;
+        }
         if (e.keyCode == KeyCode.UpArrow || e.keyCode == KeyCode.DownArrow)
         {
             int step = e.keyCode == KeyCode.UpArrow ? -1 : 1;

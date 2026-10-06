@@ -54,6 +54,8 @@ namespace Akmong.Battle
             run("강화: 잔액 69로 70 강화 실패, 70이면 2단계", UpgradeCases);
             run("타겟: 중심에 가까운 적 우선, 동률은 먼저 생성된 적", TargetingCase);
             run("같은 시드는 같은 결과(재현성)", DeterminismCase);
+            run("칸 맵: 최단 경로, 같은 거리면 위·오른쪽·아래·왼쪽 순", GridPathCase);
+            run("칸 맵: 막힌 암흑 검사, 설치 칸, 저장 문자열 왕복", GridRulesCase);
             run("병정인형: 적을 멈춰 세우고 저지 시간이 지나면 보낸다", BlockCase);
             run("병정인형: 1단계는 1명만, 2단계는 2명 저지", BlockCountCase);
             run("병정인형 3단계: 일반 적은 밀어내고 보스는 면역", KnockbackCase);
@@ -297,6 +299,63 @@ namespace Akmong.Battle
             };
             string a = play(), b = play();
             Check(cases, name, a == b, $"1회차 {a}, 2회차 {b}");
+        }
+
+        // ───────── 칸 맵 ─────────
+
+        static GridMap OpenGrid(int w, int h)
+        {
+            var map = new GridMap(w, h);
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++) map.Set(x, y, CellType.Open);
+            return map;
+        }
+
+        static void GridPathCase(List<Case> cases, string name)
+        {
+            GridMap map = OpenGrid(6, 6);
+            map.SpawnX = 0; map.SpawnY = 0; map.GoalX = 2; map.GoalY = 2;
+            List<GridPoint> path = map.ShortestPath();
+            string got = path == null ? "없음" : string.Join(" ", path.ConvertAll(p => p.ToString()));
+            bool tieBreak = got == "(0,0) (1,0) (2,0) (2,1) (2,2)";
+
+            // 가운데를 막으면 돌아간다. 밝히지 않은 암흑으로는 지나가지 않는다.
+            map.Set(1, 0, CellType.Dark);
+            List<GridPoint> detour = map.ShortestPath();
+            string detourText = detour == null ? "없음" : string.Join(" ", detour.ConvertAll(p => p.ToString()));
+            bool avoidsDark = detourText == "(0,0) (0,1) (1,1) (2,1) (2,2)";
+
+            List<Vector2> world = map.ToWorldPath(detour);
+            bool corners = world.Count == 4 && world[0] == new Vector2(0, 5) && world[3] == new Vector2(2, 3);
+            Check(cases, name, tieBreak && avoidsDark && corners,
+                $"모두 열림: {got} / (1,0) 암흑: {detourText} / 꺾이는 점 {world.Count}개(4)");
+        }
+
+        static void GridRulesCase(List<Case> cases, string name)
+        {
+            var map = new GridMap(8, 6);
+            List<string> empty = map.Validate();
+            bool missing = empty.Exists(e => e.Contains("시작점")) && empty.Exists(e => e.Contains("끝점"));
+
+            map.SpawnX = 0; map.SpawnY = 0; map.GoalX = 7; map.GoalY = 5;
+            for (int y = 0; y < 6; y++) map.Set(4, y, CellType.Wall); // 세로로 꽉 막은 벽
+            bool blocked = map.Validate().Exists(e => e.Contains("이을 수 없습니다"));
+            map.Set(4, 3, CellType.Dark);                                // 한 칸 뚫으면 이을 수 있다
+            bool reachable = map.Validate().Count == 0;
+
+            map.Set(1, 0, CellType.Open);
+            map.Set(2, 0, CellType.CrystalSmall);
+            bool buildEdge = map.IsBuildable(1, 1) && !map.IsBuildable(1, 0) && !map.IsBuildable(2, 0) && !map.IsBuildable(3, 3);
+
+            map.Set(5, 2, CellType.CrystalLarge);
+            GridMap copy = GridMap.FromRows(map.ToRows());
+            bool roundTrip = string.Join("/", copy.ToRows()) == string.Join("/", map.ToRows()) && copy.Width == 8 && copy.Height == 6
+                             && copy.Get(5, 2) == CellType.CrystalLarge && copy.Get(4, 0) == CellType.Wall;
+
+            map.Resize(5, 6); // 끝점(7,5)이 밖으로 나가면 지워진다
+            bool resized = map.Width == 6 && !map.HasGoal && map.HasSpawn; // 최소 크기 6으로 맞춤
+            Check(cases, name, missing && blocked && reachable && buildEdge && roundTrip && resized,
+                $"빈 맵 오류 {missing}, 벽 막힘 {blocked}, 뚫으면 통과 {reachable}, 설치 칸 {buildEdge}, 저장 왕복 {roundTrip}, 크기 변경 {resized}");
         }
 
         // ───────── 병정인형(근거리 저지) ─────────

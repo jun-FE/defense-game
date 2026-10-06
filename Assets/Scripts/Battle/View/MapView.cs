@@ -124,6 +124,9 @@ public class MapView : MonoBehaviour
         cam.transform.position = new Vector3(map.CameraX + map.CameraWidth / 2f, map.CameraY + map.CameraHeight / 2f, -10f);
         float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);
         cam.orthographicSize = Mathf.Max(map.CameraHeight / 2f, map.CameraWidth / 2f / aspect);
+        // 휠 확대·축소가 있으면 "전체 보기" 기준을 알려 준다.
+        CameraZoom zoom = cam.GetComponent<CameraZoom>();
+        if (zoom != null) zoom.SetFit(new Rect(map.CameraX, map.CameraY, map.CameraWidth, map.CameraHeight), cam.orthographicSize);
     }
 
     void CreateArt(string objectName, Sprite sprite, Vector2 center, Vector2 size, int order)
