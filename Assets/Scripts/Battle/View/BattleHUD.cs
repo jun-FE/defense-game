@@ -6,11 +6,12 @@ using UnityEngine;
 /// 전투 UI(IMGUI, 1080p 기준 좌표). 배치는 전투 UI 시안(ArtSource/Battle_UI/전투UI_시안.png)을 따른다.
 /// - 왼쪽 위: 스테이지 이름, 웨이브, (준비 중) 바로 시작 / 가운데 위: 악몽 침식도
 /// - 오른쪽 위: 꿈의 불빛 HP, 몽결정(전투 재화), 일시정지, 배속
-/// - 아래: 타워 카드 5칸(병정인형·실타래·스탠드·오르골·드림캐처), 왼쪽 이안, 오른쪽 도하(스킬 자리)
+/// - 왼쪽 아래: 미니맵(클릭·드래그로 그 자리로 화면 이동) / 오른쪽 아래: 도하(스킬 자리)
+/// - 건설: 지을 수 있는 칸을 클릭하면 그 칸 둘레에 타워 5종(병정인형·실타래·스탠드·오르골·드림캐처)이
+///   동그란 버튼으로 펼쳐진다(건설 고리). 버튼을 누르거나 1~5로 짓는다. 다른 곳 클릭·우클릭·Esc로 닫는다.
 /// 아이콘은 시안에서 잘라 낸 임시 그림(Assets/Art/Battle/UI/mock_*)이다. 정식 UI 아트가 오면 교체한다.
 /// 입력은 명령으로만 전달한다: 건설 / 강화 / 웨이브 시작 / 속도 / 일시정지 / 귀환.
-/// 조작: 타워 카드(또는 1~5) → 밝은 칸 클릭으로 건설, 우클릭·Esc 취소.
-///       타워 클릭 → 정보·강화. Space 웨이브 바로 시작. Esc 일시정지.
+/// 조작: 타워 클릭 → 정보·강화. Space 웨이브 바로 시작. Esc 일시정지.
 ///       개발용(에디터·개발 빌드): F1 재화 +100, F2 적 전부 처치.
 /// </summary>
 public class BattleHUD : MonoBehaviour
@@ -50,21 +51,29 @@ public class BattleHUD : MonoBehaviour
     float H => UIKit.Height / HudScale;
 
     const float PanelWidth = 380f;
-    const float CardW = 150f, CardH = 186f, CardGap = 12f;
+    /// <summary>건설 고리: 버튼 지름, 고리 반지름(칸 중심에서 버튼 중심까지), 펼쳐지는 시간(초).</summary>
+    const float RingButton = 104f, RingRadius = 124f, RingOpenTime = 0.16f;
+    /// <summary>미니맵이 들어갈 최대 크기(HUD 가상 좌표).</summary>
+    const float MiniMaxW = 320f, MiniMaxH = 220f;
 
     BattleSession Session => controller.Session;
 
     UISkin skin;
     TowerDef[] slotTowers;
-    TowerDef buildSelection;
     TowerState selectedTower;
+    bool ringOpen;
+    Vector2Int ringTile;
+    float ringOpenedAt;
+    int ringHover = -1;
+    Rect miniRect;
+    bool miniDragging;
+    Texture2D miniGrid;
     bool pauseMenu;
     string message;
     float messageUntil;
     Vector2 mouseScreen;       // IMGUI 좌표(왼쪽 위 원점, 픽셀)
     Vector2Int hoverTile;
     bool hoverOnMap;
-    int hoverSlot = -1;
     readonly List<Rect> uiRects = new List<Rect>();
 
     SpriteRenderer tilePreview;
@@ -86,7 +95,7 @@ public class BattleHUD : MonoBehaviour
     void OnGUI()
     {
         Event e = Event.current;
-        if (e.type == EventType.Repaint || e.type == EventType.MouseMove || e.type == EventType.MouseDrag || e.type == EventType.MouseDown)
+        if (e.type == EventType.Repaint || e.type == EventType.MouseMove || e.type == EventType.MouseDrag || e.type == EventType.MouseDown || e.type == EventType.MouseUp)
             mouseScreen = e.mousePosition;
 
         UIKit.Begin();
@@ -107,10 +116,12 @@ public class BattleHUD : MonoBehaviour
         DrawStagePlate();
         DrawErosion();
         DrawStatus();
-        DrawIan();
+        if (ringOpen && (overlay || !RingStillValid())) ringOpen = false;
+        DrawMinimap();
         DrawDoha();
-        DrawTowerCards(virtualMouse);
         if (selectedTower != null) DrawTowerPanel();
+        if (ringOpen) DrawBuildRing(virtualMouse);
+        else ringHover = -1;
         DrawMessage();
         GUI.enabled = true;
 
@@ -123,7 +134,8 @@ public class BattleHUD : MonoBehaviour
         CameraZoom.PointerOverUI = !hoverOnMap;
         UIKit.End();
 
-        HandleInput(e, overlay);
+        HandleMinimapInput(e, virtualMouse, overlay);
+        HandleInput(e, overlay, virtualMouse);
     }
 
     void MapSlots()
@@ -229,17 +241,6 @@ public class BattleHUD : MonoBehaviour
 
     // ───────── 아래 ─────────
 
-    void DrawIan()
-    {
-        float h = H;
-        Rect r = Ui(new Rect(20, h - 218, 214, 200));
-        skin.Frame(r, "panel_indigo");
-        skin.Icon(new Rect(r.x + 10, r.y + 10, r.width - 20, 130), "mock_ian");
-        var label = new Rect(r.x + 10, r.yMax - 54, r.width - 20, 44);
-        skin.Frame(label, "bar_indigo");
-        GUI.Label(label, "이안 · 건설 지휘", skin.Text(20, UISkin.Light, TextAnchor.MiddleCenter, true));
-    }
-
     /// <summary>도하 스킬 자리(3주차: 필드 지원). 지금은 모양만 보여 준다.</summary>
     void DrawDoha()
     {
@@ -264,63 +265,314 @@ public class BattleHUD : MonoBehaviour
         GUI.Label(new Rect(r.x + 140, r.yMax - 34, r.width - 150, 26), "스킬은 준비 중 · 우클릭 이동", skin.Text(15, UISkin.Muted, TextAnchor.MiddleCenter));
     }
 
-    void DrawTowerCards(Vector2 virtualMouse)
-    {
-        float w = W, h = H;
-        float total = Slots.Length * CardW + (Slots.Length - 1) * CardGap;
-        float x0 = (w - total) / 2f, y = h - CardH - 18f;
-        Rect back = Ui(new Rect(x0 - 20, y - 12, total + 40, CardH + 24));
-        skin.Frame(back, "panel_indigo");
+    // ───────── 미니맵 ─────────
 
-        hoverSlot = -1;
+    /// <summary>
+    /// 왼쪽 아래 미니맵: 맵 전체를 작게 그리고 타워(하늘색)·적(빨강)·출현 지점(보라)·꿈의 중심(금색)과
+    /// 지금 화면에 보이는 영역(흰 테두리)을 표시한다. 누르거나 끌면 그 자리로 화면이 이동한다.
+    /// </summary>
+    void DrawMinimap()
+    {
+        MapDef map = Session.Stage.Map;
+        float aspect = map.CameraWidth / Mathf.Max(0.01f, map.CameraHeight);
+        float mw = MiniMaxW, mh = mw / aspect;
+        if (mh > MiniMaxH) { mh = MiniMaxH; mw = mh * aspect; }
+        const float pad = 10f;
+        Rect back = Ui(new Rect(20, H - 20 - mh - pad * 2, mw + pad * 2, mh + pad * 2));
+        skin.Frame(back, "panel_indigo");
+        miniRect = new Rect(back.x + pad, back.y + pad, mw, mh);
+
+        Color old = GUI.color;
+        GUI.color = new Color(0.05f, 0.04f, 0.1f, 1f);
+        GUI.DrawTexture(miniRect, Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        MapAsset asset = controller.Content.StageAsset != null ? controller.Content.StageAsset.map : null;
+        if (DreamRun.Active)
+        {
+            if (miniGrid == null) miniGrid = BuildGridTexture(DreamRun.Map);
+            GUI.DrawTexture(miniRect, miniGrid);
+        }
+        else if (asset != null && asset.background != null)
+        {
+            DrawSprite(miniRect, asset.background, Color.white);
+        }
+        else
+        {
+            foreach (SpawnPointDef spawn in map.SpawnPoints)
+                for (int i = 1; i < spawn.Path.Count; i++)
+                {
+                    Vector2 a = BattleContentBuilder.ToUnity(spawn.Path[i - 1]), b = BattleContentBuilder.ToUnity(spawn.Path[i]);
+                    Vector2 min = Vector2.Min(a, b) - Vector2.one * 0.5f, max = Vector2.Max(a, b) + Vector2.one * 0.5f;
+                    FillWorld(min, max, new Color(0.45f, 0.38f, 0.58f));
+                }
+        }
+
+        foreach (SpawnPointDef spawn in map.SpawnPoints)
+            Dot(BattleContentBuilder.ToUnity(spawn.Path[0]), 9f, new Color(0.75f, 0.45f, 1f));
+        foreach (TowerState tower in Session.Towers)
+            Dot(new Vector2(tower.TileX, tower.TileY), 7f, new Color(0.45f, 0.95f, 1f));
+        foreach (EnemyState enemy in Session.Enemies)
+            if (enemy.Alive) Dot(BattleContentBuilder.ToUnity(enemy.Position), enemy.Def.IsBoss ? 9f : 5f, new Color(1f, 0.32f, 0.32f));
+        Dot(BattleContentBuilder.ToUnity(map.CorePos), 11f, new Color(1f, 0.8f, 0.4f));
+
+        // 지금 보이는 영역
+        if (worldCamera != null)
+        {
+            float halfH = worldCamera.orthographicSize, halfW = halfH * worldCamera.aspect;
+            Vector3 c = worldCamera.transform.position;
+            Rect view = WorldToMini(new Vector2(c.x - halfW, c.y - halfH), new Vector2(c.x + halfW, c.y + halfH));
+            float x0 = Mathf.Max(view.xMin, miniRect.xMin), x1 = Mathf.Min(view.xMax, miniRect.xMax);
+            float y0 = Mathf.Max(view.yMin, miniRect.yMin), y1 = Mathf.Min(view.yMax, miniRect.yMax);
+            if (x1 > x0 && y1 > y0)
+            {
+                GUI.color = new Color(1f, 1f, 1f, 0.85f);
+                const float t = 2f;
+                GUI.DrawTexture(new Rect(x0, y0, x1 - x0, t), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(x0, y1 - t, x1 - x0, t), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(x0, y0, t, y1 - y0), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(x1 - t, y0, t, y1 - y0), Texture2D.whiteTexture);
+            }
+        }
+        GUI.color = old;
+    }
+
+    /// <summary>탐색 맵 한 칸 = 한 픽셀(MapView와 같은 색: 밝힌 바닥, 몬스터 경로, 암흑, 막힌 암흑, 결정).</summary>
+    static Texture2D BuildGridTexture(GridMap grid)
+    {
+        var texture = new Texture2D(grid.Width, grid.Height, TextureFormat.RGBA32, false)
+        { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+        var onPath = new HashSet<Vector2Int>();
+        List<GridPoint> path = grid.ShortestPath();
+        if (path != null) foreach (GridPoint p in path) onPath.Add(new Vector2Int(p.X, p.Y));
+        var pixels = new Color[grid.Width * grid.Height];
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                CellType type = grid.Get(x, y);
+                Color c;
+                if (grid.IsOpen(x, y)) c = onPath.Contains(new Vector2Int(x, y)) ? new Color(0.86f, 0.66f, 0.38f) : new Color(0.55f, 0.47f, 0.37f);
+                else if (type == CellType.Wall) c = new Color(0.02f, 0.01f, 0.04f);
+                else if (type == CellType.CrystalSmall) c = new Color(0.45f, 0.33f, 0.75f);
+                else if (type == CellType.CrystalLarge) c = new Color(0.30f, 0.62f, 0.75f);
+                else c = new Color(0.10f, 0.08f, 0.18f);
+                pixels[(grid.Height - 1 - y) * grid.Width + x] = c; // 텍스처 아래쪽 줄 = 월드 y 0
+            }
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return texture;
+    }
+
+    Rect WorldToMini(Vector2 min, Vector2 max)
+    {
+        MapDef map = Session.Stage.Map;
+        float sx = miniRect.width / map.CameraWidth, sy = miniRect.height / map.CameraHeight;
+        float x0 = miniRect.x + (min.x - map.CameraX) * sx, x1 = miniRect.x + (max.x - map.CameraX) * sx;
+        float y0 = miniRect.yMax - (max.y - map.CameraY) * sy, y1 = miniRect.yMax - (min.y - map.CameraY) * sy;
+        return Rect.MinMaxRect(x0, y0, x1, y1);
+    }
+
+    Vector2 MiniToWorld(Vector2 point)
+    {
+        MapDef map = Session.Stage.Map;
+        float u = Mathf.Clamp01((point.x - miniRect.x) / miniRect.width), v = Mathf.Clamp01((miniRect.yMax - point.y) / miniRect.height);
+        return new Vector2(map.CameraX + u * map.CameraWidth, map.CameraY + v * map.CameraHeight);
+    }
+
+    void FillWorld(Vector2 min, Vector2 max, Color color)
+    {
+        Rect r = WorldToMini(min, max);
+        GUI.color = color;
+        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.color = Color.white;
+    }
+
+    void Dot(Vector2 world, float size, Color color)
+    {
+        Rect cell = WorldToMini(world, world);
+        GUI.color = color;
+        DrawSprite(new Rect(cell.x - size / 2f, cell.y - size / 2f, size, size), circle, color);
+        GUI.color = Color.white;
+    }
+
+    void HandleMinimapInput(Event e, Vector2 virtualMouse, bool overlay)
+    {
+        if (overlay || worldCamera == null) { miniDragging = false; return; }
+        if (e.type == EventType.MouseDown && e.button == 0 && miniRect.Contains(virtualMouse)) miniDragging = true;
+        if (miniDragging && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag))
+        {
+            CameraZoom zoom = worldCamera.GetComponent<CameraZoom>();
+            if (zoom != null) zoom.LookAt(MiniToWorld(virtualMouse));
+            e.Use();
+        }
+        if (miniDragging && e.type == EventType.MouseUp && e.button == 0)
+        {
+            miniDragging = false;
+            e.Use();
+        }
+    }
+
+    // ───────── 건설 고리 ─────────
+
+    /// <summary>이 칸에 슬롯 타워를 지을 수 있는지(재화 부족도 "자리는 맞음"으로 본다).</summary>
+    bool SpotFits(TowerDef tower, int x, int y)
+    {
+        if (tower == null) return false;
+        CommandError error = Session.CanBuild(tower, x, y);
+        return error == CommandError.None || error == CommandError.NotEnoughCoin;
+    }
+
+    /// <summary>타워가 하나라도 들어갈 수 있는 빈 칸인지.</summary>
+    bool IsBuildSpot(int x, int y)
+    {
+        if (slotTowers == null || Session.TowerAt(x, y) != null) return false;
+        foreach (TowerDef tower in slotTowers)
+            if (SpotFits(tower, x, y)) return true;
+        return false;
+    }
+
+    bool RingStillValid() => Session.Phase != BattlePhase.Ended && IsBuildSpot(ringTile.x, ringTile.y);
+
+    void OpenRing(Vector2Int tile)
+    {
+        ringOpen = true;
+        ringTile = tile;
+        ringOpenedAt = Time.unscaledTime;
+        selectedTower = null;
+    }
+
+    Vector2 WorldToHud(Vector3 world)
+    {
+        Vector3 s = worldCamera.WorldToScreenPoint(world);
+        return new Vector2(s.x, Screen.height - s.y) / (UIKit.Scale * HudScale);
+    }
+
+    /// <summary>고리 중심(칸 위치, 화면 밖으로 버튼이 나가지 않게 안쪽으로 당김)과 i번째 버튼 중심.</summary>
+    Vector2 RingCenter()
+    {
+        Vector2 c = WorldToHud(new Vector3(ringTile.x, ringTile.y, 0f));
+        float m = RingRadius + RingButton / 2f + 8f;
+        return new Vector2(Mathf.Clamp(c.x, m, W - m), Mathf.Clamp(c.y, m, H - m));
+    }
+
+    Vector2 RingSlotCenter(Vector2 center, int i, float open)
+    {
+        float angle = (-90f + i * 360f / Slots.Length) * Mathf.Deg2Rad; // 12시부터 시계 방향
+        return center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (RingRadius * open);
+    }
+
+    float RingOpen(int i)
+    {
+        // 버튼마다 살짝 늦게, 끝에서 조금 튕기듯(동글동글 팝업)
+        float t = Mathf.Clamp01((Time.unscaledTime - ringOpenedAt - i * 0.025f) / RingOpenTime);
+        float back = 1.70158f;
+        return 1f + (back + 1f) * Mathf.Pow(t - 1f, 3f) + back * Mathf.Pow(t - 1f, 2f); // easeOutBack
+    }
+
+    int RingButtonAt(Vector2 virtualMouse)
+    {
+        if (!ringOpen) return -1;
+        Vector2 center = RingCenter();
+        for (int i = 0; i < Slots.Length; i++)
+            if ((virtualMouse - RingSlotCenter(center, i, 1f)).sqrMagnitude <= RingButton * RingButton / 4f) return i;
+        return -1;
+    }
+
+    void DrawBuildRing(Vector2 virtualMouse)
+    {
+        Vector2 center = RingCenter();
+        float full = RingRadius * 2f + RingButton;
+        Ui(new Rect(center.x - full / 2f, center.y - full / 2f, full, full));
+        ringHover = RingButtonAt(virtualMouse);
+
+        Color old = GUI.color;
+        // 고리 바탕(옅은 원)과 가운데 칸 표시
+        float baseOpen = Mathf.Clamp01(RingOpen(0));
+        float ringSize = (RingRadius * 2f + RingButton * 0.55f) * baseOpen;
+        DrawSprite(new Rect(center.x - ringSize / 2f, center.y - ringSize / 2f, ringSize, ringSize), circle, new Color(0.06f, 0.05f, 0.14f, 0.45f));
+
         for (int i = 0; i < Slots.Length; i++)
         {
             Slot slot = Slots[i];
             TowerDef tower = slotTowers[i];
-            var r = new Rect(x0 + i * (CardW + CardGap), y, CardW, CardH);
-            bool selected = tower != null && buildSelection == tower;
-            bool affordable = tower != null && Session.Coin >= tower.BuildCost;
-            if (r.Contains(virtualMouse)) hoverSlot = i;
+            bool fits = SpotFits(tower, ringTile.x, ringTile.y);
+            bool affordable = fits && Session.Coin >= tower.BuildCost;
+            bool hover = ringHover == i;
 
-            if (GUI.Button(r, GUIContent.none, GUIStyle.none))
-            {
-                if (tower != null) ToggleBuild(tower);
-                else ShowMessage($"{slot.Name}는 아직 준비 중이에요");
-            }
-            skin.Frame(r, selected || (hoverSlot == i && tower != null) ? "card_dark_hover" : "card_dark");
+            float open = RingOpen(i);
+            float d = RingButton * Mathf.Max(0f, open) * (hover && fits ? 1.08f : 1f);
+            Vector2 c = RingSlotCenter(center, i, open);
+            var r = new Rect(c.x - d / 2f, c.y - d / 2f, d, d);
 
-            Color old = GUI.color;
-            if (tower == null) GUI.color = new Color(0.6f, 0.6f, 0.7f, 0.5f);
-            else if (!affordable) GUI.color = new Color(1f, 1f, 1f, 0.55f);
-            skin.Icon(new Rect(r.x + 14, r.y + 12, r.width - 28, 100), slot.Icon);
-            GUI.Label(new Rect(r.x + 8, r.y + 10, 30, 30), (i + 1).ToString(), skin.Text(18, UISkin.Light, TextAnchor.MiddleCenter, true));
-            GUI.Label(new Rect(r.x, r.y + 114, r.width, 32), slot.Name, skin.Text(21, UISkin.Light, TextAnchor.MiddleCenter, true));
-            if (tower != null)
+            // 테두리(밝은 원) → 안쪽(어두운 원) → 아이콘
+            Color edge = !fits ? new Color(0.35f, 0.33f, 0.45f, 0.9f)
+                : hover ? new Color(1f, 0.85f, 0.5f, 1f)
+                : affordable ? new Color(0.72f, 0.62f, 1f, 0.95f) : new Color(0.6f, 0.35f, 0.4f, 0.95f);
+            if (hover && fits)
             {
-                skin.Icon(new Rect(r.x + 36, r.y + 148, 26, 30), "mock_icon_crystal");
-                GUI.Label(new Rect(r.x + 64, r.y + 146, 60, 34), tower.BuildCost.ToString(),
-                    skin.Text(22, affordable ? UISkin.Light : new Color(1f, 0.55f, 0.55f), TextAnchor.MiddleLeft, true));
+                float glow = d * 1.35f;
+                DrawSprite(new Rect(c.x - glow / 2f, c.y - glow / 2f, glow, glow), circle, new Color(1f, 0.75f, 0.4f, 0.25f));
             }
-            else
-            {
-                GUI.Label(new Rect(r.x, r.y + 146, r.width, 34), "준비 중", skin.Text(18, UISkin.Muted, TextAnchor.MiddleCenter));
-            }
+            DrawSprite(r, circle, edge);
+            float inner = d * 0.9f;
+            DrawSprite(new Rect(c.x - inner / 2f, c.y - inner / 2f, inner, inner), circle, new Color(0.11f, 0.09f, 0.22f, 0.97f));
+
+            GUI.color = !fits ? new Color(0.6f, 0.6f, 0.7f, 0.45f) : affordable ? Color.white : new Color(1f, 1f, 1f, 0.55f);
+            float icon = d * 0.6f;
+            skin.Icon(new Rect(c.x - icon / 2f, c.y - icon / 2f - d * 0.08f, icon, icon), slot.Icon);
             GUI.color = old;
-        }
 
-        if (hoverSlot >= 0) DrawCardTooltip(hoverSlot, x0 + hoverSlot * (CardW + CardGap) + CardW / 2f, y - 22f);
+            if (open > 0.6f)
+            {
+                string cost = tower == null ? "준비 중" : fits ? tower.BuildCost.ToString() : "불가";
+                Color costColor = !fits ? UISkin.Muted : affordable ? UISkin.Light : new Color(1f, 0.55f, 0.55f);
+                GUI.Label(new Rect(c.x - d / 2f, c.y + d * 0.18f, d, 30), cost, skin.Text(tower != null && fits ? 21 : 16, costColor, TextAnchor.MiddleCenter, true));
+                GUI.Label(new Rect(c.x - d * 0.42f - 13, c.y - d * 0.42f - 13, 26, 26), (i + 1).ToString(), skin.Text(16, UISkin.Muted, TextAnchor.MiddleCenter, true));
+            }
+        }
+        GUI.color = old;
+
+        if (ringHover >= 0) DrawRingTooltip(ringHover, center);
     }
 
-    void DrawCardTooltip(int index, float centerX, float bottom)
+    void DrawRingTooltip(int index, Vector2 center)
     {
         Slot slot = Slots[index];
         TowerDef tower = slotTowers[index];
-        var r = new Rect(centerX - 190, bottom - 110, 380, 104);
+        bool fits = SpotFits(tower, ringTile.x, ringTile.y);
+        // 고리 위쪽에 띄우되, 화면 위로 넘치면 아래쪽에
+        float top = center.y - RingRadius - RingButton / 2f - 118f;
+        if (top < 90f) top = center.y + RingRadius + RingButton / 2f + 12f;
+        var r = new Rect(Mathf.Clamp(center.x - 200f, 12f, W - 412f), top, 400, 106);
         skin.Frame(r, "panel_indigo");
         GUI.Label(new Rect(r.x + 18, r.y + 8, r.width - 36, 32), slot.Name, skin.Text(22, UISkin.Light, TextAnchor.MiddleLeft, true));
         GUI.Label(new Rect(r.x + 18, r.y + 38, r.width - 36, 30), slot.Description, skin.Text(17, UISkin.Light, TextAnchor.MiddleLeft, false, true));
-        string cost = tower != null ? $"설치 비용: 몽결정 {tower.BuildCost}" : "아직 만들어지지 않은 타워예요";
-        GUI.Label(new Rect(r.x + 18, r.y + 68, r.width - 36, 30), cost, skin.Text(17, UISkin.Gold, TextAnchor.MiddleLeft));
+        string cost = tower == null ? "아직 만들어지지 않은 타워예요"
+            : !fits ? "이 자리에는 지을 수 없어요"
+            : $"설치 비용: 몽결정 {tower.BuildCost}";
+        GUI.Label(new Rect(r.x + 18, r.y + 70, r.width - 36, 30), cost, skin.Text(17, UISkin.Gold, TextAnchor.MiddleLeft));
+    }
+
+    void BuildFromRing(int index)
+    {
+        Slot slot = Slots[index];
+        TowerDef tower = slotTowers[index];
+        if (tower == null) { ShowMessage($"{slot.Name}는 아직 준비 중이에요"); return; }
+        TowerState built;
+        CommandError error = Session.TryBuild(tower, ringTile.x, ringTile.y, out built);
+        if (error != CommandError.None) { ShowMessage(BattleText.Error(error, tower.BuildCost)); return; }
+        ringOpen = false;
+    }
+
+    /// <summary>스프라이트 한 장(아틀라스 영역 포함)을 IMGUI 사각형에 색을 곱해 그린다.</summary>
+    static void DrawSprite(Rect r, Sprite sprite, Color color)
+    {
+        if (sprite == null) return;
+        Texture2D t = sprite.texture;
+        Rect tr = sprite.textureRect;
+        Color old = GUI.color;
+        GUI.color = color;
+        GUI.DrawTextureWithTexCoords(r, t, new Rect(tr.x / t.width, tr.y / t.height, tr.width / t.width, tr.height / t.height));
+        GUI.color = old;
     }
 
     void DrawTowerPanel()
@@ -370,7 +622,7 @@ public class BattleHUD : MonoBehaviour
     void DrawMessage()
     {
         if (string.IsNullOrEmpty(message) || Time.unscaledTime > messageUntil) return;
-        var rect = new Rect(0, H - CardH - 150, W, 50);
+        var rect = new Rect(0, H - 170, W, 50);
         UIKit.ShadowLabel(rect, message, skin.Text(28, UISkin.Gold, TextAnchor.MiddleCenter, true));
     }
 
@@ -423,14 +675,14 @@ public class BattleHUD : MonoBehaviour
 
     // ───────── 입력 ─────────
 
-    void HandleInput(Event e, bool overlay)
+    void HandleInput(Event e, bool overlay, Vector2 virtualMouse)
     {
         if (e.type == EventType.KeyDown)
         {
             if (e.keyCode == KeyCode.Escape)
             {
                 if (Session.Phase == BattlePhase.Ended) return;
-                if (buildSelection != null || selectedTower != null) ClearSelection();
+                if (ringOpen || selectedTower != null) ClearSelection();
                 else SetPauseMenu(!pauseMenu);
                 e.Use();
                 return;
@@ -439,12 +691,10 @@ public class BattleHUD : MonoBehaviour
             if (e.keyCode == KeyCode.Space) { Session.StartWaveNow(); e.Use(); }
             else if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha9)
             {
+                // 숫자 키: 건설 고리가 열려 있으면 그 칸에 바로 짓는다.
                 int index = e.keyCode - KeyCode.Alpha1;
-                if (slotTowers != null && index < slotTowers.Length)
-                {
-                    if (slotTowers[index] != null) ToggleBuild(slotTowers[index]);
-                    else ShowMessage($"{Slots[index].Name}는 아직 준비 중이에요");
-                }
+                if (ringOpen && index < Slots.Length) BuildFromRing(index);
+                else if (!ringOpen) ShowMessage("지을 칸을 먼저 클릭하세요");
                 e.Use();
             }
             else if (Debug.isDebugBuild && e.keyCode == KeyCode.F1) { Session.DebugAddCoin(100); e.Use(); }
@@ -453,7 +703,22 @@ public class BattleHUD : MonoBehaviour
         }
 
         // 클릭은 버튼을 뗄 때 처리한다. 누른 채 끌었으면 화면 이동(CameraZoom)이라 클릭으로 보지 않는다.
-        if (overlay || e.type != EventType.MouseUp || !hoverOnMap || CameraZoom.LastClickWasDrag) return;
+        if (overlay || e.type != EventType.MouseUp || CameraZoom.LastClickWasDrag) return;
+
+        if (ringOpen)
+        {
+            int button = RingButtonAt(virtualMouse);
+            if (e.button == 0 && button >= 0)
+            {
+                BuildFromRing(button);
+                e.Use();
+                return;
+            }
+            // 버튼 말고 다른 곳을 누르면 닫는다. 맵 위 왼쪽 클릭이면 그 자리 클릭(다른 칸·타워 선택)으로 이어서 처리.
+            ringOpen = false;
+            if (e.button == 1 || !hoverOnMap) { e.Use(); return; }
+        }
+        if (!hoverOnMap) return;
 
         if (e.button == 1)
         {
@@ -463,28 +728,16 @@ public class BattleHUD : MonoBehaviour
         }
         if (e.button != 0) return;
 
-        if (buildSelection != null)
-        {
-            TowerState built;
-            CommandError error = Session.TryBuild(buildSelection, hoverTile.x, hoverTile.y, out built);
-            if (error != CommandError.None) ShowMessage(BattleText.Error(error, buildSelection.BuildCost));
-        }
-        else
-        {
-            selectedTower = Session.TowerAt(hoverTile.x, hoverTile.y);
-        }
+        TowerState tower = Session.TowerAt(hoverTile.x, hoverTile.y);
+        if (tower != null) selectedTower = tower == selectedTower ? null : tower;
+        else if (IsBuildSpot(hoverTile.x, hoverTile.y)) OpenRing(hoverTile);
+        else selectedTower = null;
         e.Use();
-    }
-
-    void ToggleBuild(TowerDef tower)
-    {
-        buildSelection = buildSelection == tower ? null : tower;
-        selectedTower = null;
     }
 
     void ClearSelection()
     {
-        buildSelection = null;
+        ringOpen = false;
         selectedTower = null;
     }
 
@@ -518,25 +771,26 @@ public class BattleHUD : MonoBehaviour
         Vector3 world = worldCamera.ScreenToWorldPoint(screen);
         hoverTile = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
 
-        bool choosing = buildSelection != null && Session.Phase != BattlePhase.Ended;
-        if (view != null && view.mapView != null) view.mapView.ShowBuildTiles(choosing);
+        bool active = Session.Phase != BattlePhase.Ended;
+        if (view != null && view.mapView != null) view.mapView.ShowBuildTiles(active && ringOpen);
 
-        bool building = choosing && hoverOnMap;
-        tilePreview.enabled = building;
-        if (building)
+        // 건설 고리가 열린 칸은 초록, 고리가 닫혀 있을 때 지을 수 있는 칸에 마우스를 올리면 옅게 표시
+        bool hoverSpot = active && !ringOpen && hoverOnMap && IsBuildSpot(hoverTile.x, hoverTile.y);
+        tilePreview.enabled = active && (ringOpen || hoverSpot);
+        if (tilePreview.enabled)
         {
-            bool ok = Session.CanBuild(buildSelection, hoverTile.x, hoverTile.y) == CommandError.None;
-            tilePreview.transform.position = new Vector3(hoverTile.x, hoverTile.y, 0f);
+            Vector2Int tile = ringOpen ? ringTile : hoverTile;
+            tilePreview.transform.position = new Vector3(tile.x, tile.y, 0f);
             tilePreview.transform.localScale = Vector3.one * 0.95f;
-            tilePreview.color = ok ? new Color(0.4f, 1f, 0.6f, 0.45f) : new Color(1f, 0.35f, 0.35f, 0.45f);
+            tilePreview.color = ringOpen ? new Color(0.4f, 1f, 0.6f, 0.45f) : new Color(1f, 1f, 1f, 0.22f);
         }
 
         float range = 0f;
         Vector3 center = Vector3.zero;
-        if (building)
+        if (ringOpen && ringHover >= 0 && slotTowers[ringHover] != null)
         {
-            range = buildSelection.Levels[0].Range;
-            center = tilePreview.transform.position;
+            range = slotTowers[ringHover].Levels[0].Range;
+            center = new Vector3(ringTile.x, ringTile.y, 0f);
         }
         else if (selectedTower != null)
         {

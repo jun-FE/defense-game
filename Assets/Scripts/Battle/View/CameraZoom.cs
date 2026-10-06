@@ -54,6 +54,14 @@ public class CameraZoom : MonoBehaviour
         cam.transform.position = new Vector3(fitCenter.x, fitCenter.y, cam.transform.position.z);
     }
 
+    /// <summary>화면 중심을 이 월드 위치로 옮긴다(미니맵 클릭). 맵 밖으로는 Clamp가 당겨 준다.</summary>
+    public void LookAt(Vector2 world)
+    {
+        if (!hasFit) return;
+        cam.transform.position = new Vector3(world.x, world.y, cam.transform.position.z);
+        Clamp();
+    }
+
     void Update()
     {
         if (!hasFit) return;
