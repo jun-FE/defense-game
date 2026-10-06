@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "13";
+    public const string BuildVersion = "14";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -164,7 +164,7 @@ public static class DemoSceneBuilder
         CreateCamera(new Color(0.05f, 0.06f, 0.13f));
 
         var layout = AssetDatabase.LoadAssetAtPath<TextAsset>($"{LobbyArtDir}/lobby_layout.json");
-        List<Sprite> sprites = LoadScreenSprites(LobbyArtDir);
+        List<Sprite> sprites = LoadScreenSprites(LobbyArtDir).FindAll(sp => !AssetDatabase.GetAssetPath(sp).Contains("/UI/"));
 
         var background = new GameObject("LobbyBackground").AddComponent<LayeredBackground>();
         background.layoutJson = layout;
@@ -175,6 +175,14 @@ public static class DemoSceneBuilder
         var menu = new GameObject("LobbyMenu").AddComponent<LobbyMenu>();
         menu.layoutJson = layout;
         menu.menuSprites = sprites.FindAll(sp => sp.name.StartsWith("menu_")).ToArray();
+        // 팝업(이어하기·새로하기·설정·종료): Tools/Art/import_lobby_popups.py 로 가져온 리소스 팩
+        const string popupDir = LobbyArtDir + "/UI/Popups";
+        menu.popupSprites = LoadScreenSprites(popupDir).ToArray();
+        menu.popupBounds = AssetDatabase.LoadAssetAtPath<TextAsset>($"{popupDir}/popup_bounds.json");
+        menu.continueLayout = AssetDatabase.LoadAssetAtPath<TextAsset>($"{popupDir}/continue_layout.json");
+        menu.newLayout = AssetDatabase.LoadAssetAtPath<TextAsset>($"{popupDir}/new_layout.json");
+        menu.settingsLayout = AssetDatabase.LoadAssetAtPath<TextAsset>($"{popupDir}/settings_layout.json");
+        menu.quitLayout = AssetDatabase.LoadAssetAtPath<TextAsset>($"{popupDir}/quit_layout.json");
 
         EditorSceneManager.SaveScene(scene, LobbyScenePath);
     }

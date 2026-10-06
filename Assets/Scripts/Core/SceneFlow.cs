@@ -79,6 +79,9 @@ public static class SceneFlow
     static void Load(string scene)
     {
         Time.timeScale = 1f;
+        // 로비 "이어하기" 창의 마지막 저장 위치·시각
+        if (scene == MainScene) SaveInfo.Touch("수선소");
+        else if (scene == GameScene) SaveInfo.Touch(CurrentStage != null && !string.IsNullOrEmpty(CurrentStage.title) ? "꿈 속 · " + CurrentStage.title : "꿈 속");
         SceneManager.LoadScene(scene);
     }
 }

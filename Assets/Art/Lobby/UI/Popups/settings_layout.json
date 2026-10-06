@@ -1,0 +1,136 @@
+{
+  "reference_resolution": [
+    1672,
+    941
+  ],
+  "positions": "absolute pixels; anchor top-left",
+  "elements": [
+    {
+      "id": "panel_settings",
+      "x": 465,
+      "y": 290,
+      "width": 750,
+      "height": 530
+    },
+    {
+      "id": "tab_selected",
+      "x": 550,
+      "y": 390,
+      "width": 178,
+      "height": 65
+    },
+    {
+      "id": "tab_normal",
+      "x": 740,
+      "y": 390,
+      "width": 178,
+      "height": 65
+    },
+    {
+      "id": "tab_normal",
+      "x": 930,
+      "y": 390,
+      "width": 178,
+      "height": 65
+    },
+    {
+      "id": "slider_track",
+      "x": 705,
+      "y": 510,
+      "width": 320,
+      "height": 28
+    },
+    {
+      "id": "slider_fill",
+      "x": 711,
+      "y": 515,
+      "width": 300,
+      "height": 18
+    },
+    {
+      "id": "slider_knob",
+      "x": 940,
+      "y": 499,
+      "width": 48,
+      "height": 48
+    },
+    {
+      "id": "slider_track",
+      "x": 705,
+      "y": 582,
+      "width": 320,
+      "height": 28
+    },
+    {
+      "id": "slider_fill",
+      "x": 711,
+      "y": 587,
+      "width": 300,
+      "height": 18
+    },
+    {
+      "id": "slider_knob",
+      "x": 880,
+      "y": 571,
+      "width": 48,
+      "height": 48
+    },
+    {
+      "id": "slider_track",
+      "x": 705,
+      "y": 654,
+      "width": 320,
+      "height": 28
+    },
+    {
+      "id": "slider_fill",
+      "x": 711,
+      "y": 659,
+      "width": 300,
+      "height": 18
+    },
+    {
+      "id": "slider_knob",
+      "x": 940,
+      "y": 643,
+      "width": 48,
+      "height": 48
+    },
+    {
+      "id": "button_normal",
+      "x": 545,
+      "y": 710,
+      "width": 180,
+      "height": 70
+    },
+    {
+      "id": "button_normal",
+      "x": 740,
+      "y": 710,
+      "width": 180,
+      "height": 70
+    },
+    {
+      "id": "button_normal",
+      "x": 935,
+      "y": 710,
+      "width": 180,
+      "height": 70
+    },
+    {
+      "id": "menu_marker",
+      "x": 95,
+      "y": 546,
+      "width": 30,
+      "height": 30
+    },
+    {
+      "id": "menu_underline",
+      "x": 110,
+      "y": 579,
+      "width": 265,
+      "height": 24
+    }
+  ],
+  "text_rendering": "separate UI text; not baked into PNG"
+}

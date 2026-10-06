@@ -6,6 +6,11 @@ public static class GameSettings
     const string VolumeKey = "Settings.MasterVolume";
     const string TextSpeedKey = "Settings.TextSpeed";
     const string BrightnessKey = "Settings.BackgroundBrightness";
+    const string BgmKey = "Settings.BgmVolume";
+    const string SfxKey = "Settings.SfxVolume";
+
+    public const float DefaultMasterVolume = 0.8f, DefaultBgmVolume = 0.6f, DefaultSfxVolume = 0.8f;
+    public const int DefaultTextSpeed = 1;
 
     public const float MinBackgroundBrightness = 0.6f;
     public const float MaxBackgroundBrightness = 1.4f;
@@ -15,13 +20,27 @@ public static class GameSettings
 
     public static float MasterVolume
     {
-        get => PlayerPrefs.GetFloat(VolumeKey, 0.8f);
+        get => PlayerPrefs.GetFloat(VolumeKey, DefaultMasterVolume);
         set
         {
             float volume = Mathf.Clamp01(value);
             PlayerPrefs.SetFloat(VolumeKey, volume);
             AudioListener.volume = volume;
         }
+    }
+
+    /// <summary>배경음 크기(0~1). 음악 재생이 붙으면 이 값을 곱한다.</summary>
+    public static float BgmVolume
+    {
+        get => PlayerPrefs.GetFloat(BgmKey, DefaultBgmVolume);
+        set => PlayerPrefs.SetFloat(BgmKey, Mathf.Clamp01(value));
+    }
+
+    /// <summary>효과음 크기(0~1). 효과음 재생이 붙으면 이 값을 곱한다.</summary>
+    public static float SfxVolume
+    {
+        get => PlayerPrefs.GetFloat(SfxKey, DefaultSfxVolume);
+        set => PlayerPrefs.SetFloat(SfxKey, Mathf.Clamp01(value));
     }
 
     /// <summary>로비·수선소 배경 밝기 배율(1 = 아트 기본 분위기). 배경 배치 JSON의 ambient에 곱해진다.</summary>
@@ -33,7 +52,7 @@ public static class GameSettings
 
     public static int TextSpeed
     {
-        get => Mathf.Clamp(PlayerPrefs.GetInt(TextSpeedKey, 1), 0, TextSpeedNames.Length - 1);
+        get => Mathf.Clamp(PlayerPrefs.GetInt(TextSpeedKey, DefaultTextSpeed), 0, TextSpeedNames.Length - 1);
         set => PlayerPrefs.SetInt(TextSpeedKey, Mathf.Clamp(value, 0, TextSpeedNames.Length - 1));
     }
 

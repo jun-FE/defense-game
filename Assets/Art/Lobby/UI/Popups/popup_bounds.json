@@ -1,0 +1,562 @@
+{
+ "items": [
+  {
+   "name": "continue_backdrop_dim",
+   "texWidth": 64,
+   "texHeight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64
+  },
+  {
+   "name": "continue_button_disabled",
+   "texWidth": 542,
+   "texHeight": 167,
+   "x": 23,
+   "y": 21,
+   "width": 503,
+   "height": 128
+  },
+  {
+   "name": "continue_button_hover",
+   "texWidth": 595,
+   "texHeight": 280,
+   "x": 42,
+   "y": 105,
+   "width": 502,
+   "height": 130
+  },
+  {
+   "name": "continue_button_normal",
+   "texWidth": 534,
+   "texHeight": 166,
+   "x": 17,
+   "y": 19,
+   "width": 499,
+   "height": 127
+  },
+  {
+   "name": "continue_focus_outline",
+   "texWidth": 400,
+   "texHeight": 120,
+   "x": 4,
+   "y": 4,
+   "width": 392,
+   "height": 112
+  },
+  {
+   "name": "continue_header_plaque",
+   "texWidth": 586,
+   "texHeight": 159,
+   "x": 18,
+   "y": 22,
+   "width": 552,
+   "height": 114
+  },
+  {
+   "name": "continue_icon_calendar",
+   "texWidth": 128,
+   "texHeight": 128,
+   "x": 16,
+   "y": 13,
+   "width": 96,
+   "height": 102
+  },
+  {
+   "name": "continue_icon_clock",
+   "texWidth": 280,
+   "texHeight": 258,
+   "x": 38,
+   "y": 16,
+   "width": 223,
+   "height": 227
+  },
+  {
+   "name": "continue_icon_location",
+   "texWidth": 190,
+   "texHeight": 256,
+   "x": 17,
+   "y": 16,
+   "width": 157,
+   "height": 224
+  },
+  {
+   "name": "continue_icon_quest",
+   "texWidth": 279,
+   "texHeight": 273,
+   "x": 17,
+   "y": 16,
+   "width": 246,
+   "height": 241
+  },
+  {
+   "name": "continue_menu_hit_area",
+   "texWidth": 400,
+   "texHeight": 100,
+   "x": 0,
+   "y": 0,
+   "width": 400,
+   "height": 100
+  },
+  {
+   "name": "continue_menu_marker",
+   "texWidth": 120,
+   "texHeight": 136,
+   "x": 16,
+   "y": 17,
+   "width": 83,
+   "height": 102
+  },
+  {
+   "name": "continue_menu_underline",
+   "texWidth": 510,
+   "texHeight": 112,
+   "x": 30,
+   "y": 29,
+   "width": 458,
+   "height": 55
+  },
+  {
+   "name": "continue_panel_notebook",
+   "texWidth": 566,
+   "texHeight": 389,
+   "x": 25,
+   "y": 25,
+   "width": 517,
+   "height": 348
+  },
+  {
+   "name": "continue_row_divider",
+   "texWidth": 574,
+   "texHeight": 112,
+   "x": 17,
+   "y": 35,
+   "width": 541,
+   "height": 61
+  },
+  {
+   "name": "new_backdrop_dim",
+   "texWidth": 64,
+   "texHeight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64
+  },
+  {
+   "name": "new_button_disabled",
+   "texWidth": 507,
+   "texHeight": 175,
+   "x": 25,
+   "y": 23,
+   "width": 466,
+   "height": 130
+  },
+  {
+   "name": "new_button_hover",
+   "texWidth": 589,
+   "texHeight": 257,
+   "x": 57,
+   "y": 74,
+   "width": 491,
+   "height": 135
+  },
+  {
+   "name": "new_button_normal",
+   "texWidth": 513,
+   "texHeight": 172,
+   "x": 17,
+   "y": 22,
+   "width": 478,
+   "height": 130
+  },
+  {
+   "name": "new_focus_outline",
+   "texWidth": 400,
+   "texHeight": 120,
+   "x": 4,
+   "y": 4,
+   "width": 392,
+   "height": 112
+  },
+  {
+   "name": "new_header_plaque",
+   "texWidth": 536,
+   "texHeight": 213,
+   "x": 22,
+   "y": 16,
+   "width": 490,
+   "height": 176
+  },
+  {
+   "name": "new_icon_calendar",
+   "texWidth": 128,
+   "texHeight": 128,
+   "x": 16,
+   "y": 13,
+   "width": 96,
+   "height": 102
+  },
+  {
+   "name": "new_menu_hit_area",
+   "texWidth": 400,
+   "texHeight": 100,
+   "x": 0,
+   "y": 0,
+   "width": 400,
+   "height": 100
+  },
+  {
+   "name": "new_menu_marker",
+   "texWidth": 120,
+   "texHeight": 136,
+   "x": 16,
+   "y": 17,
+   "width": 83,
+   "height": 102
+  },
+  {
+   "name": "new_menu_underline",
+   "texWidth": 510,
+   "texHeight": 112,
+   "x": 30,
+   "y": 29,
+   "width": 458,
+   "height": 55
+  },
+  {
+   "name": "new_ornament_cat",
+   "texWidth": 386,
+   "texHeight": 231,
+   "x": 17,
+   "y": 21,
+   "width": 353,
+   "height": 194
+  },
+  {
+   "name": "new_ornament_moon",
+   "texWidth": 275,
+   "texHeight": 239,
+   "x": 16,
+   "y": 18,
+   "width": 241,
+   "height": 194
+  },
+  {
+   "name": "new_ornament_spool",
+   "texWidth": 252,
+   "texHeight": 237,
+   "x": 15,
+   "y": 17,
+   "width": 219,
+   "height": 198
+  },
+  {
+   "name": "new_panel_journal",
+   "texWidth": 573,
+   "texHeight": 411,
+   "x": 21,
+   "y": 17,
+   "width": 528,
+   "height": 371
+  },
+  {
+   "name": "new_writing_divider",
+   "texWidth": 508,
+   "texHeight": 73,
+   "x": 16,
+   "y": 17,
+   "width": 474,
+   "height": 40
+  },
+  {
+   "name": "quit_backdrop_dim",
+   "texWidth": 64,
+   "texHeight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64
+  },
+  {
+   "name": "quit_button_disabled",
+   "texWidth": 507,
+   "texHeight": 178,
+   "x": 19,
+   "y": 27,
+   "width": 466,
+   "height": 133
+  },
+  {
+   "name": "quit_button_hover",
+   "texWidth": 587,
+   "texHeight": 284,
+   "x": 61,
+   "y": 78,
+   "width": 464,
+   "height": 137
+  },
+  {
+   "name": "quit_button_normal",
+   "texWidth": 526,
+   "texHeight": 181,
+   "x": 26,
+   "y": 31,
+   "width": 472,
+   "height": 132
+  },
+  {
+   "name": "quit_button_pressed",
+   "texWidth": 526,
+   "texHeight": 180,
+   "x": 22,
+   "y": 18,
+   "width": 480,
+   "height": 135
+  },
+  {
+   "name": "quit_focus_outline",
+   "texWidth": 400,
+   "texHeight": 120,
+   "x": 4,
+   "y": 4,
+   "width": 392,
+   "height": 112
+  },
+  {
+   "name": "quit_icon_calendar",
+   "texWidth": 128,
+   "texHeight": 128,
+   "x": 16,
+   "y": 13,
+   "width": 96,
+   "height": 102
+  },
+  {
+   "name": "quit_menu_hit_area",
+   "texWidth": 400,
+   "texHeight": 100,
+   "x": 0,
+   "y": 0,
+   "width": 400,
+   "height": 100
+  },
+  {
+   "name": "quit_menu_marker",
+   "texWidth": 120,
+   "texHeight": 136,
+   "x": 16,
+   "y": 17,
+   "width": 83,
+   "height": 102
+  },
+  {
+   "name": "quit_menu_underline",
+   "texWidth": 510,
+   "texHeight": 112,
+   "x": 30,
+   "y": 29,
+   "width": 458,
+   "height": 55
+  },
+  {
+   "name": "quit_ornament_moon",
+   "texWidth": 268,
+   "texHeight": 163,
+   "x": 25,
+   "y": 35,
+   "width": 194,
+   "height": 104
+  },
+  {
+   "name": "quit_panel_confirm",
+   "texWidth": 582,
+   "texHeight": 390,
+   "x": 20,
+   "y": 18,
+   "width": 535,
+   "height": 343
+  },
+  {
+   "name": "quit_row_divider",
+   "texWidth": 488,
+   "texHeight": 97,
+   "x": 20,
+   "y": 25,
+   "width": 451,
+   "height": 52
+  },
+  {
+   "name": "settings_backdrop_dim",
+   "texWidth": 64,
+   "texHeight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64
+  },
+  {
+   "name": "settings_button_disabled",
+   "texWidth": 507,
+   "texHeight": 158,
+   "x": 17,
+   "y": 16,
+   "width": 474,
+   "height": 124
+  },
+  {
+   "name": "settings_button_hover",
+   "texWidth": 546,
+   "texHeight": 258,
+   "x": 43,
+   "y": 58,
+   "width": 463,
+   "height": 123
+  },
+  {
+   "name": "settings_button_normal",
+   "texWidth": 513,
+   "texHeight": 160,
+   "x": 20,
+   "y": 16,
+   "width": 477,
+   "height": 125
+  },
+  {
+   "name": "settings_dropdown_arrow",
+   "texWidth": 48,
+   "texHeight": 48,
+   "x": 8,
+   "y": 15,
+   "width": 32,
+   "height": 18
+  },
+  {
+   "name": "settings_dropdown_field",
+   "texWidth": 400,
+   "texHeight": 100,
+   "x": 3,
+   "y": 3,
+   "width": 394,
+   "height": 94
+  },
+  {
+   "name": "settings_focus_outline",
+   "texWidth": 400,
+   "texHeight": 120,
+   "x": 4,
+   "y": 4,
+   "width": 392,
+   "height": 112
+  },
+  {
+   "name": "settings_icon_calendar",
+   "texWidth": 128,
+   "texHeight": 128,
+   "x": 16,
+   "y": 13,
+   "width": 96,
+   "height": 102
+  },
+  {
+   "name": "settings_key_field",
+   "texWidth": 160,
+   "texHeight": 100,
+   "x": 3,
+   "y": 3,
+   "width": 154,
+   "height": 94
+  },
+  {
+   "name": "settings_menu_hit_area",
+   "texWidth": 400,
+   "texHeight": 100,
+   "x": 0,
+   "y": 0,
+   "width": 400,
+   "height": 100
+  },
+  {
+   "name": "settings_menu_marker",
+   "texWidth": 120,
+   "texHeight": 136,
+   "x": 16,
+   "y": 17,
+   "width": 83,
+   "height": 102
+  },
+  {
+   "name": "settings_menu_underline",
+   "texWidth": 510,
+   "texHeight": 112,
+   "x": 30,
+   "y": 29,
+   "width": 458,
+   "height": 55
+  },
+  {
+   "name": "settings_panel_settings",
+   "texWidth": 538,
+   "texHeight": 364,
+   "x": 19,
+   "y": 19,
+   "width": 500,
+   "height": 310
+  },
+  {
+   "name": "settings_row_divider",
+   "texWidth": 600,
+   "texHeight": 16,
+   "x": 8,
+   "y": 7,
+   "width": 584,
+   "height": 2
+  },
+  {
+   "name": "settings_slider_fill",
+   "texWidth": 541,
+   "texHeight": 86,
+   "x": 16,
+   "y": 17,
+   "width": 505,
+   "height": 40
+  },
+  {
+   "name": "settings_slider_knob",
+   "texWidth": 155,
+   "texHeight": 150,
+   "x": 18,
+   "y": 17,
+   "width": 117,
+   "height": 116
+  },
+  {
+   "name": "settings_slider_track",
+   "texWidth": 549,
+   "texHeight": 86,
+   "x": 16,
+   "y": 16,
+   "width": 517,
+   "height": 40
+  },
+  {
+   "name": "settings_tab_normal",
+   "texWidth": 505,
+   "texHeight": 175,
+   "x": 20,
+   "y": 26,
+   "width": 461,
+   "height": 124
+  },
+  {
+   "name": "settings_tab_selected",
+   "texWidth": 548,
+   "texHeight": 215,
+   "x": 44,
+   "y": 48,
+   "width": 465,
+   "height": 125
+  }
+ ]
+}
