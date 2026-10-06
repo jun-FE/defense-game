@@ -8,7 +8,8 @@ using UnityEngine;
 /// - 막힌 암흑과 맵 밖으로는 못 간다. 결정·출현 지점은 암흑 속에서도 보인다.
 /// - 출현 지점까지 길이 이어지면 "전투 준비"로 넘어간다(탐색 제한 없음). 몬스터는 밝힌 칸의 최단 경로로 온다.
 ///   몬스터 경로는 미리 보여 주지 않는다(기획: 연결 상태를 보고 판단).
-/// 조작: WASD·방향키 이동(누르고 있으면 계속), 인접 칸 클릭, 휠 확대/축소, 오른쪽·가운데 드래그 이동, F 전체 보기, Esc 메뉴.
+/// 조작: WASD·방향키 이동(한 번 누르면 한 칸, 누르고 있으면 잠깐 뒤부터 천천히 반복), 인접 칸 클릭,
+///       휠 확대/축소, 마우스 드래그로 화면 이동, F 전체 보기, Esc 메뉴.
 /// </summary>
 public class ExploreUI : MonoBehaviour
 {
@@ -29,7 +30,9 @@ public class ExploreUI : MonoBehaviour
     static readonly Color ColReach = new Color(1f, 0.9f, 0.6f, 0.12f);
     static readonly Color ColLine = new Color(1f, 1f, 1f, 0.06f);
 
-    const float MoveRepeat = 0.12f;
+    /// <summary>키를 누르면 바로 한 칸. 계속 누르고 있으면 이만큼 기다린 뒤부터 반복(실수로 두 칸 가지 않게).</summary>
+    const float RepeatDelay = 0.4f;
+    const float RepeatInterval = 0.18f;
 
     GridMap map;
     UISkin skin;
@@ -39,12 +42,14 @@ public class ExploreUI : MonoBehaviour
     bool menuOpen;
     string toast;
     float toastUntil;
-    float moveCooldown;
+    float holdTimer;
+    Vector2Int heldDir;
 
     Vector2 origin;
     float cell = 40f;
-    bool panning;
-    Vector2 lastMouse;
+    const float DragThreshold = 8f;
+    bool panning, pressing;
+    Vector2 lastMouse, pressStart;
 
     void Start()
     {
@@ -69,18 +74,30 @@ public class ExploreUI : MonoBehaviour
     void Update()
     {
         if (map == null || menuOpen) return;
-        moveCooldown -= Time.unscaledDeltaTime;
-        if (moveCooldown > 0f) return;
-        int dx = 0, dy = 0;
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) dy = -1;
-        else if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) dy = 1;
-        else if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) dx = -1;
-        else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) dx = 1;
-        if (dx != 0 || dy != 0)
+        // 새로 누른 키가 있으면 그 방향으로 바로 한 칸
+        Vector2Int pressed = Vector2Int.zero;
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) pressed = new Vector2Int(0, -1);
+        else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) pressed = new Vector2Int(0, 1);
+        else if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) pressed = new Vector2Int(-1, 0);
+        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) pressed = new Vector2Int(1, 0);
+        if (pressed != Vector2Int.zero)
         {
-            Step(player.x + dx, player.y + dy);
-            moveCooldown = MoveRepeat;
+            heldDir = pressed;
+            holdTimer = RepeatDelay;
+            Step(player.x + pressed.x, player.y + pressed.y);
+            return;
         }
+
+        // 같은 방향을 계속 누르고 있을 때만, 잠깐 기다린 뒤 천천히 반복
+        bool stillHeld = heldDir.y < 0 ? Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)
+                       : heldDir.y > 0 ? Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)
+                       : heldDir.x < 0 ? Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)
+                       : heldDir.x > 0 && (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow));
+        if (!stillHeld) { heldDir = Vector2Int.zero; return; }
+        holdTimer -= Time.unscaledDeltaTime;
+        if (holdTimer > 0f) return;
+        holdTimer = RepeatInterval;
+        Step(player.x + heldDir.x, player.y + heldDir.y);
     }
 
     /// <summary>옆 칸으로 한 걸음. 암흑·결정이면 밝히고 들어간다. 막힌 암흑·맵 밖은 못 간다.</summary>
@@ -119,7 +136,7 @@ public class ExploreUI : MonoBehaviour
 
     // ───────── 보기 ─────────
 
-    Rect MapArea => new Rect(20f, 120f, UIKit.Width - 40f, UIKit.Height - 250f);
+    Rect MapArea => new Rect(8f, 76f, UIKit.Width - 16f, UIKit.Height - 76f - 70f);
 
     void FitView()
     {
@@ -215,32 +232,31 @@ public class ExploreUI : MonoBehaviour
     void DrawHud()
     {
         float w = UIKit.Width, h = UIKit.Height;
-        var top = new Rect(20, 16, 560, 90);
+        // 위·아래 얇은 띠만 쓰고 나머지는 전부 맵(화면을 최대한 안 가리게)
+        var top = new Rect(8, 8, 520, 60);
         skin.Frame(top, "panel_indigo");
         string title = string.IsNullOrEmpty(map.Name) ? map.Id : map.Name;
-        GUI.Label(new Rect(top.x + 24, top.y + 6, top.width - 40, 40), "꿈 탐색 · " + title, skin.Text(26, UISkin.Light, TextAnchor.MiddleLeft, true));
-        GUI.Label(new Rect(top.x + 24, top.y + 46, top.width - 40, 32), DreamRun.TestMode ? "테스트 플레이(맵 에디터)" : "암흑을 밝혀 몽결정을 모으고, 출현 지점까지 길을 이으세요", skin.Text(17, UISkin.Muted));
+        GUI.Label(new Rect(top.x + 18, top.y, top.width - 30, top.height), "꿈 탐색 · " + title + (DreamRun.TestMode ? "  <size=14>(테스트)</size>" : ""), skin.Text(22, UISkin.Light, TextAnchor.MiddleLeft, true));
 
-        var coin = new Rect(w - 330, 16, 310, 90);
+        var coin = new Rect(w - 268, 8, 260, 60);
         skin.Frame(coin, "panel_indigo");
-        skin.Icon(new Rect(coin.x + 18, coin.y + 16, 46, 58), "mock_icon_crystal");
-        GUI.Label(new Rect(coin.x + 74, coin.y + 8, 220, 30), "몽결정", skin.Text(18, UISkin.Light));
-        GUI.Label(new Rect(coin.x + 74, coin.y + 38, 220, 44), DreamRun.Collected.ToString(), skin.Text(32, UISkin.Gold, TextAnchor.MiddleLeft, true));
-        GUI.Label(new Rect(coin.x + 170, coin.y + 38, 130, 44), $"밝힌 칸 {opened}", skin.Text(17, UISkin.Muted, TextAnchor.MiddleRight));
+        skin.Icon(new Rect(coin.x + 12, coin.y + 10, 32, 40), "mock_icon_crystal");
+        GUI.Label(new Rect(coin.x + 50, coin.y, 110, coin.height), DreamRun.Collected.ToString(), skin.Text(28, UISkin.Gold, TextAnchor.MiddleLeft, true));
+        GUI.Label(new Rect(coin.x + 120, coin.y, 128, coin.height), $"밝힌 칸 {opened}", skin.Text(15, UISkin.Muted, TextAnchor.MiddleRight));
 
-        var bottom = new Rect(w / 2f - 520f, h - 112, 1040, 92);
+        var bottom = new Rect(w / 2f - 480f, h - 62, 960, 54);
         skin.Frame(bottom, "panel_indigo");
         string hint = connected
-            ? "길이 이어졌어요. 몬스터는 밝힌 칸 중 가장 짧은 길로 와요. 더 밝히면 지름길이 생길 수도 있어요."
-            : "이동: WASD·방향키(또는 옆 칸 클릭) · 휠 확대/축소 · F 전체 보기 · Esc 메뉴";
-        GUI.Label(new Rect(bottom.x + 28, bottom.y, bottom.width - 340, bottom.height), hint, skin.Text(18, UISkin.Light, TextAnchor.MiddleLeft, false, true));
+            ? "길이 이어졌어요 · 몬스터는 밝힌 칸 중 가장 짧은 길로 와요"
+            : "WASD·방향키 이동 · 드래그 화면 이동 · 휠 확대/축소 · F 전체 보기 · Esc 메뉴";
+        GUI.Label(new Rect(bottom.x + 20, bottom.y, bottom.width - 270, bottom.height), hint, skin.Text(16, UISkin.Light));
         GUI.enabled = connected && !menuOpen;
-        if (GUI.Button(new Rect(bottom.xMax - 290, bottom.y + 16, 266, 60), connected ? "전투 준비 →" : "출현 지점까지 이어야 해요", skin.Button(connected ? 24 : 17)))
+        if (GUI.Button(new Rect(bottom.xMax - 240, bottom.y + 6, 232, 42), connected ? "전투 준비 →" : "출현 지점까지 이어 주세요", skin.Button(connected ? 20 : 15)))
             StartBattle();
         GUI.enabled = true;
 
         if (!string.IsNullOrEmpty(toast) && Time.unscaledTime < toastUntil)
-            UIKit.ShadowLabel(new Rect(0, h - 170, w, 46), toast, skin.Text(26, UISkin.Gold, TextAnchor.MiddleCenter, true));
+            UIKit.ShadowLabel(new Rect(0, h - 112, w, 40), toast, skin.Text(22, UISkin.Gold, TextAnchor.MiddleCenter, true));
     }
 
     void DrawMenu()
@@ -277,23 +293,25 @@ public class ExploreUI : MonoBehaviour
                 break;
             case EventType.MouseDown:
                 if (!overMap) return;
-                if (e.button == 0)
+                // 누른 채 끌면 화면 이동, 끌지 않고 떼면(왼쪽 버튼) 그 칸으로 한 걸음
+                pressing = true;
+                panning = false;
+                pressStart = lastMouse = mouse;
+                e.Use();
+                break;
+            case EventType.MouseDrag:
+                if (!pressing) break;
+                if (!panning && (mouse - pressStart).sqrMagnitude > DragThreshold * DragThreshold) panning = true;
+                if (panning) { origin += mouse - lastMouse; lastMouse = mouse; }
+                e.Use();
+                break;
+            case EventType.MouseUp:
+                if (pressing && !panning && e.button == 0 && overMap)
                 {
                     Vector2Int c = CellAt(mouse);
                     Step(c.x, c.y);
                 }
-                else
-                {
-                    panning = true;
-                    lastMouse = mouse;
-                }
-                e.Use();
-                break;
-            case EventType.MouseDrag:
-                if (panning) { origin += mouse - lastMouse; lastMouse = mouse; e.Use(); }
-                break;
-            case EventType.MouseUp:
-                panning = false;
+                pressing = panning = false;
                 break;
         }
     }

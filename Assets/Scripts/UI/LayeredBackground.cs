@@ -348,12 +348,15 @@ public class LayeredBackground : MonoBehaviour
         foreach (GlowLight light in lights)
         {
             // 촛불처럼: 느린 숨결 + 빠른 떨림, 가끔 확 밝아지는 반짝임.
-            float slow = Mathf.PerlinNoise(t * 0.7f, light.seed);
-            float fast = Mathf.PerlinNoise(t * 6f, light.seed + 50f);
-            float sparkle = Mathf.Pow(Mathf.PerlinNoise(t * 1.3f, light.seed + 100f), 6f) * 2.5f;
-            light.intensity = 1f - light.twinkle * (0.6f * (1f - slow) + 0.4f * (1f - fast) - sparkle);
+            // 펄린 노이즈는 대부분 0.3~0.7이라 그대로 쓰면 거의 안 변한다 → 0~1로 넓혀 쓴다.
+            float slow = Mathf.Clamp01((Mathf.PerlinNoise(t * 0.9f, light.seed) - 0.5f) * 2.4f + 0.5f);
+            float fast = Mathf.Clamp01((Mathf.PerlinNoise(t * 7f, light.seed + 50f) - 0.5f) * 2.4f + 0.5f);
+            float sparkle = Mathf.Pow(Mathf.PerlinNoise(t * 1.6f, light.seed + 100f), 5f) * 3f;
+            float wave = 0.65f * slow + 0.35f * fast;
+            // twinkle 0.3이면 밝기가 약 0.4배~1.3배 사이를 오가고, 가끔 반짝 더 밝아진다.
+            light.intensity = Mathf.Lerp(1f - 2f * light.twinkle, 1f + light.twinkle, wave) + light.twinkle * sparkle;
             light.transform.localPosition = light.basePosition + Parallax(offset, light.depth);
-            float size = light.baseScale * (0.92f + 0.08f * light.intensity);
+            float size = light.baseScale * (0.88f + 0.12f * light.intensity);
             light.transform.localScale = new Vector3(size, size, 1f);
         }
 

@@ -170,7 +170,13 @@ public class MapView : MonoBehaviour
         return tiles;
     }
 
-    /// <summary>맵 전체(카메라 영역)가 화면에 다 들어오게 맞춘다. 화면비가 다르면 남는 쪽은 배경색.</summary>
+    /// <summary>HUD가 덮는 화면 위·아래 비율(전투 HUD를 줄인 크기 기준). 맵은 그 사이 띠에 맞춰 보여 준다.</summary>
+    const float HudTop = 0.085f, HudBottom = 0.155f;
+
+    /// <summary>
+    /// 맵 전체(카메라 영역)가 HUD를 뺀 화면 띠 안에 다 들어오게 맞춘다. 화면비가 다르면 남는 쪽은 배경색.
+    /// 휠로 더 줄이거나 당겨 볼 수 있다(CameraZoom).
+    /// </summary>
     void FitCamera()
     {
         lastScreenWidth = Screen.width;
@@ -178,12 +184,17 @@ public class MapView : MonoBehaviour
         Camera cam = Camera.main;
         if (cam == null) return;
         cam.orthographic = true;
-        cam.transform.position = new Vector3(map.CameraX + map.CameraWidth / 2f, map.CameraY + map.CameraHeight / 2f, -10f);
         float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);
-        cam.orthographicSize = Mathf.Max(map.CameraHeight / 2f, map.CameraWidth / 2f / aspect);
-        // 휠 확대·축소가 있으면 "전체 보기" 기준을 알려 준다.
+        float band = 1f - HudTop - HudBottom;
+        float size = Mathf.Max(map.CameraHeight / 2f / band, map.CameraWidth / 2f / aspect);
+        // 맵 가운데가 띠의 가운데에 오도록 카메라를 아래로 내린다.
+        float bandCenter = HudBottom + band / 2f; // 화면 아래에서부터의 비율
+        var mapCenter = new Vector2(map.CameraX + map.CameraWidth / 2f, map.CameraY + map.CameraHeight / 2f);
+        var center = new Vector2(mapCenter.x, mapCenter.y - (bandCenter - 0.5f) * 2f * size);
+        cam.orthographicSize = size;
+        cam.transform.position = new Vector3(center.x, center.y, -10f);
         CameraZoom zoom = cam.GetComponent<CameraZoom>();
-        if (zoom != null) zoom.SetFit(new Rect(map.CameraX, map.CameraY, map.CameraWidth, map.CameraHeight), cam.orthographicSize);
+        if (zoom != null) zoom.SetFit(new Rect(map.CameraX, map.CameraY, map.CameraWidth, map.CameraHeight), size, center);
     }
 
     void CreateArt(string objectName, Sprite sprite, Vector2 center, Vector2 size, int order)

@@ -41,6 +41,14 @@ public class BattleHUD : MonoBehaviour
         public Slot(string id, string name, string icon, string description) { Id = id; Name = name; Icon = icon; Description = description; }
     }
 
+    /// <summary>
+    /// 전투 HUD 크기 배율. 1080p 기준 좌표로 짠 HUD를 이 비율로 줄여 그려서 맵을 덜 가린다
+    /// (모서리 기준 배치는 그대로 유지: W·H가 그만큼 넓은 가상 화면).
+    /// </summary>
+    const float HudScale = 0.72f;
+    float W => UIKit.Width / HudScale;
+    float H => UIKit.Height / HudScale;
+
     const float PanelWidth = 380f;
     const float CardW = 150f, CardH = 186f, CardGap = 12f;
 
@@ -92,7 +100,8 @@ public class BattleHUD : MonoBehaviour
         if (slotTowers == null) MapSlots();
 
         uiRects.Clear();
-        Vector2 virtualMouse = mouseScreen / UIKit.Scale;
+        GUI.matrix = Matrix4x4.Scale(new Vector3(UIKit.Scale * HudScale, UIKit.Scale * HudScale, 1f));
+        Vector2 virtualMouse = mouseScreen / (UIKit.Scale * HudScale);
         bool overlay = pauseMenu || Session.Phase == BattlePhase.Ended;
         GUI.enabled = !overlay;
         DrawStagePlate();
@@ -105,10 +114,13 @@ public class BattleHUD : MonoBehaviour
         DrawMessage();
         GUI.enabled = true;
 
+        // 일시정지·결과 화면은 원래 크기로
+        GUI.matrix = Matrix4x4.Scale(new Vector3(UIKit.Scale, UIKit.Scale, 1f));
         if (Session.Phase == BattlePhase.Ended) DrawResult();
         else if (pauseMenu) DrawPauseMenu();
 
         hoverOnMap = !overlay && !IsOverUI(virtualMouse);
+        CameraZoom.PointerOverUI = !hoverOnMap;
         UIKit.End();
 
         HandleInput(e, overlay);
@@ -157,7 +169,7 @@ public class BattleHUD : MonoBehaviour
     /// <summary>악몽 침식도(시스템 기획서). 침식 규칙은 2주차에 연결하고 지금은 0으로 둔다.</summary>
     void DrawErosion()
     {
-        float w = UIKit.Width;
+        float w = W;
         Rect r = Ui(new Rect(w / 2f - 380f, 12, 760, 104));
         skin.Frame(r, "panel_indigo");
         float erosion = 0f;
@@ -179,7 +191,7 @@ public class BattleHUD : MonoBehaviour
 
     void DrawStatus()
     {
-        float w = UIKit.Width;
+        float w = W;
         Rect hp = Ui(new Rect(w - 574, 16, 236, 80));
         skin.Frame(hp, "panel_indigo");
         skin.Icon(new Rect(hp.x + 12, hp.y + 12, 52, 56), "mock_icon_hp");
@@ -219,7 +231,7 @@ public class BattleHUD : MonoBehaviour
 
     void DrawIan()
     {
-        float h = UIKit.Height;
+        float h = H;
         Rect r = Ui(new Rect(20, h - 218, 214, 200));
         skin.Frame(r, "panel_indigo");
         skin.Icon(new Rect(r.x + 10, r.y + 10, r.width - 20, 130), "mock_ian");
@@ -231,7 +243,7 @@ public class BattleHUD : MonoBehaviour
     /// <summary>도하 스킬 자리(3주차: 필드 지원). 지금은 모양만 보여 준다.</summary>
     void DrawDoha()
     {
-        float w = UIKit.Width, h = UIKit.Height;
+        float w = W, h = H;
         Rect r = Ui(new Rect(w - 404, h - 208, 384, 190));
         skin.Frame(r, "panel_indigo");
         skin.Icon(new Rect(r.x + 18, r.y + 12, 30, 30), "icon_moon");
@@ -254,7 +266,7 @@ public class BattleHUD : MonoBehaviour
 
     void DrawTowerCards(Vector2 virtualMouse)
     {
-        float w = UIKit.Width, h = UIKit.Height;
+        float w = W, h = H;
         float total = Slots.Length * CardW + (Slots.Length - 1) * CardGap;
         float x0 = (w - total) / 2f, y = h - CardH - 18f;
         Rect back = Ui(new Rect(x0 - 20, y - 12, total + 40, CardH + 24));
@@ -313,7 +325,7 @@ public class BattleHUD : MonoBehaviour
 
     void DrawTowerPanel()
     {
-        float w = UIKit.Width;
+        float w = W;
         TowerLevelDef level = selectedTower.Level;
         bool blocks = selectedTower.Blocks;
         Rect rect = Ui(new Rect(w - PanelWidth - 24, 160, PanelWidth, blocks ? 420 : 350));
@@ -358,7 +370,7 @@ public class BattleHUD : MonoBehaviour
     void DrawMessage()
     {
         if (string.IsNullOrEmpty(message) || Time.unscaledTime > messageUntil) return;
-        var rect = new Rect(0, UIKit.Height - CardH - 150, UIKit.Width, 50);
+        var rect = new Rect(0, H - CardH - 150, W, 50);
         UIKit.ShadowLabel(rect, message, skin.Text(28, UISkin.Gold, TextAnchor.MiddleCenter, true));
     }
 
@@ -440,7 +452,8 @@ public class BattleHUD : MonoBehaviour
             return;
         }
 
-        if (overlay || e.type != EventType.MouseDown || !hoverOnMap) return;
+        // 클릭은 버튼을 뗄 때 처리한다. 누른 채 끌었으면 화면 이동(CameraZoom)이라 클릭으로 보지 않는다.
+        if (overlay || e.type != EventType.MouseUp || !hoverOnMap || CameraZoom.LastClickWasDrag) return;
 
         if (e.button == 1)
         {
