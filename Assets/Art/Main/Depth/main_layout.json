@@ -2,6 +2,12 @@
   "canvasWidth": 1920,
   "canvasHeight": 1080,
   "background": "#0b0a1c",
+  "ambient": "#8c84bc",
+  "vignette": 0.82,
+  "vignetteStart": 0.22,
+  "lightBoost": 1.18,
+  "halo": 2.6,
+  "flickerGap": 0.5,
   "layers": [
     {
       "name": "bg_night_forest",
@@ -103,117 +109,115 @@
       "shade": 0.75
     }
   ],
-  "ambient": "#8c84bc",
-  "vignette": 0.6,
   "lights": [
     {
       "x": 522,
       "y": 37,
-      "size": 170,
-      "color": "#ffb257",
-      "twinkle": 0.25,
+      "size": 246,
+      "color": "#ff9a3c",
+      "twinkle": 0.35,
       "layer": "hanging_decor"
     },
     {
       "x": 518,
       "y": 170,
-      "size": 110,
-      "color": "#ffb257",
-      "twinkle": 0.2,
+      "size": 160,
+      "color": "#ff9a3c",
+      "twinkle": 0.28,
       "layer": "hanging_decor"
     },
     {
       "x": 1110,
       "y": 45,
-      "size": 170,
-      "color": "#ffb257",
-      "twinkle": 0.25,
+      "size": 246,
+      "color": "#ff9a3c",
+      "twinkle": 0.35,
       "layer": "hanging_decor"
     },
     {
       "x": 890,
       "y": 642,
-      "size": 230,
-      "color": "#ffb257",
-      "twinkle": 0.3,
+      "size": 334,
+      "color": "#ff9a3c",
+      "twinkle": 0.42,
       "layer": "toys_shelf"
     },
     {
       "x": 1328,
       "y": 342,
-      "size": 130,
-      "color": "#ffb257",
-      "twinkle": 0.3,
+      "size": 188,
+      "color": "#ff9a3c",
+      "twinkle": 0.42,
       "layer": "shelves_decorated"
     },
     {
       "x": 1500,
       "y": 590,
-      "size": 140,
-      "color": "#ffb257",
-      "twinkle": 0.3,
+      "size": 203,
+      "color": "#ff9a3c",
+      "twinkle": 0.42,
       "layer": "shelves_decorated"
     },
     {
       "x": 1767,
       "y": 462,
-      "size": 140,
-      "color": "#ffb257",
-      "twinkle": 0.3,
+      "size": 203,
+      "color": "#ff9a3c",
+      "twinkle": 0.42,
       "layer": "shelves_decorated"
     },
     {
       "x": 1660,
       "y": 504,
-      "size": 120,
-      "color": "#ffb257",
-      "twinkle": 0.25,
+      "size": 174,
+      "color": "#ff9a3c",
+      "twinkle": 0.35,
       "layer": "shelves_decorated"
     },
     {
       "x": 1662,
       "y": 938,
-      "size": 160,
-      "color": "#ffb257",
-      "twinkle": 0.3,
+      "size": 232,
+      "color": "#ff9a3c",
+      "twinkle": 0.42,
       "layer": "fg_crystal_right"
     },
     {
       "x": 1283,
       "y": 566,
-      "size": 110,
-      "color": "#ffb257",
-      "twinkle": 0.3,
+      "size": 160,
+      "color": "#ff9a3c",
+      "twinkle": 0.42,
       "layer": "shelves_decorated"
     },
     {
       "x": 1046,
       "y": 438,
-      "size": 70,
-      "color": "#ffb257",
-      "twinkle": 0.35,
+      "size": 102,
+      "color": "#ff9a3c",
+      "twinkle": 0.45,
       "layer": "shelves_decorated"
     },
     {
       "x": 990,
       "y": 443,
-      "size": 70,
-      "color": "#ffb257",
-      "twinkle": 0.35,
+      "size": 102,
+      "color": "#ff9a3c",
+      "twinkle": 0.45,
       "layer": "shelves_decorated"
     },
     {
       "x": 63,
       "y": 825,
-      "size": 120,
-      "color": "#ffb257",
-      "twinkle": 0.3,
+      "size": 174,
+      "color": "#ff9a3c",
+      "twinkle": 0.42,
       "layer": "fg_books_left"
     },
     {
       "x": 1775,
       "y": 885,
-      "size": 220,
+      "size": 275,
       "color": "#b48cff",
       "twinkle": 0.15,
       "layer": "fg_crystal_right"
@@ -221,7 +225,7 @@
     {
       "x": 1340,
       "y": 690,
-      "size": 150,
+      "size": 188,
       "color": "#b48cff",
       "twinkle": 0.15,
       "layer": "toys_shelf"

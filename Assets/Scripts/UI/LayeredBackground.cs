@@ -12,7 +12,9 @@ using UnityEngine;
 /// 분위기(선택 항목):
 /// - ambient: 모든 레이어에 곱하는 색(어둡고 푸르게). 레이어별 shade로 더 어둡게(1 미만)·밝게(1 초과) 조절.
 /// - lights: 랜턴·수정구 위치에 빛 번짐을 더하고 twinkle만큼 일렁이게 한다. layer를 주면 그 레이어와 같이 움직인다.
-/// - vignette: 화면 가장자리를 어둡게(0~1).
+/// - vignette: 화면 가장자리를 어둡게(0~1). vignetteStart: 화면 가운데에서 어느 거리부터 어두워지기 시작하는지(0~1, 기본 0.35).
+/// - lightBoost: 모든 빛 번짐 밝기 배율(기본 1). halo: 빛마다 이 배율 크기로 넓고 옅은 번짐을 한 겹 더 깐다(0이면 없음).
+/// - flickerGap: 0이면 빛이 계속 일렁이고, 0~1이면 잔잔하게 켜져 있다가 가끔씩만 깜빡인다(클수록 깜빡임 사이 간격이 길다).
 /// - 설정의 "배경 밝기"(GameSettings.BackgroundBrightness)가 ambient에 곱해진다.
 ///
 /// 화면비: 16:9보다 넓은 화면에서는 그림을 maxZoom까지만 확대해(위아래를 조금 자름) 양옆을 채우고,
@@ -51,6 +53,10 @@ public class LayeredBackground : MonoBehaviour
         public string background = "#14122a";
         public string ambient = "#ffffff";
         public float vignette;
+        public float vignetteStart = 0.35f;
+        public float lightBoost = 1f;
+        public float halo;
+        public float flickerGap;
         public LayoutLayer[] layers = new LayoutLayer[0];
         public LayoutLight[] lights = new LayoutLight[0];
     }
@@ -73,6 +79,8 @@ public class LayeredBackground : MonoBehaviour
     {
         public Transform transform;
         public SpriteRenderer renderer;
+        public Transform haloTransform;
+        public SpriteRenderer haloRenderer;
         public Vector3 basePosition;
         public float baseScale;
         public float depth;
@@ -104,7 +112,7 @@ public class LayeredBackground : MonoBehaviour
     Vector2 smoothedPointer = new Vector2(0.5f, 0.5f);
     Color ambient = Color.white;
 
-    static Sprite glowSprite;
+    static Sprite glowSprite, haloSprite;
 
     Camera cam;
     Layout layout;
@@ -231,10 +239,27 @@ public class LayeredBackground : MonoBehaviour
         go.transform.localPosition = position;
         go.transform.localScale = new Vector3(scale, scale, 1f);
 
+        // 넓고 옅은 번짐 한 겹: 빛이 공기 중에 퍼지는 느낌(같은 정렬 순서, 중심 빛보다 먼저 그림).
+        Transform haloTransform = null;
+        SpriteRenderer haloRenderer = null;
+        if (layout.halo > 0f)
+        {
+            var halo = new GameObject("Light " + index + " Halo");
+            halo.transform.SetParent(transform, false);
+            haloRenderer = halo.AddComponent<SpriteRenderer>();
+            haloRenderer.sprite = HaloSprite();
+            if (glowMaterial != null) haloRenderer.sharedMaterial = glowMaterial;
+            haloRenderer.sortingOrder = renderer.sortingOrder;
+            halo.transform.localPosition = position;
+            haloTransform = halo.transform;
+        }
+
         lights.Add(new GlowLight
         {
             transform = go.transform,
             renderer = renderer,
+            haloTransform = haloTransform,
+            haloRenderer = haloRenderer,
             basePosition = position,
             baseScale = scale,
             depth = hasOwner ? placed[owner].depth : 0.5f,
@@ -254,7 +279,8 @@ public class LayeredBackground : MonoBehaviour
             {
                 float dx = (x + 0.5f) / w * 2f - 1f, dy = (y + 0.5f) / h * 2f - 1f;
                 float d = Mathf.Sqrt(dx * dx + dy * dy) / 1.414f;
-                float a = layout.vignette * Mathf.Pow(Mathf.Clamp01((d - 0.35f) / 0.65f), 1.6f);
+                float start = Mathf.Clamp(layout.vignetteStart, 0f, 0.9f);
+                float a = layout.vignette * Mathf.Pow(Mathf.Clamp01((d - start) / (1f - start)), 1.6f);
                 pixels[y * w + x] = new Color32(4, 3, 12, (byte)(Mathf.Clamp01(a) * 255f));
             }
         texture.SetPixels32(pixels);
@@ -325,6 +351,27 @@ public class LayeredBackground : MonoBehaviour
         return glowSprite;
     }
 
+    /// <summary>중심 빛보다 훨씬 완만하게 사라지는 넓은 번짐(1유닛 폭).</summary>
+    static Sprite HaloSprite()
+    {
+        if (haloSprite != null) return haloSprite;
+        const int size = 128;
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var pixels = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                float r = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+                float a = Mathf.Pow(1f - r, 1.3f) * (1f - r * r); // 가장자리에서 0으로 부드럽게
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+            }
+        texture.SetPixels32(pixels);
+        texture.Apply();
+        haloSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        return haloSprite;
+    }
+
     void Update()
     {
         if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight) FitCamera();
@@ -354,10 +401,26 @@ public class LayeredBackground : MonoBehaviour
             float sparkle = Mathf.Pow(Mathf.PerlinNoise(t * 1.6f, light.seed + 100f), 5f) * 3f;
             float wave = 0.65f * slow + 0.35f * fast;
             // twinkle 0.3이면 밝기가 약 0.4배~1.3배 사이를 오가고, 가끔 반짝 더 밝아진다.
-            light.intensity = Mathf.Lerp(1f - 2f * light.twinkle, 1f + light.twinkle, wave) + light.twinkle * sparkle;
-            light.transform.localPosition = light.basePosition + Parallax(offset, light.depth);
+            float flickering = Mathf.Lerp(1f - 2f * light.twinkle, 1f + light.twinkle, wave) + light.twinkle * sparkle;
+            // flickerGap: 평소엔 잔잔히 숨쉬다가, 빛마다 다른 때에 잠깐씩(2~4초) 깜빡인다.
+            float burst = 1f;
+            if (layout.flickerGap > 0f)
+            {
+                float gust = Mathf.Clamp01((Mathf.PerlinNoise(t * 0.32f, light.seed + 200f) - 0.5f) * 2.4f + 0.5f);
+                burst = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(layout.flickerGap, layout.flickerGap + 0.12f, gust));
+            }
+            float calm = 1f + 0.06f * (slow - 0.5f);
+            light.intensity = Mathf.Lerp(calm, flickering, burst);
+            Vector3 position = light.basePosition + Parallax(offset, light.depth);
+            light.transform.localPosition = position;
             float size = light.baseScale * (0.88f + 0.12f * light.intensity);
             light.transform.localScale = new Vector3(size, size, 1f);
+            if (light.haloTransform != null)
+            {
+                float haloSize = light.baseScale * layout.halo * (0.92f + 0.08f * light.intensity);
+                light.haloTransform.localPosition = position;
+                light.haloTransform.localScale = new Vector3(haloSize, haloSize, 1f);
+            }
         }
 
         ApplyColors(t);
@@ -385,11 +448,19 @@ public class LayeredBackground : MonoBehaviour
 
         // 배경을 밝게 할수록 빛 번짐은 줄여서 화면이 뿌옇지 않게 한다.
         float glow = 0.85f * Mathf.Lerp(1.2f, 0.7f, Mathf.InverseLerp(0.6f, 1.4f, brightness));
+        float boost = layout != null && layout.lightBoost > 0f ? layout.lightBoost : 1f;
         foreach (GlowLight light in lights)
         {
             Color c = light.color;
-            c.a = Mathf.Clamp01(glow * Mathf.Clamp(light.intensity, 0f, 1.6f));
+            float strength = glow * boost * Mathf.Clamp(light.intensity, 0f, 1.6f);
+            c.a = Mathf.Clamp01(strength);
             light.renderer.color = c;
+            if (light.haloRenderer != null)
+            {
+                Color h = light.color;
+                h.a = Mathf.Clamp01(strength * 0.32f);
+                light.haloRenderer.color = h;
+            }
         }
     }
 }
