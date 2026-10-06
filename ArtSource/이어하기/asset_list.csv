@@ -1,0 +1,16 @@
+﻿ID,파일,가로,세로,텍스트 포함
+backdrop_dim,png/backdrop_dim.png,64,64,없음
+button_disabled,png/button_disabled.png,542,167,없음
+button_hover,png/button_hover.png,595,280,없음
+button_normal,png/button_normal.png,534,166,없음
+focus_outline,png/focus_outline.png,400,120,없음
+header_plaque,png/header_plaque.png,586,159,없음
+icon_calendar,png/icon_calendar.png,128,128,없음
+icon_clock,png/icon_clock.png,280,258,없음
+icon_location,png/icon_location.png,190,256,없음
+icon_quest,png/icon_quest.png,279,273,없음
+menu_hit_area,png/menu_hit_area.png,400,100,없음
+menu_marker,png/menu_marker.png,120,136,없음
+menu_underline,png/menu_underline.png,510,112,없음
+panel_notebook,png/panel_notebook.png,566,389,없음
+row_divider,png/row_divider.png,574,112,없음

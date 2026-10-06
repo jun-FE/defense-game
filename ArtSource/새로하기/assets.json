@@ -1,0 +1,152 @@
+[
+  {
+    "id": "backdrop_dim",
+    "file": "png/backdrop_dim.png",
+    "width": 64,
+    "height": 64,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 143,
+    "alpha_max": 143
+  },
+  {
+    "id": "button_disabled",
+    "file": "png/button_disabled.png",
+    "width": 507,
+    "height": 175,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_hover",
+    "file": "png/button_hover.png",
+    "width": 589,
+    "height": 257,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_normal",
+    "file": "png/button_normal.png",
+    "width": 513,
+    "height": 172,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "focus_outline",
+    "file": "png/focus_outline.png",
+    "width": 400,
+    "height": 120,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "header_plaque",
+    "file": "png/header_plaque.png",
+    "width": 536,
+    "height": 213,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "icon_calendar",
+    "file": "png/icon_calendar.png",
+    "width": 128,
+    "height": 128,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "menu_hit_area",
+    "file": "png/menu_hit_area.png",
+    "width": 400,
+    "height": 100,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 5,
+    "alpha_max": 5
+  },
+  {
+    "id": "menu_marker",
+    "file": "png/menu_marker.png",
+    "width": 120,
+    "height": 136,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "menu_underline",
+    "file": "png/menu_underline.png",
+    "width": 510,
+    "height": 112,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "ornament_cat",
+    "file": "png/ornament_cat.png",
+    "width": 386,
+    "height": 231,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "ornament_moon",
+    "file": "png/ornament_moon.png",
+    "width": 275,
+    "height": 239,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "ornament_spool",
+    "file": "png/ornament_spool.png",
+    "width": 252,
+    "height": 237,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "panel_journal",
+    "file": "png/panel_journal.png",
+    "width": 573,
+    "height": 411,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "writing_divider",
+    "file": "png/writing_divider.png",
+    "width": 508,
+    "height": 73,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 252
+  }
+]

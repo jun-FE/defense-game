@@ -1,0 +1,101 @@
+{
+  "reference_resolution": [
+    1672,
+    941
+  ],
+  "positions": "absolute pixels; anchor top-left",
+  "elements": [
+    {
+      "id": "panel_notebook",
+      "x": 430,
+      "y": 320,
+      "width": 790,
+      "height": 526
+    },
+    {
+      "id": "header_plaque",
+      "x": 610,
+      "y": 300,
+      "width": 430,
+      "height": 110
+    },
+    {
+      "id": "icon_quest",
+      "x": 565,
+      "y": 440,
+      "width": 36,
+      "height": 36
+    },
+    {
+      "id": "row_divider",
+      "x": 565,
+      "y": 488,
+      "width": 535,
+      "height": 12
+    },
+    {
+      "id": "icon_location",
+      "x": 565,
+      "y": 502,
+      "width": 36,
+      "height": 36
+    },
+    {
+      "id": "row_divider",
+      "x": 565,
+      "y": 550,
+      "width": 535,
+      "height": 12
+    },
+    {
+      "id": "icon_clock",
+      "x": 565,
+      "y": 564,
+      "width": 36,
+      "height": 36
+    },
+    {
+      "id": "row_divider",
+      "x": 565,
+      "y": 612,
+      "width": 535,
+      "height": 12
+    },
+    {
+      "id": "icon_calendar",
+      "x": 565,
+      "y": 626,
+      "width": 36,
+      "height": 36
+    },
+    {
+      "id": "button_normal",
+      "x": 535,
+      "y": 733,
+      "width": 265,
+      "height": 95
+    },
+    {
+      "id": "button_normal",
+      "x": 835,
+      "y": 733,
+      "width": 265,
+      "height": 95
+    },
+    {
+      "id": "menu_marker",
+      "x": 95,
+      "y": 414,
+      "width": 30,
+      "height": 30
+    },
+    {
+      "id": "menu_underline",
+      "x": 110,
+      "y": 447,
+      "width": 265,
+      "height": 24
+    }
+  ],
+  "text_rendering": "separate UI text; not baked into PNG"
+}

@@ -1,0 +1,73 @@
+{
+  "reference_resolution": [
+    1672,
+    941
+  ],
+  "positions": "absolute pixels; anchor top-left",
+  "elements": [
+    {
+      "id": "panel_journal",
+      "x": 510,
+      "y": 350,
+      "width": 670,
+      "height": 490
+    },
+    {
+      "id": "header_plaque",
+      "x": 510,
+      "y": 258,
+      "width": 670,
+      "height": 185
+    },
+    {
+      "id": "writing_divider",
+      "x": 590,
+      "y": 520,
+      "width": 500,
+      "height": 8
+    },
+    {
+      "id": "writing_divider",
+      "x": 590,
+      "y": 570,
+      "width": 500,
+      "height": 8
+    },
+    {
+      "id": "writing_divider",
+      "x": 590,
+      "y": 620,
+      "width": 500,
+      "height": 8
+    },
+    {
+      "id": "button_normal",
+      "x": 565,
+      "y": 730,
+      "width": 295,
+      "height": 100
+    },
+    {
+      "id": "button_normal",
+      "x": 885,
+      "y": 730,
+      "width": 235,
+      "height": 100
+    },
+    {
+      "id": "menu_marker",
+      "x": 95,
+      "y": 480,
+      "width": 30,
+      "height": 30
+    },
+    {
+      "id": "menu_underline",
+      "x": 110,
+      "y": 513,
+      "width": 265,
+      "height": 24
+    }
+  ],
+  "text_rendering": "separate UI text; not baked into PNG"
+}

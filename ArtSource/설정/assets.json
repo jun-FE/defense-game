@@ -1,0 +1,192 @@
+[
+  {
+    "id": "backdrop_dim",
+    "file": "png/backdrop_dim.png",
+    "width": 64,
+    "height": 64,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 143,
+    "alpha_max": 143
+  },
+  {
+    "id": "button_disabled",
+    "file": "png/button_disabled.png",
+    "width": 507,
+    "height": 158,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_hover",
+    "file": "png/button_hover.png",
+    "width": 546,
+    "height": 258,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_normal",
+    "file": "png/button_normal.png",
+    "width": 513,
+    "height": 160,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "dropdown_arrow",
+    "file": "png/dropdown_arrow.png",
+    "width": 48,
+    "height": 48,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "dropdown_field",
+    "file": "png/dropdown_field.png",
+    "width": 400,
+    "height": 100,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "focus_outline",
+    "file": "png/focus_outline.png",
+    "width": 400,
+    "height": 120,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "icon_calendar",
+    "file": "png/icon_calendar.png",
+    "width": 128,
+    "height": 128,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "key_field",
+    "file": "png/key_field.png",
+    "width": 160,
+    "height": 100,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "menu_hit_area",
+    "file": "png/menu_hit_area.png",
+    "width": 400,
+    "height": 100,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 5,
+    "alpha_max": 5
+  },
+  {
+    "id": "menu_marker",
+    "file": "png/menu_marker.png",
+    "width": 120,
+    "height": 136,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "menu_underline",
+    "file": "png/menu_underline.png",
+    "width": 510,
+    "height": 112,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "panel_settings",
+    "file": "png/panel_settings.png",
+    "width": 538,
+    "height": 364,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "row_divider",
+    "file": "png/row_divider.png",
+    "width": 600,
+    "height": 16,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 153
+  },
+  {
+    "id": "slider_fill",
+    "file": "png/slider_fill.png",
+    "width": 541,
+    "height": 86,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "slider_knob",
+    "file": "png/slider_knob.png",
+    "width": 155,
+    "height": 150,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "slider_track",
+    "file": "png/slider_track.png",
+    "width": 549,
+    "height": 86,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "tab_normal",
+    "file": "png/tab_normal.png",
+    "width": 505,
+    "height": 175,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "tab_selected",
+    "file": "png/tab_selected.png",
+    "width": 548,
+    "height": 215,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  }
+]

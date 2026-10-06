@@ -1,0 +1,152 @@
+[
+  {
+    "id": "backdrop_dim",
+    "file": "png/backdrop_dim.png",
+    "width": 64,
+    "height": 64,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 143,
+    "alpha_max": 143
+  },
+  {
+    "id": "button_disabled",
+    "file": "png/button_disabled.png",
+    "width": 542,
+    "height": 167,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_hover",
+    "file": "png/button_hover.png",
+    "width": 595,
+    "height": 280,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_normal",
+    "file": "png/button_normal.png",
+    "width": 534,
+    "height": 166,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "focus_outline",
+    "file": "png/focus_outline.png",
+    "width": 400,
+    "height": 120,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "header_plaque",
+    "file": "png/header_plaque.png",
+    "width": 586,
+    "height": 159,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "icon_calendar",
+    "file": "png/icon_calendar.png",
+    "width": 128,
+    "height": 128,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "icon_clock",
+    "file": "png/icon_clock.png",
+    "width": 280,
+    "height": 258,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "icon_location",
+    "file": "png/icon_location.png",
+    "width": 190,
+    "height": 256,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "icon_quest",
+    "file": "png/icon_quest.png",
+    "width": 279,
+    "height": 273,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "menu_hit_area",
+    "file": "png/menu_hit_area.png",
+    "width": 400,
+    "height": 100,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 5,
+    "alpha_max": 5
+  },
+  {
+    "id": "menu_marker",
+    "file": "png/menu_marker.png",
+    "width": 120,
+    "height": 136,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "menu_underline",
+    "file": "png/menu_underline.png",
+    "width": 510,
+    "height": 112,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "panel_notebook",
+    "file": "png/panel_notebook.png",
+    "width": 566,
+    "height": 389,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "row_divider",
+    "file": "png/row_divider.png",
+    "width": 574,
+    "height": 112,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  }
+]

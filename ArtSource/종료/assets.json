@@ -1,0 +1,132 @@
+[
+  {
+    "id": "backdrop_dim",
+    "file": "png/backdrop_dim.png",
+    "width": 64,
+    "height": 64,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 143,
+    "alpha_max": 143
+  },
+  {
+    "id": "button_disabled",
+    "file": "png/button_disabled.png",
+    "width": 507,
+    "height": 178,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_hover",
+    "file": "png/button_hover.png",
+    "width": 587,
+    "height": 284,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 254
+  },
+  {
+    "id": "button_normal",
+    "file": "png/button_normal.png",
+    "width": 526,
+    "height": 181,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "button_pressed",
+    "file": "png/button_pressed.png",
+    "width": 526,
+    "height": 180,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "focus_outline",
+    "file": "png/focus_outline.png",
+    "width": 400,
+    "height": 120,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "icon_calendar",
+    "file": "png/icon_calendar.png",
+    "width": 128,
+    "height": 128,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "menu_hit_area",
+    "file": "png/menu_hit_area.png",
+    "width": 400,
+    "height": 100,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 5,
+    "alpha_max": 5
+  },
+  {
+    "id": "menu_marker",
+    "file": "png/menu_marker.png",
+    "width": 120,
+    "height": 136,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "menu_underline",
+    "file": "png/menu_underline.png",
+    "width": 510,
+    "height": 112,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 253
+  },
+  {
+    "id": "ornament_moon",
+    "file": "png/ornament_moon.png",
+    "width": 268,
+    "height": 163,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "panel_confirm",
+    "file": "png/panel_confirm.png",
+    "width": 582,
+    "height": 390,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 255
+  },
+  {
+    "id": "row_divider",
+    "file": "png/row_divider.png",
+    "width": 488,
+    "height": 97,
+    "format": "RGBA PNG",
+    "contains_text": false,
+    "alpha_min": 0,
+    "alpha_max": 254
+  }
+]
