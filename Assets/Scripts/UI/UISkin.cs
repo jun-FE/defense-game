@@ -79,7 +79,8 @@ public class UISkin
         GUIStyle style;
         if (styles.TryGetValue(key, out style)) return style;
         style = new GUIStyle(GUI.skin.label) { fontSize = size, alignment = anchor, wordWrap = wrap, richText = true, fontStyle = bold ? FontStyle.Bold : FontStyle.Normal };
-        style.normal.textColor = color;
+        // 글자는 클릭 대상이 아니므로 마우스를 올려도 색이 바뀌지 않게 모든 상태를 같은 색으로.
+        style.normal.textColor = style.hover.textColor = style.active.textColor = style.focused.textColor = color;
         styles[key] = style;
         return style;
     }

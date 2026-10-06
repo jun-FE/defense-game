@@ -47,10 +47,11 @@ public static class UIKit
     /// <summary>그림자가 있는 큰 글자.</summary>
     public static void ShadowLabel(Rect rect, string text, GUIStyle style)
     {
-        Color old = style.normal.textColor;
-        style.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
+        Color old = style.normal.textColor, oldHover = style.hover.textColor;
+        style.normal.textColor = style.hover.textColor = new Color(0f, 0f, 0f, 0.6f);
         GUI.Label(new Rect(rect.x + 4f, rect.y + 4f, rect.width, rect.height), text, style);
         style.normal.textColor = old;
+        style.hover.textColor = oldHover;
         GUI.Label(rect, text, style);
     }
 
@@ -81,7 +82,8 @@ public static class UIKit
     static GUIStyle MakeLabel(int size, FontStyle fontStyle, TextAnchor anchor, Color color)
     {
         var style = new GUIStyle(GUI.skin.label) { fontSize = size, fontStyle = fontStyle, alignment = anchor, richText = true };
-        style.normal.textColor = color;
+        // 글자는 클릭 대상이 아니므로 마우스를 올려도 색이 바뀌지 않게 모든 상태를 같은 색으로.
+        style.normal.textColor = style.hover.textColor = style.active.textColor = style.focused.textColor = color;
         return style;
     }
 

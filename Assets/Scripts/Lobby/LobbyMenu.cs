@@ -71,11 +71,19 @@ public class LobbyMenu : MonoBehaviour
         bool mouseMoved = e.type == EventType.Repaint && (mouse - lastMouse).sqrMagnitude > 0.5f;
         if (e.type == EventType.Repaint) lastMouse = mouse;
 
+        // 마우스를 움직이면 마우스 아래 항목만 선택된 것으로 본다(메뉴 밖으로 나가면 별·밑줄이 사라짐).
+        // 키보드 ↑↓로 고른 선택은 마우스를 움직이기 전까지 유지된다.
+        if (!overlay && mouseMoved)
+        {
+            hovered = -1;
+            for (int i = 0; i < layout.menu.Length; i++)
+                if (IsEnabled(layout.menu[i].name) && ItemRect(layout.menu[i]).Contains(mouse)) hovered = i;
+        }
+
         for (int i = 0; i < layout.menu.Length; i++)
         {
             Rect rect = ItemRect(layout.menu[i]);
             bool enabled = IsEnabled(layout.menu[i].name);
-            if (!overlay && enabled && mouseMoved && rect.Contains(mouse)) hovered = i;
 
             Color old = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, !enabled ? 0.3f : i == hovered ? 1f : 0.72f);
@@ -129,6 +137,7 @@ public class LobbyMenu : MonoBehaviour
         if (e.keyCode == KeyCode.UpArrow || e.keyCode == KeyCode.DownArrow)
         {
             int step = e.keyCode == KeyCode.UpArrow ? -1 : 1;
+            if (hovered < 0) hovered = step > 0 ? -1 : layout.menu.Length; // 아무것도 안 골랐으면 맨 위/아래부터
             for (int n = 0; n < layout.menu.Length; n++)
             {
                 hovered = (hovered + step + layout.menu.Length) % layout.menu.Length;
