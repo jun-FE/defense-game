@@ -7,14 +7,15 @@ using UnityEngine;
 /// - 왼쪽 패널: 맵 ID·이름, 모눈 크기(가로×세로, 자주 쓰는 크기 버튼), 도구, 결정 값, 저장·불러오기, 검사 결과
 /// - 오른쪽: 모눈. 왼쪽 클릭·드래그로 칠하기, 휠로 확대/축소(마우스 위치 기준),
 ///   오른쪽·가운데 드래그 또는 Alt+드래그로 이동(맥 트랙패드), F 전체 보기
-/// - 단축키: 1~7 도구, Ctrl+Z 되돌리기, Ctrl+S 저장, P 경로 미리보기, B 설치 칸 보기
-/// 몬스터 경로는 "지금 밝혀 둔 칸(길)"으로 계산한 최단 경로를 보여 준다(같은 거리면 위·오른쪽·아래·왼쪽 순).
+/// - 단축키: 1~6 도구, Ctrl+Z 되돌리기, Ctrl+S 저장, P 경로 미리보기
+/// 맵은 전부 암흑에서 시작한다. 길은 플레이어가 탐색(결정 수집)하며 직접 여는 것이라 에디터에서는 그리지 않고,
+/// 결정·막힌 암흑·크기·시작점·끝점만 정한다. 경로 미리보기는 "막힌 암흑만 빼고 전부 밝혔을 때"의 최단 경로다.
 /// </summary>
 public class MapEditorUI : MonoBehaviour
 {
-    enum Tool { Open, Dark, Wall, CrystalSmall, CrystalLarge, Spawn, Goal }
+    enum Tool { Dark, Wall, CrystalSmall, CrystalLarge, Spawn, Goal }
 
-    static readonly string[] ToolNames = { "길 (밝힌 바닥)", "암흑 (지우개)", "막힌 암흑 (벽)", "작은 결정", "큰 결정", "시작점 (출현)", "끝점 (목표)" };
+    static readonly string[] ToolNames = { "암흑 (지우개)", "막힌 암흑 (벽)", "작은 결정", "큰 결정", "시작점 (몬스터 출현)", "끝점 (목표)" };
     static readonly int[,] Presets = { { 16, 9 }, { 24, 13 }, { 32, 18 }, { 48, 27 } };
 
     static readonly Color ColDark = new Color(0.10f, 0.09f, 0.18f);
@@ -26,18 +27,19 @@ public class MapEditorUI : MonoBehaviour
     static readonly Color ColSpawn = new Color(0.85f, 0.25f, 0.85f);
     static readonly Color ColGoal = new Color(0.25f, 0.55f, 1f);
     static readonly Color ColPath = new Color(1f, 0.80f, 0.30f);
-    static readonly Color ColPathAll = new Color(1f, 1f, 1f, 0.35f);
-    static readonly Color ColBuild = new Color(0.40f, 1f, 0.55f, 0.35f);
+    static readonly Color ColGridLine = new Color(1f, 1f, 1f, 0.09f);
+    static readonly Color ColGridLine5 = new Color(1f, 1f, 1f, 0.2f);
+    static readonly Color ColBorder = new Color(0.88f, 0.75f, 0.49f, 0.9f);
 
     const float PanelWidth = 380f;
     const float StatusHeight = 40f;
     const int UndoLimit = 60;
 
     GridMap map;
-    Tool tool = Tool.Open;
+    Tool tool = Tool.Wall;
     readonly List<GridMap> undo = new List<GridMap>();
     bool dirty;
-    bool showPath = true, showBuild;
+    bool showPath = true;
     string widthText, heightText, smallText, largeText;
     string message = "";
     float messageUntil;
@@ -52,7 +54,7 @@ public class MapEditorUI : MonoBehaviour
     Vector2 lastMouse;
     Vector2Int hoverCell = new Vector2Int(-1, -1);
 
-    List<GridPoint> pathNow, pathAll;
+    List<GridPoint> pathAll;
     List<string> errors = new List<string>();
 
     void Start()
@@ -82,7 +84,6 @@ public class MapEditorUI : MonoBehaviour
 
     void Recalculate()
     {
-        pathNow = map.ShortestPath();
         pathAll = map.ShortestPathIfAllOpened();
         errors = map.Validate();
     }
@@ -129,12 +130,21 @@ public class MapEditorUI : MonoBehaviour
     {
         switch (t)
         {
-            case Tool.Open: return CellType.Open;
             case Tool.Wall: return CellType.Wall;
             case Tool.CrystalSmall: return CellType.CrystalSmall;
             case Tool.CrystalLarge: return CellType.CrystalLarge;
             default: return CellType.Dark;
         }
+    }
+
+    void ResizeTo(int width, int height)
+    {
+        PushUndo();
+        map.Resize(width, height);
+        dirty = true;
+        AfterChange();
+        FitView();
+        ShowMessage($"크기를 {map.Width} × {map.Height}칸으로 바꿨어요");
     }
 
     void Save()
@@ -171,7 +181,8 @@ public class MapEditorUI : MonoBehaviour
     void FitView()
     {
         Rect area = CanvasRect;
-        cell = Mathf.Max(4f, Mathf.Min((area.width - 40f) / map.Width, (area.height - 40f) / map.Height));
+        // 좌표 숫자·크기 표시가 들어갈 여백을 둔다.
+        cell = Mathf.Max(4f, Mathf.Min((area.width - 110f) / map.Width, (area.height - 110f) / map.Height));
         origin = new Vector2(area.x + (area.width - cell * map.Width) / 2f, area.y + (area.height - cell * map.Height) / 2f);
     }
 
@@ -210,7 +221,6 @@ public class MapEditorUI : MonoBehaviour
         Fill(area, new Color(0.04f, 0.035f, 0.08f));
         GUI.BeginClip(area);
         Vector2 shift = new Vector2(-area.x, -area.y);
-        float gap = cell >= 10f ? 1f : 0f;
 
         for (int y = 0; y < map.Height; y++)
             for (int x = 0; x < map.Width; x++)
@@ -218,7 +228,7 @@ public class MapEditorUI : MonoBehaviour
                 Rect r = CellRect(x, y);
                 r.position += shift;
                 if (r.xMax < 0 || r.yMax < 0 || r.x > area.width || r.y > area.height) continue;
-                var inner = new Rect(r.x + gap, r.y + gap, r.width - gap, r.height - gap);
+                Rect inner = r;
                 CellType type = map.Get(x, y);
                 switch (type)
                 {
@@ -237,16 +247,12 @@ public class MapEditorUI : MonoBehaviour
                         break;
                     default: Fill(inner, ColDark); break;
                 }
-                if (showBuild && map.IsBuildable(x, y)) Fill(inner, ColBuild);
                 if (map.IsSpawn(x, y)) Marker(inner, ColSpawn, "시작");
                 if (map.IsGoal(x, y)) Marker(inner, ColGoal, "끝");
             }
 
-        if (showPath)
-        {
-            DrawPath(pathAll, ColPathAll, 0.18f, shift);
-            DrawPath(pathNow, ColPath, 0.32f, shift);
-        }
+        DrawGridLines(shift);
+        if (showPath) DrawPath(pathAll, ColPath, 0.28f, shift);
 
         if (map.InBounds(hoverCell.x, hoverCell.y))
         {
@@ -255,6 +261,34 @@ public class MapEditorUI : MonoBehaviour
             Outline(r, Color.white);
         }
         GUI.EndClip();
+    }
+
+    /// <summary>칸 경계선(연하게), 5칸마다 조금 진하게, 바깥 테두리, 5칸마다 좌표 숫자.</summary>
+    void DrawGridLines(Vector2 shift)
+    {
+        float px = 1f / Mathf.Max(0.01f, UIKit.Scale); // 실제 화면 1픽셀
+        Vector2 o = origin + shift;
+        float w = cell * map.Width, h = cell * map.Height;
+        if (cell >= 6f)
+        {
+            for (int x = 1; x < map.Width; x++)
+                Fill(new Rect(o.x + x * cell - px / 2f, o.y, px, h), x % 5 == 0 ? ColGridLine5 : ColGridLine);
+            for (int y = 1; y < map.Height; y++)
+                Fill(new Rect(o.x, o.y + y * cell - px / 2f, w, px), y % 5 == 0 ? ColGridLine5 : ColGridLine);
+        }
+        float b = 2f * px;
+        Fill(new Rect(o.x - b, o.y - b, w + 2 * b, b), ColBorder);
+        Fill(new Rect(o.x - b, o.y + h, w + 2 * b, b), ColBorder);
+        Fill(new Rect(o.x - b, o.y, b, h), ColBorder);
+        Fill(new Rect(o.x + w, o.y, b, h), ColBorder);
+
+        GUIStyle label = Text(14, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerCenter);
+        GUIStyle side = Text(14, new Color(1f, 1f, 1f, 0.55f), TextAnchor.MiddleRight);
+        for (int x = 0; x < map.Width; x += 5)
+            GUI.Label(new Rect(o.x + x * cell, o.y - 22f, Mathf.Max(cell, 24f), 20f), x.ToString(), label);
+        for (int y = 0; y < map.Height; y += 5)
+            GUI.Label(new Rect(o.x - 34f, o.y + y * cell, 30f, Mathf.Max(cell, 18f)), y.ToString(), side);
+        GUI.Label(new Rect(o.x, o.y + h + 6f, w, 22f), $"{map.Width} × {map.Height}칸", Text(16, ColBorder, TextAnchor.UpperCenter, true));
     }
 
     void DrawPath(List<GridPoint> path, Color color, float size, Vector2 shift)
@@ -294,39 +328,30 @@ public class MapEditorUI : MonoBehaviour
         y += 46;
 
         // 모눈 크기
-        GUI.Label(new Rect(x, y, w, 28), $"모눈 크기 (가로 × 세로, {GridMap.MinSize}~{GridMap.MaxSize})", Text(18, Color.white));
+        GUI.Label(new Rect(x, y, w, 28), $"모눈 크기  <b>현재 {map.Width} × {map.Height}</b>", Text(18, Color.white));
         y += 30;
         widthText = GUI.TextField(new Rect(x, y, 80, 32), widthText);
         GUI.Label(new Rect(x + 84, y, 24, 32), "×", Text(20, Color.white, TextAnchor.MiddleCenter));
         heightText = GUI.TextField(new Rect(x + 112, y, 80, 32), heightText);
-        if (GUI.Button(new Rect(x + 200, y, w - 200, 32), "크기 적용"))
-        {
-            int nw, nh;
-            if (int.TryParse(widthText, out nw) && int.TryParse(heightText, out nh))
-            {
-                PushUndo();
-                map.Resize(nw, nh);
-                dirty = true;
-                AfterChange();
-                FitView();
-            }
-        }
+        int tw = 0, th = 0;
+        bool pending = int.TryParse(widthText, out tw) && int.TryParse(heightText, out th) && (tw != map.Width || th != map.Height);
+        if (GUI.Button(new Rect(x + 200, y, w - 200, 32), pending ? "크기 적용 ←" : "크기 적용") && pending) ResizeTo(tw, th);
         y += 38;
         for (int i = 0; i < Presets.GetLength(0); i++)
         {
             int pw = Presets[i, 0], ph = Presets[i, 1];
-            if (GUI.Button(new Rect(x + i * (w / 4f), y, w / 4f - 4, 30), $"{pw}×{ph}"))
-            {
-                widthText = pw.ToString();
-                heightText = ph.ToString();
-            }
+            bool current = pw == map.Width && ph == map.Height;
+            if (current) Fill(new Rect(x + i * (w / 4f) - 2, y - 2, w / 4f, 34), ColBorder);
+            if (GUI.Button(new Rect(x + i * (w / 4f), y, w / 4f - 4, 30), $"{pw}×{ph}") && !current) ResizeTo(pw, ph);
         }
-        y += 44;
+        y += 34;
+        GUI.Label(new Rect(x, y, w, 22), pending ? "숫자를 바꿨으면 '크기 적용'을 눌러 주세요" : $"{GridMap.MinSize}~{GridMap.MaxSize}칸 · 버튼은 바로 적용", Text(14, pending ? new Color(1f, 0.8f, 0.4f) : new Color(0.7f, 0.68f, 0.8f)));
+        y += 30;
 
         // 도구
-        GUI.Label(new Rect(x, y, w, 28), "도구 (숫자키 1~7)", Text(18, Color.white));
+        GUI.Label(new Rect(x, y, w, 28), "도구 (숫자키 1~6)", Text(18, Color.white));
         y += 30;
-        Color[] swatches = { ColOpen, ColDark, ColWallMark, ColSmall, ColLarge, ColSpawn, ColGoal };
+        Color[] swatches = { ColDark, ColWallMark, ColSmall, ColLarge, ColSpawn, ColGoal };
         for (int i = 0; i < ToolNames.Length; i++)
         {
             var r = new Rect(x, y, w, 34);
@@ -351,9 +376,7 @@ public class MapEditorUI : MonoBehaviour
         if (int.TryParse(largeText, out lv) && lv != map.LargeCrystalValue) { map.LargeCrystalValue = lv; dirty = true; Recalculate(); }
         y += 42;
 
-        showPath = GUI.Toggle(new Rect(x, y, w, 26), showPath, " 몬스터 경로 미리보기 (P)");
-        y += 28;
-        showBuild = GUI.Toggle(new Rect(x, y, w, 26), showBuild, " 타워 설치 칸 보기 (B)");
+        showPath = GUI.Toggle(new Rect(x, y, w, 26), showPath, " 최단 경로 미리보기 (P, 전부 밝혔을 때)");
         y += 36;
 
         // 파일
@@ -388,9 +411,8 @@ public class MapEditorUI : MonoBehaviour
         int small = map.Count(CellType.CrystalSmall), large = map.Count(CellType.CrystalLarge);
         int total = small * map.SmallCrystalValue + large * map.LargeCrystalValue;
         string hover = map.InBounds(hoverCell.x, hoverCell.y) ? $"칸 ({hoverCell.x}, {hoverCell.y})" : "칸 -";
-        string now = pathNow != null ? $"{pathNow.Count - 1}칸" : "아직 안 이어짐";
-        string all = pathAll != null ? $"{pathAll.Count - 1}칸" : "불가";
-        string text = $"{map.Width}×{map.Height}   ·   {hover}   ·   결정 작은 {small} / 큰 {large} (합계 {total})   ·   지금 경로 {now}   ·   최단(전부 밝혔을 때) {all}   ·   확대 {cell:0}px";
+        string all = pathAll != null ? $"{pathAll.Count - 1}칸" : "이을 수 없음";
+        string text = $"{map.Width}×{map.Height}   ·   {hover}   ·   결정 작은 {small} / 큰 {large} (합계 {total})   ·   최단 경로(전부 밝혔을 때) {all}   ·   확대 {cell:0}px";
         if (!string.IsNullOrEmpty(message) && Time.unscaledTime < messageUntil) text = message;
         GUI.Label(new Rect(bar.x + 16, bar.y, bar.width - 32, bar.height), text, Text(16, new Color(0.85f, 0.82f, 0.95f)));
     }
@@ -456,10 +478,9 @@ public class MapEditorUI : MonoBehaviour
         bool ctrl = e.control || e.command;
         if (ctrl && e.keyCode == KeyCode.Z) { Undo(); e.Use(); return; }
         if (ctrl && e.keyCode == KeyCode.S) { Save(); e.Use(); return; }
-        if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha7) { tool = (Tool)(e.keyCode - KeyCode.Alpha1); e.Use(); }
+        if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha6) { tool = (Tool)(e.keyCode - KeyCode.Alpha1); e.Use(); }
         else if (e.keyCode == KeyCode.F) { FitView(); e.Use(); }
         else if (e.keyCode == KeyCode.P) { showPath = !showPath; e.Use(); }
-        else if (e.keyCode == KeyCode.B) { showBuild = !showBuild; e.Use(); }
         else if (e.keyCode == KeyCode.Escape) { loadOpen = false; GUIUtility.keyboardControl = 0; e.Use(); }
     }
 
