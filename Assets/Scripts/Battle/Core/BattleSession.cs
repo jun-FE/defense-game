@@ -284,6 +284,14 @@ namespace Akmong.Battle
                 target.Traveled = Math.Max(0f, target.Traveled - level.Knockback);
                 target.Position = target.Spawn.PointAt(target.Traveled);
             }
+            bool slowed = !killed && level.Slows;
+            if (slowed)
+            {
+                // 보스는 절반만 느려진다(타워 역할 기획서: 보스에게는 약한 둔화). 더 센 감속이 걸려 있으면 그쪽을 유지.
+                float mult = target.Def.IsBoss ? 1f - (1f - level.SlowMult) * 0.5f : level.SlowMult;
+                if (!target.Slowed || mult <= target.SlowMult) target.SlowMult = mult;
+                target.SlowRemaining = Math.Max(target.SlowRemaining, level.SlowSec);
+            }
             TowerFired?.Invoke(new HitResult
             {
                 Tower = tower,
@@ -294,6 +302,7 @@ namespace Akmong.Battle
                 HpAfter = target.Hp,
                 Killed = killed,
                 Knockback = knockback,
+                Slowed = slowed,
             });
             if (killed) Kill(target);
         }
@@ -375,9 +384,15 @@ namespace Akmong.Battle
 
         void Move(EnemyState enemy, double dt)
         {
+            if (enemy.SlowRemaining > 0)
+            {
+                enemy.SlowRemaining = Math.Max(0, enemy.SlowRemaining - dt);
+                if (enemy.SlowRemaining <= 0) enemy.SlowMult = 1f;
+            }
             if (enemy.BlockedBy != null) return; // 저지당한 적은 제자리에 멈춘다.
-            // 2주차: 침식 속도 배율, 가속·감속·속박 효과
-            float speed = BattleMath.EffectiveSpeed(enemy.Def.MoveSpeed, 1f, 1f, 1f, false, Rules);
+            // 2주차: 침식 속도 배율, 가속·속박 효과
+            float slow = enemy.Slowed ? enemy.SlowMult : 1f;
+            float speed = BattleMath.EffectiveSpeed(enemy.Def.MoveSpeed, 1f, 1f, slow, false, Rules);
             enemy.Traveled += (float)(speed * dt);
             if (enemy.Traveled + Epsilon >= enemy.Spawn.Length)
             {

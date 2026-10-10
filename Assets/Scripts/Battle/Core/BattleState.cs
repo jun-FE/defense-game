@@ -22,6 +22,10 @@ namespace Akmong.Battle
         /// <summary>저지가 풀리기까지 남은 시간(초).</summary>
         public double BlockRemaining { get; internal set; }
         /// <summary>타워별로 남은 저지 시간. 0 이하면 그 타워를 뚫고 지나간 것이라 다시 붙잡히지 않는다.</summary>
+        /// <summary>지금 걸린 감속 배율(1 = 없음)과 남은 시간(초).</summary>
+        public float SlowMult { get; internal set; } = 1f;
+        public double SlowRemaining { get; internal set; }
+        public bool Slowed => SlowRemaining > 0;
         internal readonly System.Collections.Generic.Dictionary<int, double> BlockLeft = new System.Collections.Generic.Dictionary<int, double>();
 
         /// <summary>중심까지 남은 경로 거리. NEAREST_CORE 타겟팅 기준.</summary>
@@ -79,5 +83,7 @@ namespace Akmong.Battle
         public bool Killed;
         /// <summary>이 공격으로 적을 밀어냈는지.</summary>
         public bool Knockback;
+        /// <summary>이번 공격으로 감속이 걸렸는지.</summary>
+        public bool Slowed;
     }
 }

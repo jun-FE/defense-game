@@ -60,6 +60,7 @@ namespace Akmong.Battle
             run("병정인형: 적을 멈춰 세우고 저지 시간이 지나면 보낸다", BlockCase);
             run("병정인형: 1단계는 1명만, 2단계는 2명 저지", BlockCountCase);
             run("병정인형 3단계: 일반 적은 밀어내고 보스는 면역", KnockbackCase);
+            run("스노우볼: 맞은 적 30% 감속(보스 15%), 2초 뒤 원래 속도", SlowCase);
             return cases;
         }
 
@@ -483,6 +484,40 @@ namespace Akmong.Battle
             float normal = pushed(false), bossPushed = pushed(true);
             // 밀린 같은 틱에 저지가 풀려 한 틱(0.8×0.05=0.04)만큼 다시 걷는다.
             Check(cases, name, Math.Abs(normal - 0.56f) < 1e-3 && bossPushed == 0f, $"일반 적 한 틱 동안 뒤로 {normal:0.00}(0.6 밀림 − 0.04 걸음), 보스 {bossPushed:0.00}(0)");
+        }
+
+        static void SlowCase(List<Case> cases, string name)
+        {
+            Func<bool, float[]> speeds = isBoss =>
+            {
+                EnemyDef enemy = SampleContent.Toy(); // 속도 1.5
+                enemy.MaxHp = 100000;
+                enemy.IsBoss = isBoss;
+                StageDef stage = SingleTargetStage(enemy, 12);
+                stage.Map.SpawnPoints[0].Path = new List<Vector2> { new Vector2(0, 12), new Vector2(0, -20) };
+                stage.StartCoin = 1000;
+                TowerDef snowball = SampleContent.Snowball();
+                foreach (TowerLevelDef l in snowball.Levels) { l.CritChance = 0; l.Damage = 0; }
+                stage.Towers = new List<TowerDef> { snowball };
+                var session = new BattleSession(stage, new GameRules(), new FixedRandom(0.99));
+                session.TryBuild(snowball, 1, 5, out _);
+                EnemyState target = null;
+                session.EnemySpawned += e => target = e;
+                float last = 0, min = float.MaxValue, final = 0;
+                double dt = session.Rules.FixedDt;
+                while (session.Phase != BattlePhase.Ended && session.CombatTime < 40)
+                {
+                    session.Tick(dt);
+                    if (target == null || !target.Alive) continue;
+                    float speed = (float)((target.Traveled - last) / dt);
+                    last = target.Traveled;
+                    if (speed > 0f) { min = Math.Min(min, speed); final = speed; }
+                }
+                return new[] { min, final };
+            };
+            float[] normal = speeds(false), boss = speeds(true);
+            Check(cases, name, Math.Abs(normal[0] - 1.05f) < 1e-3 && Math.Abs(boss[0] - 1.275f) < 1e-3 && Math.Abs(normal[1] - 1.5f) < 1e-3,
+                $"일반 적 최저 {normal[0]:0.000}(1.05), 보스 최저 {boss[0]:0.000}(1.275), 사거리를 벗어나고 감속이 끝난 뒤 {normal[1]:0.000}(1.5)");
         }
 
         static void Run(BattleSession session, double seconds)

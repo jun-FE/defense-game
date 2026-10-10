@@ -52,6 +52,13 @@ namespace Akmong.Battle
         public float BlockSec;
         /// <summary>공격할 때 적을 경로 뒤로 미는 거리(타일). 보스는 면역.</summary>
         public float Knockback;
+
+        // 감속(스노우볼). 맞은 적의 이동 속도에 곱한다. 1이면 감속 없음.
+        /// <summary>맞은 적의 이동 속도 배율(0.7이면 30% 느려짐). 1이면 감속 없음. 보스는 효과가 절반.</summary>
+        public float SlowMult = 1f;
+        /// <summary>감속이 이어지는 시간(초). 다시 맞으면 새로 이어진다.</summary>
+        public float SlowSec;
+        public bool Slows => SlowMult < 1f && SlowSec > 0f;
     }
 
     public sealed class TowerDef

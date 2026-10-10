@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "15";
+    public const string BuildVersion = "16";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -41,6 +41,7 @@ public static class DemoSceneBuilder
     const string BattleDataDir = "Assets/Data/Battle";
     public const string DreamcatcherDir = "Assets/Art/Towers/Dreamcatcher";
     public const string SoldierDir = "Assets/Art/Towers/Soldier";
+    public const string SnowballDir = "Assets/Art/Towers/Snowball";
     const string ResourcesDir = "Assets/Resources";
 
     // 이전 버전(단일 경로 디펜스)이 만든 파일. 업데이트할 때 지운다.
@@ -326,6 +327,7 @@ public static class DemoSceneBuilder
                     id = l.Id, damage = l.Damage, range = l.Range, attackSec = l.AttackSec,
                     critChance = l.CritChance, critMult = l.CritMult, upgradeCost = l.UpgradeCost,
                     blockCount = l.BlockCount, blockSec = l.BlockSec, knockback = l.Knockback,
+                    slowMult = l.SlowMult, slowSec = l.SlowSec,
                 }).ToArray();
             }));
         }
@@ -346,6 +348,17 @@ public static class DemoSceneBuilder
             if (tower.prefab == null) tower.prefab = CreateSoldierPrefab(tower.id);
             if (tower.icon == null) tower.icon = LoadTowerSprite("icon.png", SoldierDir);
             if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_disabled.png", SoldierDir);
+            EditorUtility.SetDirty(tower);
+        }
+
+        // 스노우볼(TW_SNOWBALL): 4방향·3단계 아트, 얼음 조각 투사체. 드림캐처 자리(5번 슬롯).
+        foreach (TowerAsset tower in towers)
+        {
+            if (tower.id != "TW_SNOWBALL") continue;
+            if (tower.prefab == null) tower.prefab = CreateSnowballPrefab(tower.id);
+            if (tower.icon == null) tower.icon = LoadTowerSprite("icon.png", SnowballDir);
+            if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_disabled.png", SnowballDir);
+            if (tower.projectile == null) tower.projectile = LoadTowerSprite("projectile.png", SnowballDir);
             EditorUtility.SetDirty(tower);
         }
 
@@ -482,6 +495,48 @@ public static class DemoSceneBuilder
         var firePoint = new GameObject("FirePoint").transform;
         firePoint.SetParent(root.transform, false);
         firePoint.localPosition = new Vector3(0f, 0.3f, 0f);
+
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
+        Object.DestroyImmediate(root);
+        return prefab;
+    }
+
+    /// <summary>
+    /// 스노우볼: 단계(L1~L3)별 위·아래·좌·우 6프레임(384px 캔버스, Tools/Art/import_tower_frames.py로 변환).
+    /// 받침 바닥(캔버스 중심에서 약 125px 아래)이 타일 중심보다 0.3칸 아래에 오게 올린다. 발사 지점은 구슬 가운데.
+    /// </summary>
+    static GameObject CreateSnowballPrefab(string id)
+    {
+        string[] dirs = { "up", "down", "left", "right" };
+        var levels = new TowerVisual.DirectionalFrames[3];
+        for (int level = 0; level < 3; level++)
+        {
+            var frames = new Sprite[4][];
+            for (int d = 0; d < 4; d++)
+            {
+                frames[d] = new Sprite[6];
+                for (int f = 0; f < 6; f++)
+                {
+                    frames[d][f] = LoadTowerSprite($"snowball_{dirs[d]}_L{level + 1}_{f}.png", SnowballDir);
+                    if (frames[d][f] == null) return null;
+                }
+            }
+            levels[level] = new TowerVisual.DirectionalFrames { up = frames[0], down = frames[1], left = frames[2], right = frames[3] };
+        }
+
+        EnsureFolder($"{PrefabDir}/Towers");
+        var root = new GameObject(id);
+        float baseOffset = 125f / TowerArtImporter.SnowballPixelsPerUnit;
+        var visualOffset = new Vector2(0f, baseOffset - 0.3f);
+        GameObject visualGo = CreateSprite("Visual", levels[0].down[0], Color.white, root.transform, visualOffset, Vector2.one, 1);
+        var visual = visualGo.AddComponent<TowerVisual>();
+        visual.levels = levels;
+        visual.attackFps = 12f;
+
+        var firePoint = new GameObject("FirePoint").transform;
+        firePoint.SetParent(root.transform, false);
+        // 구슬 중심: 캔버스 중심에서 약 25px 위
+        firePoint.localPosition = new Vector3(0f, visualOffset.y + 25f / TowerArtImporter.SnowballPixelsPerUnit, 0f);
 
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
         Object.DestroyImmediate(root);

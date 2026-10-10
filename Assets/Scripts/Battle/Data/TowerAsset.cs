@@ -25,6 +25,14 @@ public class TowerLevelData
     [Label("밀어내기 (타일)")]
     [Tooltip("공격할 때 적을 길 뒤로 미는 거리. 보스는 면역.")]
     public float knockback;
+
+    [Header("감속 (스노우볼)")]
+    [Label("감속 배율")]
+    [Tooltip("맞은 적의 이동 속도에 곱한다. 0.7이면 30% 느려짐, 1이면 감속 없음. 보스는 효과가 절반.")]
+    [Range(0.1f, 1f)] public float slowMult = 1f;
+    [Label("감속 시간 (초)")]
+    [Tooltip("감속이 이어지는 시간. 다시 맞으면 새로 이어진다.")]
+    public float slowSec;
 }
 
 [CreateAssetMenu(menuName = "Defense/전투 데이터/Tower", fileName = "TW_NEW")]

@@ -1,7 +1,7 @@
 using Akmong.Battle;
 using UnityEngine;
 
-/// <summary>적 하나의 화면 표시: 두 틱 사이 위치 보간, 체력바, 사라지는 연출.</summary>
+/// <summary>적 하나의 화면 표시: 두 틱 사이 위치 보간, 체력바, 감속 중 푸른 빛, 사라지는 연출.</summary>
 public class EnemyView : MonoBehaviour
 {
     EnemyState state;
@@ -9,6 +9,9 @@ public class EnemyView : MonoBehaviour
     SpriteRenderer body;
     float barWidth;
     bool finishing;
+    bool flashing;
+    Color baseColor;
+    static readonly Color IceTint = new Color(0.55f, 0.85f, 1f);
 
     public void Init(EnemyState enemy, EnemyAsset asset, Sprite circle, Sprite square)
     {
@@ -22,6 +25,7 @@ public class EnemyView : MonoBehaviour
         body.sprite = asset != null && asset.sprite != null ? asset.sprite : circle;
         body.color = asset != null ? asset.tint : new Color(0.85f, 0.3f, 0.35f);
         body.sortingOrder = 2;
+        baseColor = body.color;
 
         barWidth = Mathf.Max(0.6f, scale);
         float barY = scale * 0.5f + 0.2f;
@@ -39,6 +43,9 @@ public class EnemyView : MonoBehaviour
         float t = Mathf.Clamp01(state.Hp / state.MaxHp);
         healthFill.localScale = new Vector3(barWidth * t, 0.08f, 1f);
         healthFill.localPosition = new Vector3(-barWidth * (1f - t) * 0.5f, healthFill.localPosition.y, 0f);
+
+        // 감속(스노우볼)에 걸린 동안 얼음빛으로 물든다.
+        if (!flashing) body.color = state.Slowed ? Color.Lerp(baseColor, IceTint, 0.6f) : baseColor;
     }
 
     /// <summary>근거리 타격 연출: delay 뒤(찌르기 모션의 타격 프레임) 잠깐 밝게 번쩍인다.</summary>
@@ -51,9 +58,11 @@ public class EnemyView : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         if (finishing) yield break;
+        flashing = true;
         Color original = body.color;
         body.color = Color.Lerp(original, Color.white, 0.75f);
         yield return new WaitForSeconds(0.08f);
+        flashing = false;
         if (!finishing) body.color = original;
     }
 

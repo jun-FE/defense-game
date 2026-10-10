@@ -111,6 +111,8 @@ namespace Akmong.Battle
                 if (level.BlockCount < 0) errors.Add($"{levelWhere}: block_count는 0 이상이어야 합니다.");
                 if (level.BlockCount > 0 && level.BlockSec <= 0) errors.Add($"{levelWhere}: 저지하는 타워는 block_sec가 0보다 커야 합니다.");
                 if (level.Knockback < 0) errors.Add($"{levelWhere}: knockback은 0 이상이어야 합니다.");
+                if (level.SlowMult <= 0f || level.SlowMult > 1f) errors.Add($"{levelWhere}: 감속 배율은 0보다 크고 1 이하여야 합니다.");
+                if (level.SlowSec < 0) errors.Add($"{levelWhere}: 감속 시간은 0 이상이어야 합니다.");
             }
         }
 

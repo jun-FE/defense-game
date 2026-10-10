@@ -143,6 +143,8 @@ public static class BattleContentBuilder
                 BlockCount = level.blockCount,
                 BlockSec = level.blockSec,
                 Knockback = level.knockback,
+                SlowMult = level.slowMult <= 0f ? 1f : level.slowMult,
+                SlowSec = level.slowSec,
             });
         }
         return tower;

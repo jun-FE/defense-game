@@ -7,7 +7,7 @@ using UnityEngine;
 /// - 왼쪽 위: 스테이지 이름, 웨이브, (준비 중) 바로 시작 / 가운데 위: 악몽 침식도
 /// - 오른쪽 위: 꿈의 불빛 HP, 몽결정(전투 재화), 일시정지, 배속
 /// - 왼쪽 아래: 미니맵(클릭·드래그로 그 자리로 화면 이동) / 오른쪽 아래: 도하(스킬 자리)
-/// - 건설: 지을 수 있는 칸을 클릭하면 그 칸 둘레에 타워 5종(병정인형·실타래·스탠드·오르골·드림캐처)이
+/// - 건설: 지을 수 있는 칸을 클릭하면 그 칸 둘레에 타워 5종(병정인형·실타래·스탠드·오르골·스노우볼)이
 ///   동그란 버튼으로 펼쳐진다(건설 고리). 버튼을 누르거나 1~5로 짓는다. 다른 곳 클릭·우클릭·Esc로 닫는다.
 /// 아이콘은 시안에서 잘라 낸 임시 그림(Assets/Art/Battle/UI/mock_*)이다. 정식 UI 아트가 오면 교체한다.
 /// 입력은 명령으로만 전달한다: 건설 / 강화 / 웨이브 시작 / 속도 / 일시정지 / 귀환.
@@ -33,7 +33,7 @@ public class BattleHUD : MonoBehaviour
         new Slot("TW_THREAD", "실타래", "mock_tower_thread", "바늘과 실이 적을 꿰뚫고 다음 적으로 이어집니다."),
         new Slot("TW_LAMP", "스탠드", "mock_tower_stand", "빛으로 한 적을 집중 공격합니다."),
         new Slot("TW_MUSICBOX", "오르골", "mock_tower_musicbox", "음파로 주변 적들의 발을 느리게 합니다."),
-        new Slot("TW_DREAMCATCHER", "드림캐처", "mock_tower_dreamcatcher", "위험한 적을 붙잡고 받는 피해를 늘립니다."),
+        new Slot("TW_SNOWBALL", "스노우볼", "mock_tower_snowball", "얼음 조각으로 적을 맞혀 잠시 느리게 합니다."),
     };
 
     class Slot
@@ -580,7 +580,7 @@ public class BattleHUD : MonoBehaviour
         float w = W;
         TowerLevelDef level = selectedTower.Level;
         bool blocks = selectedTower.Blocks;
-        Rect rect = Ui(new Rect(w - PanelWidth - 24, 160, PanelWidth, blocks ? 420 : 350));
+        Rect rect = Ui(new Rect(w - PanelWidth - 24, 160, PanelWidth, blocks || level.Slows ? 420 : 350));
         skin.Frame(rect, "panel_indigo");
         float x = rect.x + 26, y = rect.y + 20, width = PanelWidth - 52;
         GUI.Label(new Rect(x, y, width, 40), $"{selectedTower.Def.Name}  {selectedTower.LevelIndex + 1}단계", skin.Text(28, UISkin.Light, TextAnchor.MiddleLeft, true));
@@ -595,6 +595,11 @@ public class BattleHUD : MonoBehaviour
             GUI.Label(new Rect(x, y, width, 30), $"저지 {level.BlockCount}명 · {level.BlockSec:0.#}초{push}", hudSmall);
             y += 34;
         }
+        if (level.Slows)
+        {
+            GUI.Label(new Rect(x, y, width, 30), $"감속 {(1f - level.SlowMult) * 100f:0}% · {level.SlowSec:0.#}초", hudSmall);
+            y += 34;
+        }
         GUI.Label(new Rect(x, y, width, 30), $"투자 몽결정 {selectedTower.TotalSpent}", hudSmall);
         y += 48;
 
@@ -603,6 +608,7 @@ public class BattleHUD : MonoBehaviour
             TowerLevelDef next = selectedTower.Def.Levels[selectedTower.LevelIndex + 1];
             string nextText = blocks
                 ? $"다음: 공격력 {next.Damage:0.#}\n저지 {next.BlockCount}명 · {next.BlockSec:0.#}초{(next.Knockback > level.Knockback ? " · 밀어내기" : "")}"
+                : next.Slows ? $"다음: 공격력 {next.Damage:0.#}, 감속 {(1f - next.SlowMult) * 100f:0}% · {next.SlowSec:0.#}초"
                 : $"다음: 공격력 {next.Damage:0.#}, 사거리 {next.Range:0.#}";
             float nextH = blocks ? 62f : 30f;
             GUI.Label(new Rect(x, y, width, nextH), nextText, hudSmall);

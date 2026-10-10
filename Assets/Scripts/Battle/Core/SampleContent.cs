@@ -43,6 +43,23 @@ namespace Akmong.Battle
             },
         };
 
+        /// <summary>
+        /// 스노우볼: 얼음 조각으로 한 적을 맞혀 잠시 느리게 한다(드림캐처 자리). 피해는 약하고 감속이 핵심.
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
+        public static TowerDef Snowball() => new TowerDef
+        {
+            Id = "TW_SNOWBALL",
+            Name = "스노우볼",
+            BuildCost = 60,
+            Levels =
+            {
+                new TowerLevelDef { Id = "TL_SNOWBALL_1", Damage = 10, Range = 3.5f, AttackSec = 1.0f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 60, SlowMult = 0.70f, SlowSec = 2.0f },
+                new TowerLevelDef { Id = "TL_SNOWBALL_2", Damage = 15, Range = 3.8f, AttackSec = 0.95f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 90, SlowMult = 0.60f, SlowSec = 2.5f },
+                new TowerLevelDef { Id = "TL_SNOWBALL_3", Damage = 22, Range = 4.0f, AttackSec = 0.9f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 0, SlowMult = 0.50f, SlowSec = 3.0f },
+            },
+        };
+
         /// <summary>MAP_ROOM: 북쪽 (0,12)와 동쪽 (12,0)에서 중심 (0,0)까지 길이 12인 직선 경로 2개.</summary>
         public static MapDef Room() => new MapDef
         {
@@ -106,7 +123,7 @@ namespace Akmong.Battle
                 StartCoin = 120,
                 CoreMaxHp = 100,
                 EnemyHpScale = 1.55f, // 길이 길어 맞는 시간이 길므로 적 HP를 올린다
-                Towers = { Lamp(), Soldier() },
+                Towers = { Lamp(), Soldier(), Snowball() },
                 Waves =
                 {
                     new WaveDef
@@ -175,7 +192,7 @@ namespace Akmong.Battle
                 Map = Room(),
                 StartCoin = 120,
                 CoreMaxHp = 100,
-                Towers = { Lamp(), Soldier() },
+                Towers = { Lamp(), Soldier(), Snowball() },
                 Waves =
                 {
                     new WaveDef
