@@ -109,7 +109,11 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
   - `vignette`: 화면 가장자리 어둡기(0~1).
   - 플레이어는 **설정 → 배경 밝기**(60~140%)로 조절할 수 있습니다(로비에도 적용).
   - 미리보기: `python3 Tools/Art/preview_layers.py out.png --brightness=0.8`
-- **UI**: 메인 UI 벡터 팩의 조각(`Assets/Art/Main/UI`)으로 그립니다. 로고, 해명도 게이지, 재화 바(결정·동전·열쇠), 의뢰함(전체/진행 중/완료), 의뢰 상세(상태·태그·사진·편지·보상·시작 버튼), 도하 말풍선, 하단 탭 6개.
+- **UI**: "빈티지 꿈 수선 공방" 디자인(양피지·리넨·손바느질·황동·호두나무)입니다. 로고, 해명도 게이지, 재화 바(결정·동전·열쇠), 의뢰함(전체/진행 중/완료), 의뢰 상세(밀랍 봉인 편지·태그·사진·보상·데님 리본 시작 버튼), 도하 쪽지, 하단 천 이름표 탭 6개.
+  - 시안: `ArtSource/Main_UI/reference/시안1~4.png`(Artlist 생성). 배치는 3번, 타이틀은 4번, 하단 탭은 1번.
+  - 조각: `Assets/Art/Main/UI/ws_*.png`. Artlist로 초록 배경 위에 글자 없는 조각 시트를 뽑고(`ArtSource/Main_UI/generated/sheet_*.png`), `python3 Tools/Art/build_workshop_ui.py`로 배경을 빼고 잘라 크기를 맞춥니다. 9-slice 폭은 `ui_borders.json`의 `bx`(가로)·`by`(세로).
+  - 전투·탐색 화면은 예전 조각(남색 패널 등)을 그대로 씁니다.
+  - Unity 없이 미리보기: `python3 Tools/Art/preview_main_ui.py out.jpg`
   - 의뢰 사진·썸네일은 의뢰 에셋의 `photo`, `thumbnail`에 넣으면 나오고, 비어 있으면 자리표시 그림이 나옵니다.
   - 해명도와 재화 값은 아직 0(저장·정산 연결은 4주차 이후).
 - **의뢰**: `Assets/Data/Quests`의 의뢰 에셋(제목, 태그, 편지, 보상 문구, 연결 스테이지)을 고치고, 목록 순서는 `Assets/Resources/QuestDatabase`에서 정합니다. `stageIndex`가 -1이면 "아직 도착하지 않은 의뢰"로 잠겨 보입니다.

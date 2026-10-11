@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 메인(수선소) 화면 UI. 기획 시안(ArtSource/Main_UI/reference/lobby_mockup.jpg)과
-/// 메인 UI 벡터 팩(ArtSource/Main_UI/*.svg → Tools/Art/build_main_ui.py → Assets/Art/Main/UI)을 쓴다.
+/// 메인(수선소) 화면 UI. 디자인은 "빈티지 꿈 수선 공방"(양피지·리넨·바느질·황동) 시안
+/// (ArtSource/Main_UI/reference/시안3.png 배치 + 시안4 타이틀 + 시안1 하단 탭)을 따른다.
+/// 조각: Assets/Art/Main/UI/ws_*.png (Artlist 생성 시트 → Tools/Art/build_workshop_ui.py). 9-slice 폭은 ui_borders.json(bx 가로·by 세로).
 /// IMGUI, 1080p 기준 좌표. 오른쪽 요소는 화면 오른쪽 끝 기준으로 놓아 화면비가 달라도 붙어 있다.
 /// - 왼쪽 위: 로고, 해명도 게이지 / 오른쪽 위: 재화 바(결정·동전·열쇠), 설정
 /// - 오른쪽: 의뢰함(전체/진행 중/완료) / 가운데: 의뢰 상세(편지) → "의뢰 시작하기"
@@ -15,16 +16,18 @@ public class MainUI : MonoBehaviour
     enum Filter { All, InProgress, Completed }
 
     [Serializable]
-    class BorderItem { public string name; public int border; }
+    class BorderItem { public string name; public int border; public int bx; public int by; }
 
     [Serializable]
     class BorderList { public BorderItem[] items = new BorderItem[0]; }
 
     static readonly string[] TabNames = { "수선소", "의뢰함", "도감", "가방", "기술", "지도" };
-    static readonly string[] TabIcons = { "icon_workshop", "icon_envelope", "icon_codex", "icon_bag", "icon_mastery", "icon_map" };
-    static readonly string[] RewardIcons = { "reward_moon", "reward_thread", "reward_note" };
+    static readonly string[] TabIcons = { "ws_icon_workshop", "ws_icon_envelope", "ws_icon_codex", "ws_icon_bag", "ws_icon_mastery", "ws_icon_map" };
+    static readonly string[] RewardIcons = { "ws_reward_moon", "ws_reward_thread", "ws_reward_note" };
 
-    static readonly Color Light = Hex("#F3EBDD"), Muted = Hex("#948AA8"), Ink = Hex("#2A2330"), InkMuted = Hex("#5A4E57"), Gold = Hex("#E0BE7C");
+    // 밝은 글자(어두운 나무·리넨 위), 잉크(양피지 위), 갈색 강조(선택된 탭·도하 말머리)
+    static readonly Color Light = Hex("#F3EBDD"), Muted = Hex("#B9AC9A"), Ink = Hex("#2E2219"), InkMuted = Hex("#6B5744"),
+        Gold = Hex("#E0BE7C"), Brown = Hex("#8A5520");
 
     [Tooltip("Assets/Art/Main/UI 의 조각 이미지")]
     public Sprite[] uiSprites = new Sprite[0];
@@ -52,7 +55,7 @@ public class MainUI : MonoBehaviour
     float toastUntil;
 
     readonly Dictionary<string, Texture2D> tex = new Dictionary<string, Texture2D>();
-    readonly Dictionary<string, int> borders = new Dictionary<string, int>();
+    readonly Dictionary<string, RectOffset> borders = new Dictionary<string, RectOffset>();
     readonly Dictionary<string, GUIStyle> styles = new Dictionary<string, GUIStyle>();
     GUIStyle logo, logoSub;
 
@@ -63,7 +66,10 @@ public class MainUI : MonoBehaviour
             if (sprite != null) tex[sprite.name] = sprite.texture;
         if (uiBorders != null)
             foreach (BorderItem item in JsonUtility.FromJson<BorderList>(uiBorders.text).items)
-                borders[item.name] = item.border;
+            {
+                int bx = item.bx > 0 ? item.bx : item.border, by = item.by > 0 ? item.by : item.border;
+                borders[item.name] = new RectOffset(bx, bx, by, by);
+            }
 
         foreach (QuestData quest in QuestDatabase.Instance.quests)
             if (quest != null && quest.IsAvailable) { selected = quest; break; }
@@ -108,7 +114,8 @@ public class MainUI : MonoBehaviour
     void DrawLogo()
     {
         // 로비 아트에서 잘라낸 붓글씨 로고(Assets/Art/Lobby/logo.png). 없으면 글자로 대신한다.
-        if (tex.ContainsKey("logo")) Icon(new Rect(36, 14, 470, 150), "logo");
+        if (tex.ContainsKey("ws_logo")) Icon(new Rect(30, 18, 470, 150), "ws_logo");
+        else if (tex.ContainsKey("logo")) Icon(new Rect(36, 14, 470, 150), "logo");
         else UIKit.ShadowLabel(new Rect(48, 22, 700, 100), "악몽수선소", logo);
         GUI.Label(new Rect(60, 150, 700, 36), subtitle, logoSub);
     }
@@ -117,27 +124,28 @@ public class MainUI : MonoBehaviour
     {
         // 해명도: 의뢰의 진실을 밝혀 얻는 점수(기획서 26번). 진행도 연결은 알파 단계.
         float percent = 0f;
-        Frame(r, "panel_indigo");
-        Icon(new Rect(r.x + 16, r.y + 22, 84, 84), "moon_emblem");
-        GUI.Label(new Rect(r.x + 116, r.y + 14, 200, 40), "해명도", Style("label", 28, Light, TextAnchor.MiddleLeft, true));
-        GUI.Label(new Rect(r.xMax - 120, r.y + 14, 96, 40), $"{percent * 100f:0}%", Style("label", 24, Light, TextAnchor.MiddleRight));
-        var track = new Rect(r.x + 116, r.y + 60, r.width - 140, 24);
-        Frame(track, "gauge_track");
-        if (percent > 0f) Frame(new Rect(track.x + 4, track.y + 4, (track.width - 8) * percent, track.height - 8), "gauge_fill");
-        GUI.Label(new Rect(r.x + 116, r.y + 88, r.width - 130, 30), "의뢰의 진실을 밝혀 획득", Style("label", 18, Muted, TextAnchor.MiddleLeft));
+        Frame(r, "ws_card_info");
+        Icon(new Rect(r.x + 20, r.y + 24, 80, 80), "ws_moon_emblem");
+        GUI.Label(new Rect(r.x + 116, r.y + 14, 200, 40), "해명도", Style("label", 28, Ink, TextAnchor.MiddleLeft, true));
+        GUI.Label(new Rect(r.xMax - 120, r.y + 14, 96, 40), $"{percent * 100f:0}%", Style("label", 24, Ink, TextAnchor.MiddleRight));
+        var track = new Rect(r.x + 116, r.y + 58, r.width - 140, 26);
+        Frame(track, "ws_gauge_track");
+        if (percent > 0f) Frame(new Rect(track.x + 6, track.y + 6, (track.width - 12) * percent, track.height - 12), "ws_gauge_fill");
+        GUI.Label(new Rect(r.x + 116, r.y + 88, r.width - 130, 30), "의뢰의 진실을 밝혀 획득", Style("label", 18, InkMuted, TextAnchor.MiddleLeft));
     }
 
     void DrawResources(float w)
     {
         var bar = new Rect(w - 660, 24, 470, 72);
-        Frame(bar, "bar_indigo");
+        Frame(bar, "ws_bar");
         // 재화 종류·이름은 기획 확인 중. 저장(Wallet) 연결은 4주차.
-        DrawResource(new Rect(bar.x + 30, bar.y + 14, 26, 44), "icon_crystal", PlayerPrefs.GetInt("Wallet.Crystal", 0));
-        DrawResource(new Rect(bar.x + 176, bar.y + 18, 36, 36), "icon_coin", PlayerPrefs.GetInt("Wallet.Coin", 0));
-        DrawResource(new Rect(bar.x + 330, bar.y + 22, 46, 28), "icon_key", PlayerPrefs.GetInt("Wallet.Key", 0));
+        DrawResource(new Rect(bar.x + 34, bar.y + 14, 34, 44), "ws_icon_crystal", PlayerPrefs.GetInt("Wallet.Crystal", 0));
+        DrawResource(new Rect(bar.x + 180, bar.y + 16, 40, 40), "ws_icon_coin", PlayerPrefs.GetInt("Wallet.Coin", 0));
+        DrawResource(new Rect(bar.x + 326, bar.y + 14, 40, 44), "ws_icon_key", PlayerPrefs.GetInt("Wallet.Key", 0));
 
-        if (GUI.Button(new Rect(w - 176, 24, 70, 72), "설정", TabStyle(false))) SetSettings(true);
-        if (GUI.Button(new Rect(w - 98, 24, 70, 72), "전체", TabStyle(false))) GameSettings.Fullscreen = !GameSettings.Fullscreen;
+        // 바느질 라벨(꼬리표) 모양 작은 버튼
+        if (GUI.Button(new Rect(w - 176, 24, 70, 72), "설정", TagStyle())) SetSettings(true);
+        if (GUI.Button(new Rect(w - 98, 24, 70, 72), "전체", TagStyle())) GameSettings.Fullscreen = !GameSettings.Fullscreen;
     }
 
     void DrawResource(Rect icon, string iconName, int value)
@@ -148,32 +156,32 @@ public class MainUI : MonoBehaviour
 
     void DrawQuestList(Rect r)
     {
-        Frame(r, "panel_indigo");
-        Icon(new Rect(r.x + 28, r.y + 26, 48, 34), "envelope_small");
-        GUI.Label(new Rect(r.x + 90, r.y + 18, 200, 48), "의뢰함", Style("label", 30, Light, TextAnchor.MiddleLeft, true));
+        // 호두나무 틀 + 리넨. 제목은 위쪽 어두운 나무 띠 위에 밝은 글자로.
+        Frame(r, "ws_panel_list");
+        Icon(new Rect(r.x + 30, r.y + 12, 42, 32), "ws_envelope_small");
+        GUI.Label(new Rect(r.x + 82, r.y + 4, 200, 48), "의뢰함", Style("label", 28, Light, TextAnchor.MiddleLeft, true));
         QuestData[] quests = QuestDatabase.Instance.quests;
         int open = 0;
         foreach (QuestData q in quests) if (q != null && q.stageIndex >= 0) open++;
-        GUI.Label(new Rect(r.xMax - 140, r.y + 18, 112, 48), $"{open} / {QuestDatabase.Instance.capacity}", Style("label", 20, Muted, TextAnchor.MiddleRight));
-        Frame(new Rect(r.x + 26, r.y + 76, r.width - 52, 2), "line_gold");
+        GUI.Label(new Rect(r.xMax - 140, r.y + 4, 112, 48), $"{open} / {QuestDatabase.Instance.capacity}", Style("label", 20, Gold, TextAnchor.MiddleRight));
 
         string[] names = { "전체", "진행 중", "완료" };
         for (int i = 0; i < names.Length; i++)
-            if (GUI.Button(new Rect(r.x + 26 + i * 132, r.y + 94, 120, 46), names[i], TabStyle((int)filter == i))) filter = (Filter)i;
+            if (GUI.Button(new Rect(r.x + 30 + i * 128, r.y + 76, 120, 48), names[i], TabStyle((int)filter == i))) filter = (Filter)i;
 
-        float y = r.y + 160;
+        float y = r.y + 142;
         int shown = 0;
         foreach (QuestData quest in quests)
         {
             if (quest == null || !Matches(quest)) continue;
             float cardHeight = quest == selected ? 112 : 94;
-            if (y + cardHeight > r.yMax - 16) break;
-            DrawQuestCard(new Rect(r.x + 22, y, r.width - 44, cardHeight), quest);
-            y += cardHeight + 14;
+            if (y + cardHeight > r.yMax - 30) break;
+            DrawQuestCard(new Rect(r.x + 26, y, r.width - 52, cardHeight), quest);
+            y += cardHeight + 12;
             shown++;
         }
         if (shown == 0)
-            GUI.Label(new Rect(r.x + 30, y + 10, r.width - 60, 50), "해당하는 의뢰가 없어요.", Style("label", 20, Muted, TextAnchor.MiddleLeft));
+            GUI.Label(new Rect(r.x + 34, y + 10, r.width - 68, 50), "해당하는 의뢰가 없어요.", Style("label", 20, InkMuted, TextAnchor.MiddleLeft));
     }
 
     void DrawQuestCard(Rect r, QuestData quest)
@@ -183,7 +191,7 @@ public class MainUI : MonoBehaviour
         Color old = GUI.color;
         if (locked) GUI.color = new Color(1f, 1f, 1f, 0.45f);
 
-        if (GUI.Button(r, GUIContent.none, isSelected ? FrameStyle("card_paper") : FrameStyle("card_dark", "card_dark_hover")))
+        if (GUI.Button(r, GUIContent.none, isSelected ? FrameStyle("ws_card_on") : FrameStyle("ws_card", "ws_card_on")))
         {
             if (locked) ShowToast(quest.stageIndex < 0 ? "아직 도착하지 않은 의뢰예요" : "앞의 의뢰를 먼저 해결해 주세요");
             else selected = quest;
@@ -192,12 +200,12 @@ public class MainUI : MonoBehaviour
         float textX = r.x + 26;
         if (isSelected)
         {
-            var thumb = new Rect(r.x + 14, r.y + 14, r.height - 28, r.height - 28);
+            var thumb = new Rect(r.x + 18, r.y + 18, r.height - 36, r.height - 36);
             if (quest.thumbnail != null) GUI.DrawTexture(thumb, quest.thumbnail.texture, ScaleMode.ScaleAndCrop);
-            else Icon(thumb, "thumb_placeholder");
+            else Frame(thumb, "ws_photo");
             textX = thumb.xMax + 18;
         }
-        Color titleColor = isSelected ? Ink : Light, tagColor = isSelected ? InkMuted : Muted;
+        Color titleColor = Ink, tagColor = InkMuted;
         GUI.Label(new Rect(textX, r.y + r.height * 0.16f, r.xMax - textX - 60, 38), quest.title, Style("label", isSelected ? 24 : 21, titleColor, TextAnchor.MiddleLeft, isSelected));
         GUI.Label(new Rect(textX, r.y + r.height * 0.56f, r.xMax - textX - 60, 28), Tags(quest), Style("label", 16, tagColor, TextAnchor.MiddleLeft));
 
@@ -206,27 +214,27 @@ public class MainUI : MonoBehaviour
             string state = quest.IsCompleted ? "완료" : quest.IsInProgress ? "진행 중" : "";
             if (state.Length > 0)
                 GUI.Label(new Rect(r.xMax - 150, r.y + 8, 96, 26), state, Style("label", 15, tagColor, TextAnchor.MiddleRight));
-            Icon(new Rect(r.xMax - 50, r.center.y - 17, 34, 34), isSelected ? "diamond_on" : "diamond_off");
+            Icon(new Rect(r.xMax - 54, r.center.y - 16, 32, 32), isSelected ? "ws_diamond_on" : "ws_diamond_off");
         }
         GUI.color = old;
     }
 
     void DrawDetail(Rect r)
     {
-        Frame(r, "panel_paper");
-        Frame(new Rect(r.x + 28, r.y + 52, r.width - 56, 2), "line_gold");
+        // 밀랍 봉인이 찍힌 낡은 편지지
+        Frame(r, "ws_panel_letter");
 
         string status = selected.IsCompleted ? "완료" : selected.IsInProgress ? "진행 중" : "진행 가능";
-        var badge = new Rect(r.center.x - 76, r.y + 30, 152, 38);
-        Frame(badge, "badge");
+        var badge = new Rect(r.center.x - 70, r.y + 34, 140, 36);
+        Frame(badge, "ws_badge");
         GUI.Label(badge, status, Style("label", 16, Light, TextAnchor.MiddleCenter));
 
         GUI.Label(new Rect(r.x + 24, r.y + 80, r.width - 48, 50), selected.title, Style("label", 32, Ink, TextAnchor.MiddleCenter, true));
         DrawTagChips(new Rect(r.x + 24, r.y + 136, r.width - 48, 28));
 
-        var photo = new Rect(r.x + 36, r.y + 182, r.width - 72, 200);
-        if (selected.photo != null) GUI.DrawTexture(photo, selected.photo.texture, ScaleMode.ScaleAndCrop);
-        else Icon(photo, "photo_placeholder");
+        var photo = new Rect(r.x + 40, r.y + 182, r.width - 80, 200);
+        Frame(photo, "ws_photo");
+        if (selected.photo != null) GUI.DrawTexture(new Rect(photo.x + 18, photo.y + 16, photo.width - 36, photo.height - 32), selected.photo.texture, ScaleMode.ScaleAndCrop);
 
         GUIStyle body = Style("body", 20, Ink, TextAnchor.UpperLeft, false, true);
         float letterHeight = Mathf.Min(130f, body.CalcHeight(new GUIContent(selected.letter), r.width - 80));
@@ -239,14 +247,14 @@ public class MainUI : MonoBehaviour
             for (int i = 0; i < selected.rewards.Length && i < 4; i++)
             {
                 var slot = new Rect(r.x + 40 + i * 98, y + 38, 82, 82);
-                Frame(slot, "slot_reward");
-                Icon(new Rect(slot.x + 17, slot.y + 17, 48, 48), RewardIcons[i % RewardIcons.Length]);
+                Frame(slot, "ws_slot");
+                Icon(new Rect(slot.x + 20, slot.y + 20, 42, 42), RewardIcons[i % RewardIcons.Length]);
                 GUI.Label(new Rect(slot.x - 8, slot.yMax + 2, slot.width + 16, 22), selected.rewards[i], Style("label", 13, InkMuted, TextAnchor.MiddleCenter));
             }
         }
 
         string buttonText = selected.IsCompleted ? "다시 꿈에 들어가기" : "의뢰 시작하기";
-        if (GUI.Button(new Rect(r.x + 30, r.yMax - 100, r.width - 60, 80), buttonText, PrimaryButton()))
+        if (GUI.Button(new Rect(r.x + 20, r.yMax - 104, r.width - 40, 84), buttonText, PrimaryButton()))
             SceneFlow.StartQuest(selected);
     }
 
@@ -265,7 +273,7 @@ public class MainUI : MonoBehaviour
         for (int i = 0; i < selected.tags.Length; i++)
         {
             var rect = new Rect(x, row.y, widths[i], row.height);
-            Frame(rect, "chip_tag");
+            Frame(rect, "ws_chip");
             GUI.Label(rect, "#" + selected.tags[i], chip);
             x += widths[i] + 8f;
         }
@@ -273,11 +281,12 @@ public class MainUI : MonoBehaviour
 
     void DrawDohaBubble(Rect r)
     {
-        if (GUI.Button(r, GUIContent.none, FrameStyle("panel_indigo"))) dohaLine = (dohaLine + 1) % Mathf.Max(1, dohaLines.Length);
-        GUI.Label(new Rect(r.x + 28, r.y + 14, r.width - 80, 36), "야옹…", Style("label", 22, Gold, TextAnchor.MiddleLeft));
+        // 핀으로 꽂은 찢어진 양피지 쪽지
+        if (GUI.Button(r, GUIContent.none, FrameStyle("ws_bubble"))) dohaLine = (dohaLine + 1) % Mathf.Max(1, dohaLines.Length);
+        GUI.Label(new Rect(r.x + 34, r.y + 16, r.width - 90, 34), "야옹…", Style("label", 22, Brown, TextAnchor.MiddleLeft, true));
         if (dohaLines.Length > 0)
-            GUI.Label(new Rect(r.x + 28, r.y + 52, r.width - 80, 44), dohaLines[dohaLine], Style("label", 24, Light, TextAnchor.MiddleLeft));
-        GUI.Label(new Rect(r.xMax - 52, r.y + 34, 40, 44), "›", Style("label", 40, Gold, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(r.x + 34, r.y + 52, r.width - 90, 44), dohaLines[dohaLine], Style("label", 24, Ink, TextAnchor.MiddleLeft));
+        GUI.Label(new Rect(r.xMax - 60, r.y + 34, 40, 44), "›", Style("label", 40, Brown, TextAnchor.MiddleCenter));
     }
 
     void DrawNav(float w, float h)
@@ -293,11 +302,11 @@ public class MainUI : MonoBehaviour
             Color old = GUI.color;
             if (locked) GUI.color = new Color(1f, 1f, 1f, 0.55f);
             if (GUI.Button(r, GUIContent.none, GUIStyle.none)) OnTab(i);
-            Icon(r, active ? "nav_button_on" : "nav_button");
-            var emblem = new Rect(r.center.x - 25, r.y + 6, 50, 50);
-            Icon(emblem, "nav_emblem");
-            Icon(new Rect(emblem.x + 11, emblem.y + 11, 28, 28), TabIcons[i]);
-            GUI.Label(new Rect(r.x, r.y + 64, r.width, 34), TabNames[i], Style("label", 20, active ? Gold : Light, TextAnchor.MiddleCenter));
+            // 천 이름표(바느질 라벨) 모양 탭. 선택된 탭은 금실 테두리.
+            var tag = new Rect(r.center.x - 56, r.y - 6, 112, 112);
+            Icon(tag, active ? "ws_nav_on" : "ws_nav");
+            Icon(new Rect(tag.center.x - 24, tag.y + 18, 48, 44), TabIcons[i]);
+            GUI.Label(new Rect(r.x, tag.y + 62, r.width, 34), TabNames[i], Style("label", 20, active ? Brown : Ink, TextAnchor.MiddleCenter, active));
             GUI.color = old;
         }
     }
@@ -383,8 +392,8 @@ public class MainUI : MonoBehaviour
         Texture2D t;
         if (tex.TryGetValue(normal, out t)) style.normal.background = t;
         if (hover != null && tex.TryGetValue(hover, out t)) style.hover.background = t;
-        int b;
-        if (borders.TryGetValue(normal, out b)) style.border = new RectOffset(b, b, b, b);
+        RectOffset b;
+        if (borders.TryGetValue(normal, out b)) style.border = new RectOffset(b.left, b.right, b.top, b.bottom);
         styles[key] = style;
         return style;
     }
@@ -394,9 +403,9 @@ public class MainUI : MonoBehaviour
         string key = on ? "tab:on" : "tab:off";
         GUIStyle style;
         if (styles.TryGetValue(key, out style)) return style;
-        style = new GUIStyle(FrameStyle(on ? "tab_on" : "tab_off")) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
-        style.normal.textColor = style.hover.textColor = on ? Light : Muted;
-        if (!on) style.hover.background = FrameStyle("tab_on").normal.background;
+        // 꺼진 탭: 밝은 리넨(잉크 글자), 켜진 탭: 가죽(밝은 글자)
+        style = new GUIStyle(FrameStyle(on ? "ws_tab_on" : "ws_tab_off")) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
+        style.normal.textColor = style.hover.textColor = style.active.textColor = on ? Light : Ink;
         styles[key] = style;
         return style;
     }
@@ -405,9 +414,22 @@ public class MainUI : MonoBehaviour
     {
         GUIStyle style;
         if (styles.TryGetValue("primary", out style)) return style;
-        style = new GUIStyle(FrameStyle("button_primary", "button_primary_hover")) { fontSize = 26, alignment = TextAnchor.MiddleCenter };
-        style.normal.textColor = style.hover.textColor = Light;
+        // 데님 리본 버튼. 글자는 리본 가운데(양끝 꼬리 제외)에 오도록 위아래로 살짝 당긴다.
+        style = new GUIStyle(FrameStyle("ws_button", "ws_button_hover")) { fontSize = 26, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+        style.padding = new RectOffset(60, 60, 0, 10);
+        style.normal.textColor = style.hover.textColor = style.active.textColor = Light;
         styles["primary"] = style;
+        return style;
+    }
+
+    GUIStyle TagStyle()
+    {
+        GUIStyle style;
+        if (styles.TryGetValue("tag", out style)) return style;
+        style = new GUIStyle(FrameStyle("ws_tag")) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
+        style.padding = new RectOffset(0, 0, 14, 0); // 위쪽 쇠고리 아래로
+        style.normal.textColor = style.hover.textColor = style.active.textColor = Ink;
+        styles["tag"] = style;
         return style;
     }
 

@@ -63,6 +63,102 @@
   {
    "name": "line_gold",
    "border": 2
+  },
+  {
+   "name": "ws_card",
+   "border": 30,
+   "bx": 36,
+   "by": 30
+  },
+  {
+   "name": "ws_card_on",
+   "border": 34,
+   "bx": 40,
+   "by": 34
+  },
+  {
+   "name": "ws_panel_letter",
+   "border": 150,
+   "bx": 150,
+   "by": 150
+  },
+  {
+   "name": "ws_panel_list",
+   "border": 60,
+   "bx": 60,
+   "by": 60
+  },
+  {
+   "name": "ws_card_info",
+   "border": 40,
+   "bx": 40,
+   "by": 40
+  },
+  {
+   "name": "ws_bubble",
+   "border": 40,
+   "bx": 60,
+   "by": 40
+  },
+  {
+   "name": "ws_photo",
+   "border": 40,
+   "bx": 40,
+   "by": 40
+  },
+  {
+   "name": "ws_tab_off",
+   "border": 14,
+   "bx": 16,
+   "by": 14
+  },
+  {
+   "name": "ws_tab_on",
+   "border": 14,
+   "bx": 16,
+   "by": 14
+  },
+  {
+   "name": "ws_bar",
+   "border": 36,
+   "bx": 40,
+   "by": 36
+  },
+  {
+   "name": "ws_button",
+   "border": 42,
+   "bx": 74,
+   "by": 42
+  },
+  {
+   "name": "ws_gauge_track",
+   "border": 12,
+   "bx": 16,
+   "by": 12
+  },
+  {
+   "name": "ws_gauge_fill",
+   "border": 6,
+   "bx": 10,
+   "by": 6
+  },
+  {
+   "name": "ws_button_hover",
+   "border": 42,
+   "bx": 74,
+   "by": 42
+  },
+  {
+   "name": "ws_chip",
+   "border": 12,
+   "bx": 14,
+   "by": 12
+  },
+  {
+   "name": "ws_badge",
+   "border": 16,
+   "bx": 20,
+   "by": 16
   }
  ]
 }

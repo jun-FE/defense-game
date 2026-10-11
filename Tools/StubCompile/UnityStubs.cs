@@ -59,7 +59,7 @@ namespace UnityEngine {
   public class RequireComponent : Attribute { public RequireComponent(Type t){} }
   public class RuntimeInitializeOnLoadMethodAttribute : Attribute { public RuntimeInitializeOnLoadMethodAttribute(RuntimeInitializeLoadType t){} }
   public enum RuntimeInitializeLoadType { BeforeSceneLoad, AfterSceneLoad }
-  public class GUIStyle { public GUIStyleState focused = new GUIStyleState(); public static GUIStyle none; public RectOffset border; public void Draw(Rect r,bool a,bool b,bool c,bool d){} public float CalcHeight(GUIContent c,float w)=>0; public Vector2 CalcSize(GUIContent c)=>default(Vector2); public GUIStyle(){} public GUIStyle(GUIStyle o){} public int fontSize; public FontStyle fontStyle; public TextAnchor alignment; public GUIStyleState normal, hover, active; public bool wordWrap, richText; public ImagePosition imagePosition; }
+  public class GUIStyle { public GUIStyleState focused = new GUIStyleState(); public static GUIStyle none; public RectOffset border; public RectOffset padding; public void Draw(Rect r,bool a,bool b,bool c,bool d){} public float CalcHeight(GUIContent c,float w)=>0; public Vector2 CalcSize(GUIContent c)=>default(Vector2); public GUIStyle(){} public GUIStyle(GUIStyle o){} public int fontSize; public FontStyle fontStyle; public TextAnchor alignment; public GUIStyleState normal, hover, active; public bool wordWrap, richText; public ImagePosition imagePosition; }
   public class GUIStyleState { public Color textColor; public Texture2D background; }
   public enum FontStyle { Bold, Normal } public enum TextAnchor { LowerCenter, UpperCenter, MiddleCenter, MiddleLeft, MiddleRight, UpperLeft } public enum ImagePosition { ImageLeft }
   public class GUISkin { public GUIStyle label, button, box; }
@@ -119,5 +119,5 @@ namespace UnityEngine { public enum ScaleMode { ScaleToFit, ScaleAndCrop, Stretc
   public static class JsonUtility { public static string ToJson(object o,bool p)=>""; public static T FromJson<T>(string j)=>default(T); }
   public static class ColorUtility { public static bool TryParseHtmlString(string s, out Color c){ c=default(Color); return true; } } }
 
-namespace UnityEngine { public class RectOffset { public RectOffset(int a,int b,int c,int d){} } }
+namespace UnityEngine { public class RectOffset { public int left,right,top,bottom; public RectOffset(){} public RectOffset(int a,int b,int c,int d){left=a;right=b;top=c;bottom=d;} } }
 namespace UnityEngine { public class Material : Object { public Material(Shader s){} } }
