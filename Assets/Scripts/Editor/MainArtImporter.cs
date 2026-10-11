@@ -10,7 +10,10 @@ public class MainArtImporter : AssetPostprocessor
     public const string LobbyFolder = "Assets/Art/Lobby/";
     public const string BattleFolder = "Assets/Art/Battle/";
     public const string MapsFolder = "Assets/Art/Maps/";
-    /// <summary>칸 맵 테마(MapTheme). 오브젝트는 256px ≈ 1.1칸, 꿈실 띠·점선 네모·바닥 조각은 128px = 1칸.</summary>
+    /// <summary>
+    /// 칸 맵 테마(MapTheme). 오브젝트는 256px ≈ 1.1칸, 꿈실 띠·점선 네모·바닥(ground_*)은 128px = 1칸.
+    /// 바닥은 맵 바깥 꽃밭을 반복해 깔 수 있게 Repeat + FullRect(타일 그리기용).
+    /// </summary>
     public const string ThemesFolder = "Assets/Resources/Themes/";
     /// <summary>탐색 화면 캐릭터(이안) 그림. IMGUI로 그리므로 크기 단위는 상관없다.</summary>
     public const string CharactersFolder = "Assets/Resources/Characters/";
@@ -27,12 +30,27 @@ public class MainArtImporter : AssetPostprocessor
     {
         int maxSize = importer.assetPath.StartsWith(MapsFolder) ? 4096 : 2048;
         float ppu = PixelsPerUnit;
+        bool changed0 = false;
         if (importer.assetPath.StartsWith(ThemesFolder))
         {
             string file = System.IO.Path.GetFileNameWithoutExtension(importer.assetPath);
-            ppu = file == "path_thread" || file == "build_mark" || file == "ground" || file.StartsWith("fx_") ? 128f : 230f;
+            ppu = file == "path_thread" || file == "build_mark" || file.StartsWith("ground") || file.StartsWith("fx_") ? 128f : 230f;
+            if (file.StartsWith("ground"))
+            {
+                changed0 = importer.wrapMode != UnityEngine.TextureWrapMode.Repeat;
+                importer.wrapMode = UnityEngine.TextureWrapMode.Repeat;
+                var settings = new TextureImporterSettings();
+                importer.ReadTextureSettings(settings);
+                if (settings.spriteMeshType != UnityEngine.SpriteMeshType.FullRect)
+                {
+                    settings.spriteMeshType = UnityEngine.SpriteMeshType.FullRect;
+                    importer.SetTextureSettings(settings);
+                    changed0 = true;
+                }
+            }
         }
-        bool changed = importer.textureType != TextureImporterType.Sprite
+        bool changed = changed0
+                       || importer.textureType != TextureImporterType.Sprite
                        || importer.spritePixelsPerUnit != ppu
                        || importer.mipmapEnabled
                        || importer.maxTextureSize < maxSize;

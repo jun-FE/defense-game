@@ -8,9 +8,10 @@ using UnityEngine;
 /// 그림 맵에서는 건설 칸을 평소에 숨기고, 타워를 고를 때만 보여 준다(ShowBuildTiles).
 /// 탐색형 판(DreamRun)이면 탐색에서 밝힌 칸 맵을 그린다: 밝힌 바닥, 몬스터 경로(최단 경로) 칸은 따뜻한 색,
 /// 밝히지 않은 암흑(타워 자리가 되는 벽), 막힌 암흑, 남은 결정.
-/// 테마 그림(MapTheme, 지금은 달빛 정원)이 있으면: 정원 바닥 타일 + 안 연 칸을 덮는 부드러운 어둠 안개,
-/// 몬스터 경로를 잇는 빛나는 꿈실(빛 알갱이가 출현 지점에서 꿈의 중심으로 흐름), 벽은 가시덤불 등 오브젝트,
-/// 결정·출현 지점·꿈의 중심은 은은하게 움직이는 오브젝트, 설치 가능 칸은 바느질 점선으로 그린다.
+/// 테마 그림(MapTheme, 지금은 달빛 정원)이 있으면: 밝힌 칸은 돌길, 안 연 칸은 잔디(옅은 밤 안개), 막힌 암흑은 꽃밭,
+/// 꽃밭 가장자리는 꽃덤불과 정원 소품(가로등은 은은하게 일렁이는 불빛), 돌길과 잔디 사이는 꽃 경계 띠,
+/// 몬스터 경로는 은은한 꿈실(빛 알갱이가 출현 지점에서 꿈의 중심으로 흐름), 결정·출현 지점·꿈의 중심은 움직이는 오브젝트,
+/// 설치 가능 칸은 바느질 점선. 맵 바깥은 어두운 꽃밭이 이어져 화면을 줄여도 검은 빈칸이 보이지 않는다.
 /// </summary>
 public class MapView : MonoBehaviour
 {
@@ -46,6 +47,7 @@ public class MapView : MonoBehaviour
     readonly List<Transform> motes = new List<Transform>();
     readonly List<float> moteT = new List<float>();
     float moteTimer;
+    readonly List<SpriteRenderer> lanternGlows = new List<SpriteRenderer>();
     bool Themed => grid && theme != null && theme.Valid;
 
     void Start()
@@ -140,44 +142,87 @@ public class MapView : MonoBehaviour
         List<Akmong.Battle.GridPoint> path = g.ShortestPath();
         if (path != null) foreach (Akmong.Battle.GridPoint p in path) onPath.Add(new Vector2Int(p.X, p.Y));
 
-        // 1) 바닥: 밝힌 칸은 달빛에 환하게, 안 연 칸은 조금 어둡게(위에 안개가 덮인다)
+        // 0) 맵 바깥: 어두운 꽃밭을 넉넉히 반복해 깔고, 그 너머는 밤하늘색
+        if (Camera.main != null) Camera.main.backgroundColor = new Color(0.04f, 0.045f, 0.1f);
+        int margin = Mathf.Max(g.Width, g.Height);
+        var flowerSprite = Sprite.Create(theme.Flower, new Rect(0, 0, theme.Flower.width, theme.Flower.height), new Vector2(0.5f, 0.5f),
+            theme.Flower.width / (float)MapTheme.Tiles(MapTheme.Ground.Flower), 0, SpriteMeshType.FullRect);
+        GameObject backdrop = Create("Backdrop", flowerSprite, MapTheme.Shade(MapTheme.Ground.Flower) * new Color(0.55f, 0.55f, 0.62f), 
+            new Vector2((g.Width - 1) / 2f, (g.Height - 1) / 2f), Vector2.one, -23);
+        var backdropRenderer = backdrop.GetComponent<SpriteRenderer>();
+        backdropRenderer.drawMode = SpriteDrawMode.Tiled;
+        backdropRenderer.size = new Vector2(g.Width + margin * 2, g.Height + margin * 2);
+
+        // 1) 바닥: 돌길(밝힌 칸)·잔디(안 연 칸)·꽃밭(막힌 암흑)
         for (int y = 0; y < g.Height; y++)
             for (int x = 0; x < g.Width; x++)
             {
-                bool open = g.IsOpen(x, y);
-                Color tint = open ? new Color(1.0f, 1.0f, 1.05f) : new Color(0.7f, 0.7f, 0.78f);
-                Create("Ground", theme.GroundSprite(x, g.Height - 1 - y), tint, CellWorld(g, x, y), Vector2.one * 1.002f, -21);
+                MapTheme.Ground kind = MapTheme.GroundAt(g, x, y);
+                Create("Ground", theme.GroundSprite(kind, x, g.Height - 1 - y), MapTheme.Shade(kind), CellWorld(g, x, y), Vector2.one * 1.002f, -21);
             }
 
-        // 2) 어둠 안개(경계가 부드럽게 번짐)
-        Texture2D fogTexture = MapTheme.BuildFog(g);
+        // 2) 꽃밭 가장자리 덤불(칸 경계를 덮음)과 돌길·잔디 사이 꽃 경계 띠
+        for (int y = 0; y < g.Height; y++)
+            for (int x = 0; x < g.Width; x++)
+            {
+                Sprite tuft;
+                float size, angle;
+                Vector2 offset;
+                bool flip;
+                if (theme.Tuft(g, x, y, out tuft, out size, out offset, out angle, out flip))
+                {
+                    float scale = size / tuft.bounds.size.x;
+                    GameObject t = Create("Tuft", tuft, MapTheme.Shade(MapTheme.Ground.Flower), (Vector2)CellWorld(g, x, y) + new Vector2(offset.x, -offset.y),
+                        new Vector2(flip ? -scale : scale, scale), -20);
+                    t.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+                }
+                foreach (Vector2Int side in MapTheme.Sides)
+                {
+                    Sprite border = theme.BorderFor(g, x, y, side);
+                    if (border == null) continue;
+                    float scale = 1.06f / border.bounds.size.x;
+                    Vector2 at = (Vector2)CellWorld(g, x, y) + new Vector2(side.x * 0.5f, -side.y * 0.5f);
+                    GameObject b = Create("Border", border, Color.white, at, Vector2.one * scale, -18);
+                    if (side.x != 0) b.transform.rotation = Quaternion.Euler(0f, 0f, 90f);
+                }
+            }
+
+        // 3) 밤 안개(안 연 칸, 옅게)
+        Texture2D fogTexture = MapTheme.BuildFog(g, MapTheme.BattleFog);
         var fogSprite = Sprite.Create(fogTexture, new Rect(0, 0, fogTexture.width, fogTexture.height), Vector2.zero, MapTheme.FogPixelsPerCell);
         GameObject fogGo = Create("Fog", fogSprite, Color.white, new Vector2(-0.5f, -0.5f), Vector2.one, -14);
         fog = fogGo.GetComponent<SpriteRenderer>();
 
-        // 3) 몬스터 경로: 칸 중심을 잇는 빛나는 꿈실
+        // 4) 몬스터 경로: 칸 중심을 잇는 은은한 꿈실
         if (path != null)
         {
             for (int i = 0; i < path.Count; i++) pathPoints.Add(CellWorld(g, path[i].X, path[i].Y));
             for (int i = 1; i < pathPoints.Count; i++)
             {
                 Vector3 a = pathPoints[i - 1], b = pathPoints[i];
-                GameObject seg = Create("PathThread", theme.PathThread, new Color(0.88f, 0.74f, 1f, 0.85f), (a + b) / 2f,
-                    new Vector2(Vector3.Distance(a, b) + 0.12f, 0.55f), -13);
+                GameObject seg = Create("PathThread", theme.PathThread, new Color(0.95f, 0.85f, 1f, 0.5f), (a + b) / 2f,
+                    new Vector2(Vector3.Distance(a, b) + 0.12f, 0.4f), -13);
                 seg.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg);
             }
         }
 
-        // 4) 오브젝트: 벽(막힌 암흑), 결정, 장식 새싹, 출현 지점, 꿈의 중심
+        // 5) 오브젝트: 정원 소품(가로등은 불빛), 결정, 출현 지점, 꿈의 중심
         for (int y = 0; y < g.Height; y++)
             for (int x = 0; x < g.Width; x++)
             {
                 Akmong.Battle.CellType type = g.Get(x, y);
                 Vector3 cell = CellWorld(g, x, y);
-                if (type == Akmong.Battle.CellType.Wall)
+                Sprite garden;
+                float width;
+                if (theme.GardenProp(g, x, y, out garden, out width))
                 {
-                    Color tint = MapTheme.WallTint(g, x, y);
-                    if (tint.a > 0f) Prop("Wall", theme.WallFor(x, y), cell, 1.15f, -9, tint);
+                    Transform prop = Prop("Garden", garden, cell, width, -9, Color.white);
+                    if (garden.name.Contains("lantern") && theme.FxGlow != null)
+                    {
+                        float top = prop.position.y + garden.bounds.size.y * prop.localScale.y * 0.25f;
+                        GameObject glow = Create("LanternGlow", theme.FxGlow, new Color(1f, 0.75f, 0.4f, 0.4f), new Vector2(cell.x, top), Vector2.one * 1.6f / theme.FxGlow.bounds.size.x, -8);
+                        lanternGlows.Add(glow.GetComponent<SpriteRenderer>());
+                    }
                 }
                 else if (type == Akmong.Battle.CellType.CrystalSmall || type == Akmong.Battle.CellType.CrystalLarge)
                 {
@@ -186,9 +231,6 @@ public class MapView : MonoBehaviour
                     bobbing.Add(gem);
                     bobBase.Add(gem.localPosition);
                 }
-                else if (g.IsOpen(x, y) && !onPath.Contains(new Vector2Int(x, y)) && !g.IsSpawn(x, y) && !g.IsGoal(x, y)
-                         && theme.Sprout != null && ((x * 31 + y * 17) % 9 == 0))
-                    Prop("Sprout", theme.Sprout, cell + new Vector3(0.18f, -0.1f, 0f), 0.35f, -9, new Color(0.85f, 0.85f, 1f));
             }
         if (g.HasSpawn)
         {
@@ -213,7 +255,9 @@ public class MapView : MonoBehaviour
     void AnimateTheme()
     {
         float t = Time.time;
-        if (fog != null) fog.color = new Color(1f, 1f, 1f, 0.94f + 0.06f * Mathf.Sin(t * 0.8f));
+        if (fog != null) fog.color = new Color(1f, 1f, 1f, 0.9f + 0.1f * Mathf.Sin(t * 0.8f));
+        for (int i = 0; i < lanternGlows.Count; i++)
+            lanternGlows[i].color = new Color(1f, 0.75f, 0.4f, 0.32f + 0.1f * Mathf.PerlinNoise(t * 2.5f, i * 3.1f));
         for (int i = 0; i < bobbing.Count; i++)
             bobbing[i].localPosition = bobBase[i] + new Vector3(0f, 0.04f * Mathf.Sin(t * 2f + i * 1.3f), 0f);
         if (rift != null)

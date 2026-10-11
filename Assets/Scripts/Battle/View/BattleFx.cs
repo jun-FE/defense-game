@@ -61,9 +61,9 @@ public static class BattleFx
     {
         float k = 1f + 0.3f * s.level + (crit ? 0.5f : 0f);
         Particle(parent, s.glow, at, Vector2.zero, 0.4f * k, 1.5f * k, 0.2f, Color.white, 9, 0f);
-        Particle(parent, s.ring, at, Vector2.zero, 0.2f, 1.6f * k, 0.32f, s.color, 9, 0f);
+        Particle(parent, s.ring, at, Vector2.zero, 0.2f, 1.6f * k, 0.32f, s.color, 9, Random.Range(-200f, 200f));
         if (s.level >= 1 || crit)
-            Particle(parent, s.ring, at, Vector2.zero, 0.1f, 2.4f * k, 0.45f, new Color(1f, 0.9f, 0.6f), 9, 0f);
+            Particle(parent, s.ring, at, Vector2.zero, 0.1f, 2.4f * k, 0.45f, new Color(1f, 0.9f, 0.6f), 9, Random.Range(-160f, 160f));
         int sparks = 6 + s.level * 4 + (crit ? 6 : 0);
         for (int i = 0; i < sparks; i++)
         {
@@ -77,7 +77,7 @@ public static class BattleFx
 
     public static void UpgradeSparkle(Transform parent, Vector3 at, Style s)
     {
-        Particle(parent, s.ring, at, Vector2.zero, 0.3f, 2.6f, 0.5f, s.color, 9, 0f);
+        Particle(parent, s.ring, at, Vector2.zero, 0.3f, 2.6f, 0.5f, s.color, 9, Random.Range(-120f, 120f));
         Particle(parent, s.glow, at + Vector3.up * 0.3f, Vector2.zero, 0.6f, 2.2f, 0.45f, new Color(1f, 0.9f, 0.6f), 9, 0f);
         for (int i = 0; i < 16; i++)
         {
@@ -94,6 +94,7 @@ public static class BattleFx
         var go = new GameObject("Fx");
         go.transform.SetParent(parent, false);
         go.transform.position = at;
+        go.transform.rotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));   // 고리·불티가 매번 다른 모양으로
         var renderer = go.AddComponent<SpriteRenderer>();
         renderer.sprite = sprite;
         renderer.color = color;

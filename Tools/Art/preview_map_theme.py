@@ -1,7 +1,9 @@
-"""칸 맵 테마(달빛 정원) 미리보기(Unity 없이). MapView의 테마 그리기 규칙을 흉내 낸다.
-사용: python3 Tools/Art/preview_map_theme.py <출력.jpg> [맵 JSON] [--px=칸 픽셀]
+"""칸 맵 테마(달빛 정원) 미리보기(Unity 없이). MapView·ExploreUI의 테마 그리기 규칙을 흉내 낸다.
+사용: python3 Tools/Art/preview_map_theme.py <출력.jpg> [맵 JSON] [--px=칸 픽셀] [--mode=battle|explore] [--margin=바깥 칸 수]
 탐색은 "출현 지점에서 목표까지 가운데 줄을 밝히고, 그 위아래 한 칸씩 더 밝힌" 상태로 가정한다.
-결정 칸·벽은 그대로, 몬스터 경로 = 밝힌 칸의 최단 경로, 설치 가능 칸 = 밝힌 칸과 맞닿은 암흑 칸."""
+- 밝힌 칸 = 돌길, 안 연 칸 = 잔디, 막힌 암흑 = 꽃밭(가장자리는 꽃덤불 조각 + 가끔 정원 소품).
+- 돌길과 잔디 사이에는 꽃 경계 띠. 어둠 안개는 전투에서 옅게(밤 느낌), 탐색에서 짙게.
+- 맵 바깥은 어두운 꽃밭이 이어진다."""
 import json
 import math
 import os
@@ -17,11 +19,15 @@ opts = dict(a[2:].split('=', 1) for a in sys.argv[1:] if a.startswith('--') and 
 OUT = args[0]
 MAP = args[1] if len(args) > 1 else os.path.join(ROOT, 'Assets/Resources/Maps/MAP_EXAMPLE_01.json')
 PX = int(opts.get('px', 64))
+MODE = opts.get('mode', 'battle')
+M = int(opts.get('margin', 3))
+FOG = {'battle': 0.34, 'explore': 0.8}[MODE]
 
 m = json.load(open(MAP, encoding='utf-8'))
 W, H, rows = m['width'], m['height'], m['rows']
 sx, sy, gx, gy = m['spawnX'], m['spawnY'], m['goalX'], m['goalY']
 cellt = [[rows[y][x] for x in range(W)] for y in range(H)]
+wall = lambda x, y: not (0 <= x < W and 0 <= y < H) or cellt[y][x] == '#'
 
 opened = set()
 for x in range(min(sx, gx), max(sx, gx) + 1):
@@ -52,24 +58,73 @@ def bfs():
 
 
 path = bfs()
-onpath = set(path)
+def tint(im, t):
+    return Image.fromarray(np.clip(np.asarray(im, float) * [t[0], t[1], t[2], t[3] if len(t) > 3 else 1], 0, 255).astype('uint8'), 'RGBA')
 
 
-def ld(n):
-    return Image.open(os.path.join(T, n + '.png')).convert('RGBA')
+ld = lambda n: Image.open(os.path.join(T, n + '.png')).convert('RGBA')
+h32 = lambda x, y: ((x * 73856093) ^ (y * 19349663)) & 0x7fffffff
 
 
-ground = ld('ground').resize((PX * 4, PX * 4), Image.LANCZOS)
-img = Image.new('RGBA', (W * PX, H * PX), (8, 7, 20, 255))
+TILES = {'stone': 4, 'grass': 4, 'flower': 8}
+SHADE = {'stone': (0.95, 0.95, 1.0), 'grass': (1.0, 1.05, 1.0), 'flower': (0.78, 0.78, 0.86)}
+grounds = {k: tint(ld('ground_' + k).resize((PX * n, PX * n), Image.LANCZOS), SHADE[k]) for k, n in TILES.items()}
+img = Image.new('RGBA', ((W + 2 * M) * PX, (H + 2 * M) * PX), (8, 10, 22, 255))
+O = M * PX
+
+
+def piece(kind, x, y):
+    wy = H - 1 - y
+    g, n = grounds[kind], TILES[kind]
+    return g.crop(((x % n) * PX, (n - 1 - wy % n) * PX, (x % n + 1) * PX, (n - wy % n) * PX))
+
+
+# 바깥 꽃밭(어둡게)
+for y in range(-M, H + M):
+    for x in range(-M, W + M):
+        if 0 <= x < W and 0 <= y < H:
+            continue
+        img.alpha_composite(tint(piece('flower', x, y), (0.5, 0.5, 0.6)), (O + x * PX, O + y * PX))
 for y in range(H):
     for x in range(W):
-        wy = H - 1 - y
-        tile = ground.crop(((x % 4) * PX, (3 - wy % 4) * PX, (x % 4 + 1) * PX, (4 - wy % 4) * PX))
-        if (x, y) not in opened:
-            tile = Image.fromarray((np.asarray(tile, float) * [0.7, 0.7, 0.78, 1]).astype('uint8'), 'RGBA')
-        img.alpha_composite(tile, (x * PX, y * PX))
+        kind = 'flower' if cellt[y][x] == '#' else 'stone' if (x, y) in opened else 'grass'
+        img.alpha_composite(piece(kind, x, y), (O + x * PX, O + y * PX))
 
-# 안개
+
+def put(im, cx, cy, angle=0):
+    if angle:
+        im = im.rotate(angle, expand=True, resample=Image.BICUBIC)
+    img.alpha_composite(im, (int(O + cx - im.width / 2), int(O + cy - im.height / 2)))
+
+
+# 꽃밭 가장자리 덤불
+tufts = [ld(f'flower_tuft_{i}') for i in range(4)]
+for y in range(H):
+    for x in range(W):
+        if cellt[y][x] != '#':
+            continue
+        if not any(not wall(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+            continue
+        k = h32(x, y)
+        size = PX * (1.3 + (k >> 4) % 5 * 0.05)
+        t = tint(tufts[k % 4].resize((int(size), int(size)), Image.LANCZOS), SHADE['flower'])
+        if (k >> 8) % 2:
+            t = t.transpose(Image.FLIP_LEFT_RIGHT)
+        put(t, (x + .5 + ((k >> 10) % 5 - 2) * 0.05) * PX, (y + .5 + ((k >> 13) % 5 - 2) * 0.05) * PX, (k >> 16) % 4 * 90)
+
+# 경계 띠(돌길 ↔ 잔디)
+borders = [ld(f'border_{i}') for i in range(4)]
+for (x, y) in opened:
+    for dx, dy in ((0, -1), (1, 0), (0, 1), (-1, 0)):
+        n = (x + dx, y + dy)
+        if n in opened or wall(*n):
+            continue
+        b = borders[h32(x * 2 + dx, y * 2 + dy) % 4]
+        b = b.resize((int(PX * 1.06), int(PX * 1.06 * b.height / b.width)), Image.LANCZOS)
+        cx, cy = (x + .5 + dx * .5) * PX, (y + .5 + dy * .5) * PX
+        put(b, cx, cy, 0 if dy else 90)
+
+# 어둠 안개
 fog = np.zeros((H * 8, W * 8))
 for y in range(H):
     for x in range(W):
@@ -77,69 +132,47 @@ for y in range(H):
             fog[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = 1
 fimg = Image.fromarray((fog * 255).astype('uint8')).filter(ImageFilter.BoxBlur(4)).filter(ImageFilter.BoxBlur(4)).resize((W * PX, H * PX), Image.BILINEAR)
 a = np.asarray(fimg, float) / 255
-a = a * a * (3 - 2 * a) * 232 / 255
+a = a * a * (3 - 2 * a) * FOG
 layer = np.zeros((H * PX, W * PX, 4))
-layer[..., 0], layer[..., 1], layer[..., 2], layer[..., 3] = 7 / 255, 6 / 255, 20 / 255, a
-img.alpha_composite(Image.fromarray((layer * 255).astype('uint8'), 'RGBA'))
+layer[..., 0], layer[..., 1], layer[..., 2], layer[..., 3] = 10 / 255, 12 / 255, 34 / 255, a
+img.alpha_composite(Image.fromarray((layer * 255).astype('uint8'), 'RGBA'), (O, O))
 
-# 빛길
-thread = ld('path_thread')
-for i in range(1, len(path)):
-    (x0, y0), (x1, y1) = path[i - 1], path[i]
-    length = PX + PX * 0.12
-    seg = thread.resize((int(length), int(PX * 0.55)), Image.LANCZOS)
-    seg = Image.fromarray((np.asarray(seg, float) * [0.88, 0.74, 1, 0.85]).astype('uint8'), 'RGBA')
-    ang = -math.degrees(math.atan2(y1 - y0, x1 - x0))
-    seg = seg.rotate(ang, expand=True)
-    cx, cy = (x0 + x1 + 1) / 2 * PX, (y0 + y1 + 1) / 2 * PX
-    img.alpha_composite(seg, (int(cx - seg.width / 2), int(cy - seg.height / 2)))
-for i in range(0, len(path), 3):
-    x, y = path[i]
-    r = PX * 0.09
-    dot = Image.new('RGBA', img.size)
-    from PIL import ImageDraw
-    ImageDraw.Draw(dot).ellipse([(x + .5) * PX - r, (y + .5) * PX - r, (x + .5) * PX + r, (y + .5) * PX + r], fill=(255, 230, 255, 220))
-    img.alpha_composite(dot)
-
-# 설치 가능 칸
-mark = ld('build_mark').resize((int(PX * 0.94), int(PX * 0.94)))
-mark = Image.fromarray((np.asarray(mark, float) * [1, 0.84, 0.5, 0.8]).astype('uint8'), 'RGBA')
-for y in range(H):
-    for x in range(W):
-        if (x, y) in opened or cellt[y][x] in 'cC':
-            continue
-        if any((x + dx, y + dy) in opened for dx, dy in ((0, 1), (1, 0), (0, -1), (-1, 0))):
-            img.alpha_composite(mark, (int(x * PX + PX * 0.03), int(y * PX + PX * 0.03)))
+# 빛길(전투만, 은은하게)
+if MODE == 'battle':
+    thread = ld('path_thread')
+    for i in range(1, len(path)):
+        (x0, y0), (x1, y1) = path[i - 1], path[i]
+        seg = tint(thread.resize((int(PX * 1.12), int(PX * 0.4)), Image.LANCZOS), (0.95, 0.85, 1, 0.5))
+        put(seg, (x0 + x1 + 1) / 2 * PX, (y0 + y1 + 1) / 2 * PX, -math.degrees(math.atan2(y1 - y0, x1 - x0)))
 
 
-def prop(name, x, y, width, tint=None):
+def prop(name, x, y, width, t=None):
     s = ld(name)
-    if tint:
-        s = Image.fromarray((np.asarray(s, float) * [tint[0], tint[1], tint[2], 1]).astype('uint8'), 'RGBA')
+    if t:
+        s = tint(s, t)
     w = int(PX * width)
     h = int(w * s.height / s.width)
     s = s.resize((w, h), Image.LANCZOS)
-    img.alpha_composite(s, (int((x + 0.5) * PX - w / 2), int((y + 1) * PX - PX * 0.08 - h)))
+    img.alpha_composite(s, (int(O + (x + 0.5) * PX - w / 2), int(O + (y + 1) * PX - PX * 0.08 - h)))
 
 
-walls = ['wall_bramble', 'wall_knot', 'wall_rock', 'wall_fence']
+garden = ['garden_lantern_post', 'garden_hydrangea', 'garden_spools', 'garden_urn', 'garden_lilies', 'garden_lantern', 'garden_pillar', 'garden_button', 'garden_chest']
+widths = [0.55, 0.95, 0.85, 0.75, 0.85, 0.55, 0.6, 0.8, 0.85]
 for y in range(H):
     for x in range(W):
         t = cellt[y][x]
         if t == '#':
-            nb = [(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if (dx or dy) and 0 <= x + dx < W and 0 <= y + dy < H]
-            if not any(cellt[ny][nx] != '#' for nx, ny in nb):
-                continue  # 안쪽 벽은 그리지 않음
-            lit = any(n in opened for n in nb)
-            prop(walls[((x * 73856093) ^ (y * 19349663)) % 4], x, y, 1.15, None if lit else (0.5, 0.5, 0.62))
+            if not any(not wall(x + dx, y + dy) for dx, dy in ((0, 1), (1, 0), (0, -1), (-1, 0))) or h32(x, y) % 3:
+                continue
+            lit = any((x + dx, y + dy) in opened for dx in (-1, 0, 1) for dy in (-1, 0, 1))
+            k = h32(y + 7, x + 3) % len(garden)
+            prop(garden[k], x, y, widths[k], None if lit or MODE == 'battle' else (0.55, 0.55, 0.7, 1))
         elif (x, y) in opened:
             pass
         elif t == 'c':
             prop('crystal_small', x, y, 0.6)
         elif t == 'C':
             prop('crystal_large', x, y, 0.85)
-        if (x, y) in opened and (x, y) not in onpath and (x * 31 + y * 17) % 9 == 0:
-            prop('sprout', x + 0.18, y + 0.1, 0.35)
 prop('spawn_rift', sx, sy, 1.1)
 prop('core_flower', gx, gy, 0.85)
 

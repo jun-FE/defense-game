@@ -330,7 +330,7 @@ public class BattleHUD : MonoBehaviour
         GUI.color = old;
     }
 
-    /// <summary>탐색 맵 한 칸 = 한 픽셀(MapView와 같은 색: 밝힌 바닥, 몬스터 경로, 암흑, 막힌 암흑, 결정).</summary>
+    /// <summary>탐색 맵 한 칸 = 한 픽셀(달빛 정원 색: 돌길, 몬스터 경로는 더 밝게, 잔디, 꽃밭, 결정).</summary>
     static Texture2D BuildGridTexture(GridMap grid)
     {
         var texture = new Texture2D(grid.Width, grid.Height, TextureFormat.RGBA32, false)
@@ -344,11 +344,11 @@ public class BattleHUD : MonoBehaviour
             {
                 CellType type = grid.Get(x, y);
                 Color c;
-                if (grid.IsOpen(x, y)) c = onPath.Contains(new Vector2Int(x, y)) ? new Color(0.86f, 0.66f, 0.38f) : new Color(0.55f, 0.47f, 0.37f);
-                else if (type == CellType.Wall) c = new Color(0.02f, 0.01f, 0.04f);
-                else if (type == CellType.CrystalSmall) c = new Color(0.45f, 0.33f, 0.75f);
-                else if (type == CellType.CrystalLarge) c = new Color(0.30f, 0.62f, 0.75f);
-                else c = new Color(0.10f, 0.08f, 0.18f);
+                if (grid.IsOpen(x, y)) c = onPath.Contains(new Vector2Int(x, y)) ? new Color(0.93f, 0.86f, 1f) : new Color(0.72f, 0.7f, 0.84f);
+                else if (type == CellType.Wall) c = new Color(0.14f, 0.16f, 0.3f);
+                else if (type == CellType.CrystalSmall) c = new Color(0.62f, 0.45f, 1f);
+                else if (type == CellType.CrystalLarge) c = new Color(0.45f, 0.85f, 1f);
+                else c = new Color(0.12f, 0.3f, 0.28f);
                 pixels[(grid.Height - 1 - y) * grid.Width + x] = c; // 텍스처 아래쪽 줄 = 월드 y 0
             }
         texture.SetPixels(pixels);

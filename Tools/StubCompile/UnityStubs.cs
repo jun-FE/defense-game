@@ -22,7 +22,7 @@ namespace UnityEngine {
   public struct Vector3 { public float x,y,z; public Vector3(float a,float b,float c){x=a;y=b;z=c;} public static Vector3 one, zero, up; public static Vector3 operator /(Vector3 a,float b)=>a; public static float Distance(Vector3 a,Vector3 b)=>0; public static Vector3 Lerp(Vector3 a,Vector3 b,float t)=>a; public float sqrMagnitude=>0;
     public static Vector3 MoveTowards(Vector3 a,Vector3 b,float d)=>a; public static Vector3 operator-(Vector3 a,Vector3 b)=>a; public static Vector3 operator+(Vector3 a,Vector3 b)=>a; public static Vector3 operator*(Vector3 a,float b)=>a; public static Vector3 operator*(float b,Vector3 a)=>a; }
   public struct Quaternion { public static Quaternion identity; public static Quaternion Euler(float a,float b,float c)=>default(Quaternion); }
-  public struct Color { public float r,g,b,a; public Color(float r,float g,float b){this.r=r;this.g=g;this.b=b;a=1;} public Color(float r,float g,float b,float a){this.r=r;this.g=g;this.b=b;this.a=a;}
+  public struct Color { public float r,g,b,a; public static Color operator *(Color a, Color b)=>a; public Color(float r,float g,float b){this.r=r;this.g=g;this.b=b;a=1;} public Color(float r,float g,float b,float a){this.r=r;this.g=g;this.b=b;this.a=a;}
     public static Color white, cyan, yellow, black; public static Color Lerp(Color a,Color b,float t)=>a; public static Color operator*(Color a,float b)=>a; public static Color operator+(Color a,Color b)=>a; }
   public struct Rect { public Vector2 position { get { return default(Vector2); } set {} } public Vector2 center=>default(Vector2); public bool Contains(Vector2 p)=>true; public float x,y,width,height; public Rect(float a,float b,float c,float d){x=a;y=b;width=c;height=d;} public float xMin=>x; public float yMin=>y; public float xMax=>x+width; public float yMax=>y+height; public static Rect MinMaxRect(float a,float b,float c,float d)=>default(Rect); }
   public struct Matrix4x4 { public static Matrix4x4 identity; public static Matrix4x4 Scale(Vector3 v)=>default(Matrix4x4); }
@@ -42,8 +42,10 @@ namespace UnityEngine {
   public class Camera : Behaviour { public Vector3 WorldToScreenPoint(Vector3 p)=>p; public float aspect; public static Camera main; public bool orthographic; public float orthographicSize; public CameraClearFlags clearFlags; public Color backgroundColor; public Vector3 ScreenToWorldPoint(Vector3 v)=>v; }
   public enum CameraClearFlags { SolidColor }
   public class AudioListener : Behaviour { public static float volume; }
-  public class SpriteRenderer : Component { public Sprite sprite; public Color color; public int sortingOrder; public bool enabled, flipX; public Material sharedMaterial; }
-  public class Sprite : Object { public Rect textureRect; public Texture2D texture; public Rect rect; public float pixelsPerUnit; public static Sprite Create(Texture2D t,Rect r,Vector2 p,float ppu)=>null; public Bounds bounds; }
+  public class SpriteRenderer : Component { public Sprite sprite; public Color color; public int sortingOrder; public bool enabled, flipX; public Material sharedMaterial; public SpriteDrawMode drawMode; public Vector2 size; }
+  public enum SpriteDrawMode { Simple, Sliced, Tiled }
+  public enum SpriteMeshType { FullRect, Tight }
+  public class Sprite : Object { public Rect textureRect; public Texture2D texture; public Rect rect; public float pixelsPerUnit; public static Sprite Create(Texture2D t,Rect r,Vector2 p,float ppu)=>null; public static Sprite Create(Texture2D t,Rect r,Vector2 p,float ppu,uint e,SpriteMeshType m)=>null; public Bounds bounds; }
   public struct Bounds { public Vector3 size; }
   public enum FilterMode { Point, Bilinear, Trilinear }
   public class Texture2D : Object { public int width, height; public FilterMode filterMode; public void SetPixels(Color[] c){} public static Texture2D whiteTexture; public Texture2D(int w,int h){} public Texture2D(int w,int h,TextureFormat f,bool m){} public void SetPixel(int x,int y,Color c){} public void Apply(){} public TextureWrapMode wrapMode; public void SetPixels32(Color32[] c){} }
@@ -87,7 +89,8 @@ namespace UnityEditor {
     public static T LoadAssetAtPath<T>(string p)=>default(T); public static void CreateAsset(Object o,string p){} public static bool DeleteAsset(string p)=>true; public static string[] FindAssets(string f)=>null; public static string[] FindAssets(string f,string[] d)=>null; public static string GUIDToAssetPath(string g)=>null; }
   public class AssetImporter : Object { public string assetPath; public static AssetImporter GetAtPath(string p)=>null; public void SaveAndReimport(){} }
   public class AssetPostprocessor { public string assetPath; public AssetImporter assetImporter; }
-  public class TextureImporter : AssetImporter { public TextureImporterType textureType; public SpriteImportMode spriteImportMode; public float spritePixelsPerUnit; public int maxTextureSize; public bool mipmapEnabled, alphaIsTransparency; public TextureImporterCompression textureCompression; }
+  public class TextureImporterSettings { public SpriteMeshType spriteMeshType; }
+  public class TextureImporter : AssetImporter { public TextureWrapMode wrapMode; public void ReadTextureSettings(TextureImporterSettings s){} public void SetTextureSettings(TextureImporterSettings s){} public TextureImporterType textureType; public SpriteImportMode spriteImportMode; public float spritePixelsPerUnit; public int maxTextureSize; public bool mipmapEnabled, alphaIsTransparency; public TextureImporterCompression textureCompression; }
   public enum TextureImporterType { Sprite } public enum SpriteImportMode { Single } public enum TextureImporterCompression { Uncompressed, CompressedHQ }
   public static class PrefabUtility { public static GameObject SaveAsPrefabAsset(GameObject g,string p)=>g; }
   public class EditorBuildSettingsScene { public EditorBuildSettingsScene(string p,bool e){} public bool enabled; public string path; }

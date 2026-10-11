@@ -20,7 +20,7 @@ public class TowerArtImporter : AssetPostprocessor
     static float FxPixelsPerUnit(string path)
     {
         if (path.EndsWith("fx_glow.png")) return 64f;
-        if (path.EndsWith("fx_ring.png")) return 128f;
+        if (path.EndsWith("fx_ring.png")) return 256f;
         if (path.EndsWith("fx_spark.png")) return 48f;
         if (path.EndsWith("fx_needle.png")) return 150f;
         return 0f;

@@ -63,16 +63,43 @@ def soft_disc(n, power):
     return np.clip(1 - d, 0, 1) ** power
 
 
+def thread_ring(n, seed=7):
+    """반듯한 동그라미 대신 '꿈실이 휘감기며 퍼지는' 고리: 굵기가 바뀌고 끊긴 실 가닥 3개 + 끝이 가늘어짐 + 약한 번짐."""
+    rng = np.random.default_rng(seed)
+    y, x = np.mgrid[0:n, 0:n] / (n - 1) * 2 - 1
+    d = np.sqrt(x * x + y * y)
+    ang = np.arctan2(y, x)
+    out = np.zeros((n, n))
+    for k in range(3):
+        start = rng.uniform(0, 2 * np.pi)
+        span = rng.uniform(1.3, 1.75) * np.pi             # 가닥 하나가 도는 각도(한 바퀴가 안 됨 → 틈)
+        rel = np.mod(ang - start, 2 * np.pi)
+        u = np.clip(rel / span, 0, 1)                      # 가닥을 따라 0→1
+        inside = rel < span
+        # 반지름이 물결치고(실이 흔들림) 가닥마다 조금씩 다르다, 끝으로 갈수록 바깥으로 풀린다
+        r = 0.72 + 0.05 * k + 0.04 * np.sin(ang * (3 + k) + start) + 0.07 * u
+        width = (0.025 + 0.05 * np.sin(np.pi * u) ** 0.8) * (1.0 - 0.25 * k)  # 가운데 굵고 양끝 뾰족
+        core = np.clip(1 - np.abs(d - r) / np.maximum(width, 1e-3), 0, 1) ** 1.3
+        out = np.maximum(out, np.where(inside, core * (0.55 + 0.45 * np.sin(np.pi * u)), 0))
+    # 짧은 바늘땀(점선) 몇 개를 바깥에
+    for _ in range(9):
+        a0 = rng.uniform(0, 2 * np.pi)
+        rel = np.abs(np.angle(np.exp(1j * (ang - a0))))
+        r0 = rng.uniform(0.86, 0.95)
+        dash = np.clip(1 - np.abs(d - r0) / 0.022, 0, 1) * np.clip(1 - rel / 0.09, 0, 1)
+        out = np.maximum(out, dash * 0.8)
+    # 약한 번짐
+    glow = np.clip(1 - np.abs(d - 0.76) / 0.2, 0, 1) ** 2 * 0.18
+    a = np.clip(np.maximum(out, glow), 0, 1)
+    return np.dstack([np.ones((n, n, 3)), a])
+
+
 def fx_sprites():
     n = 64
     glow = soft_disc(n, 2.0)
     Image.fromarray((np.dstack([np.ones((n, n, 3)), glow]) * 255).astype('uint8'), 'RGBA').save(os.path.join(OUT, 'fx_glow.png'))
 
-    n = 128
-    y, x = np.mgrid[0:n, 0:n] / (n - 1) * 2 - 1
-    d = np.sqrt(x * x + y * y)
-    ring = np.clip(1 - np.abs(d - 0.8) / 0.12, 0, 1) ** 1.5
-    Image.fromarray((np.dstack([np.ones((n, n, 3)), ring]) * 255).astype('uint8'), 'RGBA').save(os.path.join(OUT, 'fx_ring.png'))
+    Image.fromarray((thread_ring(256) * 255).astype('uint8'), 'RGBA').save(os.path.join(OUT, 'fx_ring.png'))
 
     n = 48
     y, x = np.mgrid[0:n, 0:n] / (n - 1) * 2 - 1
