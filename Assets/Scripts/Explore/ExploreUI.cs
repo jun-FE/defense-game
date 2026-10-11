@@ -177,14 +177,101 @@ public class ExploreUI : MonoBehaviour
         UIKit.End();
     }
 
+    // ───────── 테마(달빛 정원) ─────────
+
+    MapTheme theme;
+    Texture2D fogTexture;
+    int fogOpenCount = -1;
+
+    int CountOpen()
+    {
+        int n = 0;
+        for (int y = 0; y < map.Height; y++)
+            for (int x = 0; x < map.Width; x++)
+                if (map.IsOpen(x, y)) n++;
+        return n;
+    }
+
+    /// <summary>스프라이트를 IMGUI 사각형에(아틀라스 영역 포함).</summary>
+    static void DrawSprite(Rect r, Sprite sprite, Color color)
+    {
+        if (sprite == null) return;
+        Texture2D t = sprite.texture;
+        Rect tr = sprite.textureRect;
+        Color old = GUI.color;
+        GUI.color = color;
+        GUI.DrawTextureWithTexCoords(r, t, new Rect(tr.x / t.width, tr.y / t.height, tr.width / t.width, tr.height / t.height));
+        GUI.color = old;
+    }
+
+    /// <summary>바닥에 서 있는 오브젝트: 폭 width칸, 아래쪽이 칸 바닥 근처에 닿게.</summary>
+    void DrawProp(Rect cellRect, Sprite sprite, float width, float bob = 0f) => DrawProp(cellRect, sprite, width, Color.white, bob);
+
+    void DrawProp(Rect cellRect, Sprite sprite, float width, Color tint, float bob = 0f)
+    {
+        if (sprite == null || tint.a <= 0f) return;
+        float w = cell * width, h = w * sprite.rect.height / sprite.rect.width;
+        var r = new Rect(cellRect.center.x - w / 2f, cellRect.yMax - cell * 0.08f - h + bob, w, h);
+        DrawSprite(r, sprite, tint);
+    }
+
+    /// <summary>
+    /// 테마 그림으로 그리기: 정원 바닥 → 어둠 안개(밝힌 칸만 걷힘, 경계는 부드럽게) → 벽·결정·출현 지점·꿈의 중심 오브젝트.
+    /// 몬스터 경로는 탐색 중에는 보여 주지 않는다(기획).
+    /// </summary>
+    void DrawThemedCells(Vector2 shift, Rect area)
+    {
+        for (int y = 0; y < map.Height; y++)
+            for (int x = 0; x < map.Width; x++)
+            {
+                Rect r = CellRect(x, y);
+                r.position += shift;
+                if (r.xMax < 0 || r.yMax < 0 || r.x > area.width || r.y > area.height) continue;
+                Color old = GUI.color;
+                GUI.color = map.IsOpen(x, y) ? Color.white : new Color(0.7f, 0.7f, 0.78f);
+                GUI.DrawTextureWithTexCoords(new Rect(r.x - 0.5f, r.y - 0.5f, r.width + 1f, r.height + 1f), theme.Ground, theme.GroundUV(x, map.Height - 1 - y));
+                GUI.color = old;
+            }
+
+        int open = CountOpen();
+        if (open != fogOpenCount || fogTexture == null)
+        {
+            fogTexture = MapTheme.BuildFog(map, fogTexture);
+            fogOpenCount = open;
+        }
+        Vector2 o = origin + shift;
+        Color before = GUI.color;
+        GUI.color = new Color(1f, 1f, 1f, 0.94f + 0.06f * Mathf.Sin(Time.time * 0.8f));
+        GUI.DrawTexture(new Rect(o.x, o.y, cell * map.Width, cell * map.Height), fogTexture);
+        GUI.color = before;
+
+        float t = Time.time;
+        for (int y = 0; y < map.Height; y++)
+            for (int x = 0; x < map.Width; x++)
+            {
+                Rect r = CellRect(x, y);
+                r.position += shift;
+                if (r.xMax < -cell || r.yMax < -cell || r.x > area.width + cell || r.y > area.height + cell) continue;
+                CellType type = map.Get(x, y);
+                if (type == CellType.Wall) DrawProp(r, theme.WallFor(x, y), 1.15f, MapTheme.WallTint(map, x, y));
+                else if (type == CellType.CrystalSmall) DrawProp(r, theme.CrystalSmall, 0.6f, cell * 0.04f * Mathf.Sin(t * 2f + x + y));
+                else if (type == CellType.CrystalLarge) DrawProp(r, theme.CrystalLarge, 0.85f, cell * 0.04f * Mathf.Sin(t * 2f + x + y));
+                if (map.IsSpawn(x, y)) DrawProp(r, theme.SpawnRift, 1.1f);
+                if (map.IsGoal(x, y)) DrawProp(r, theme.CoreFlower, 0.85f);
+            }
+    }
+
     void DrawMap()
     {
         Rect area = MapArea;
         GUI.BeginClip(area);
         Vector2 shift = -area.position;
         float px = 1f / Mathf.Max(0.01f, UIKit.Scale);
+        if (theme == null) theme = MapTheme.Load();
+        bool themed = theme.Valid;
+        if (themed) DrawThemedCells(shift, area);
 
-        for (int y = 0; y < map.Height; y++)
+        for (int y = 0; y < map.Height && !themed; y++)
             for (int x = 0; x < map.Width; x++)
             {
                 Rect r = CellRect(x, y);
@@ -214,7 +301,7 @@ public class ExploreUI : MonoBehaviour
             Fill(r, ColReach);
         }
 
-        if (cell >= 8f)
+        if (cell >= 8f && !themed)
         {
             Vector2 o = origin + shift;
             for (int x = 1; x < map.Width; x++) Fill(new Rect(o.x + x * cell, o.y, px, cell * map.Height), ColLine);

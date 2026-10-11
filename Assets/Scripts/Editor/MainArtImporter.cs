@@ -10,11 +10,13 @@ public class MainArtImporter : AssetPostprocessor
     public const string LobbyFolder = "Assets/Art/Lobby/";
     public const string BattleFolder = "Assets/Art/Battle/";
     public const string MapsFolder = "Assets/Art/Maps/";
+    /// <summary>칸 맵 테마(MapTheme). 오브젝트는 256px ≈ 1.1칸, 꿈실 띠·점선 네모·바닥 조각은 128px = 1칸.</summary>
+    public const string ThemesFolder = "Assets/Resources/Themes/";
     public const float PixelsPerUnit = 100f;
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Folder) || assetPath.StartsWith(LobbyFolder) || assetPath.StartsWith(BattleFolder) || assetPath.StartsWith(MapsFolder))
+        if (assetPath.StartsWith(Folder) || assetPath.StartsWith(LobbyFolder) || assetPath.StartsWith(BattleFolder) || assetPath.StartsWith(MapsFolder) || assetPath.StartsWith(ThemesFolder))
             Apply((TextureImporter)assetImporter);
     }
 
@@ -22,13 +24,19 @@ public class MainArtImporter : AssetPostprocessor
     public static bool Apply(TextureImporter importer)
     {
         int maxSize = importer.assetPath.StartsWith(MapsFolder) ? 4096 : 2048;
+        float ppu = PixelsPerUnit;
+        if (importer.assetPath.StartsWith(ThemesFolder))
+        {
+            string file = System.IO.Path.GetFileNameWithoutExtension(importer.assetPath);
+            ppu = file == "path_thread" || file == "build_mark" || file == "ground" ? 128f : 230f;
+        }
         bool changed = importer.textureType != TextureImporterType.Sprite
-                       || importer.spritePixelsPerUnit != PixelsPerUnit
+                       || importer.spritePixelsPerUnit != ppu
                        || importer.mipmapEnabled
                        || importer.maxTextureSize < maxSize;
         importer.textureType = TextureImporterType.Sprite;
         importer.spriteImportMode = SpriteImportMode.Single;
-        importer.spritePixelsPerUnit = PixelsPerUnit;
+        importer.spritePixelsPerUnit = ppu;
         importer.mipmapEnabled = false;
         importer.alphaIsTransparency = true;
         importer.maxTextureSize = maxSize;
