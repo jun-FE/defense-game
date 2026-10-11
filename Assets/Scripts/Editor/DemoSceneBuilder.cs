@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "17";
+    public const string BuildVersion = "18";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -42,6 +42,7 @@ public static class DemoSceneBuilder
     public const string DreamcatcherDir = "Assets/Art/Towers/Dreamcatcher";
     public const string SoldierDir = "Assets/Art/Towers/Soldier";
     public const string SnowballDir = "Assets/Art/Towers/Snowball";
+    public const string SewingDir = "Assets/Art/Towers/Sewing";
     const string ResourcesDir = "Assets/Resources";
 
     // 이전 버전(단일 경로 디펜스)이 만든 파일. 업데이트할 때 지운다.
@@ -128,6 +129,7 @@ public static class DemoSceneBuilder
         view.mapView = map;
         view.square = square;
         view.circle = circle;
+        view.glowMaterial = GlowMaterial();
 
         var hud = new GameObject("BattleHUD").AddComponent<BattleHUD>();
         hud.controller = controller;
@@ -362,6 +364,22 @@ public static class DemoSceneBuilder
             EditorUtility.SetDirty(tower);
         }
 
+        // 재봉틀(TW_SEWING): 단계별 대기 2장(바퀴가 도는 움직임)·공격 1장, 화려한 바늘 연출. 실타래 자리(2번 슬롯).
+        foreach (TowerAsset tower in towers)
+        {
+            if (tower.id != "TW_SEWING") continue;
+            if (tower.prefab == null) tower.prefab = CreateSewingPrefab(tower.id);
+            if (tower.icon == null) tower.icon = LoadTowerSprite("icon.png", SewingDir);
+            if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_disabled.png", SewingDir);
+            if (tower.projectile == null) tower.projectile = LoadTowerSprite("fx_needle.png", SewingDir);
+            if (tower.fxSpark == null) tower.fxSpark = LoadTowerSprite("fx_spark.png", SewingDir);
+            if (tower.fxRing == null) tower.fxRing = LoadTowerSprite("fx_ring.png", SewingDir);
+            if (tower.fxGlow == null) tower.fxGlow = LoadTowerSprite("fx_glow.png", SewingDir);
+            tower.fancyShot = true;
+            tower.fxColor = new Color(0.74f, 0.56f, 1f);
+            EditorUtility.SetDirty(tower);
+        }
+
         MapDef mapDef = sample.Map;
         MapAsset map = LoadOrCreate<MapAsset>(mapDef.Id, m =>
         {
@@ -537,6 +555,45 @@ public static class DemoSceneBuilder
         firePoint.SetParent(root.transform, false);
         // 구슬 중심: 캔버스 중심에서 약 25px 위
         firePoint.localPosition = new Vector3(0f, visualOffset.y + 25f / TowerArtImporter.SnowballPixelsPerUnit, 0f);
+
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
+        Object.DestroyImmediate(root);
+        return prefab;
+    }
+
+    /// <summary>
+    /// 재봉틀: 단계(L1~L3)별 대기 2장(idle0·idle1, 바퀴 위치가 다름)과 공격 1장(바늘이 내려꽂힘), 256px 캔버스.
+    /// 그림은 바늘이 왼쪽에 있어(왼쪽을 봄) 오른쪽 대상을 칠 때는 좌우를 뒤집는다. lively로 숨쉬기·반동·강화 통통.
+    /// 받침 바닥(캔버스 아래 6%, 중심에서 113px 아래)이 타일 중심보다 0.35칸 아래에 오게 올린다.
+    /// </summary>
+    static GameObject CreateSewingPrefab(string id)
+    {
+        var stages = new TowerVisual.StageFrames[3];
+        for (int level = 0; level < 3; level++)
+        {
+            Sprite idle0 = LoadTowerSprite($"sewing_L{level + 1}_idle0.png", SewingDir);
+            Sprite idle1 = LoadTowerSprite($"sewing_L{level + 1}_idle1.png", SewingDir);
+            Sprite attack = LoadTowerSprite($"sewing_L{level + 1}_attack0.png", SewingDir);
+            if (idle0 == null || idle1 == null || attack == null) return null;
+            stages[level] = new TowerVisual.StageFrames { idle = new[] { idle0, idle1 }, attack = new[] { attack, attack, idle0 } };
+        }
+
+        EnsureFolder($"{PrefabDir}/Towers");
+        var root = new GameObject(id);
+        float baseOffset = 113f / TowerArtImporter.SewingPixelsPerUnit;
+        var visualOffset = new Vector2(0f, baseOffset - 0.35f);
+        GameObject visualGo = CreateSprite("Visual", stages[0].idle[0], Color.white, root.transform, visualOffset, Vector2.one, 1);
+        var visual = visualGo.AddComponent<TowerVisual>();
+        visual.stages = stages;
+        visual.artFacesLeft = true;
+        visual.lively = true;
+        visual.idleFps = 3f;
+        visual.attackFps = 14f;
+
+        var firePoint = new GameObject("FirePoint").transform;
+        firePoint.SetParent(root.transform, false);
+        // 바늘 끝: 캔버스 중심에서 왼쪽 77px, 아래 13px
+        firePoint.localPosition = new Vector3(-77f / TowerArtImporter.SewingPixelsPerUnit, visualOffset.y - 13f / TowerArtImporter.SewingPixelsPerUnit, 0f);
 
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
         Object.DestroyImmediate(root);

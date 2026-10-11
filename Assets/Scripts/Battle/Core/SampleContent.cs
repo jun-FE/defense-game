@@ -60,6 +60,23 @@ namespace Akmong.Battle
             },
         };
 
+        /// <summary>
+        /// 재봉틀: 빠르게 바늘을 쏘아 한 적을 꿰뚫는 원거리 단일 공격(실타래 자리). 스탠드보다 한 발은 약하지만 빠르고 치명타가 잦다.
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
+        public static TowerDef Sewing() => new TowerDef
+        {
+            Id = "TW_SEWING",
+            Name = "재봉틀",
+            BuildCost = 65,
+            Levels =
+            {
+                new TowerLevelDef { Id = "TL_SEWING_1", Damage = 14, Range = 4.2f, AttackSec = 0.6f, CritChance = 0.15f, CritMult = 1.6f, UpgradeCost = 75 },
+                new TowerLevelDef { Id = "TL_SEWING_2", Damage = 22, Range = 4.5f, AttackSec = 0.55f, CritChance = 0.18f, CritMult = 1.7f, UpgradeCost = 110 },
+                new TowerLevelDef { Id = "TL_SEWING_3", Damage = 32, Range = 4.8f, AttackSec = 0.5f, CritChance = 0.22f, CritMult = 1.8f, UpgradeCost = 0 },
+            },
+        };
+
         /// <summary>MAP_ROOM: 북쪽 (0,12)와 동쪽 (12,0)에서 중심 (0,0)까지 길이 12인 직선 경로 2개.</summary>
         public static MapDef Room() => new MapDef
         {
@@ -123,7 +140,7 @@ namespace Akmong.Battle
                 StartCoin = 120,
                 CoreMaxHp = 100,
                 EnemyHpScale = 1.55f, // 길이 길어 맞는 시간이 길므로 적 HP를 올린다
-                Towers = { Lamp(), Soldier(), Snowball() },
+                Towers = { Lamp(), Soldier(), Snowball(), Sewing() },
                 Waves =
                 {
                     new WaveDef
@@ -192,7 +209,7 @@ namespace Akmong.Battle
                 Map = Room(),
                 StartCoin = 120,
                 CoreMaxHp = 100,
-                Towers = { Lamp(), Soldier(), Snowball() },
+                Towers = { Lamp(), Soldier(), Snowball(), Sewing() },
                 Waves =
                 {
                     new WaveDef

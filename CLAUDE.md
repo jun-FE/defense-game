@@ -41,6 +41,11 @@
   - Artlist 남은 크레딧 약 15,700. 이 환경은 Artlist 이미지 서버 허용됨(다운로드 가능).
 - 다음 후보: Unity에서 실제 화면 확인 후 크기·여백 조정, 같은 방식으로 로비·전투 HUD·팝업 UI도 공방 디자인으로 통일.
 
+### 2026-10-11: 전투 HUD 공방 디자인 + 재봉틀 타워
+- 전투 HUD도 ws_ 조각으로(UISkin이 bx/by 테두리, 데님 버튼 `Button`, 탭 `Tab` 지원). 탐색 화면 버튼도 데님으로 바뀜.
+- 재봉틀(TW_SEWING, 실타래 슬롯): 사용자 제공 1단계 픽셀 그림 + Artlist로 2·3단계, 단계별 대기·공격 프레임(8장, 600크레딧). 화려한 연출은 BattleFx(가산 머티리얼 BattleView.glowMaterial).
+- Artlist 남은 크레딧 약 15,100.
+
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
   - 전체 스크립트 컴파일 검사: `bash Tools/StubCompile/compile.sh` (Unity API 빈 껍데기 `UnityStubs.cs` 사용, 없는 API는 스텁에 추가)

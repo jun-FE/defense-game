@@ -9,15 +9,17 @@ using UnityEngine;
 public class UISkin
 {
     [Serializable]
-    class BorderItem { public string name; public int border; }
+    class BorderItem { public string name; public int border; public int bx; public int by; }
 
     [Serializable]
     class BorderList { public BorderItem[] items = new BorderItem[0]; }
 
     public static readonly Color Light = Hex("#F3EBDD"), Muted = Hex("#948AA8"), Gold = Hex("#E0BE7C"), Violet = Hex("#A98BFF");
+    /// <summary>수선 공방 조각(양피지·리넨) 위 글자색: 잉크, 옅은 잉크, 갈색 강조.</summary>
+    public static readonly Color Ink = Hex("#2E2219"), InkMuted = Hex("#6B5744"), Brown = Hex("#8A5520");
 
     readonly Dictionary<string, Texture2D> tex = new Dictionary<string, Texture2D>();
-    readonly Dictionary<string, int> borders = new Dictionary<string, int>();
+    readonly Dictionary<string, RectOffset> borders = new Dictionary<string, RectOffset>();
     readonly Dictionary<string, GUIStyle> styles = new Dictionary<string, GUIStyle>();
 
     public UISkin(IEnumerable<Sprite> sprites, TextAsset borderJson)
@@ -27,7 +29,10 @@ public class UISkin
                 if (sprite != null) tex[sprite.name] = sprite.texture;
         if (borderJson != null)
             foreach (BorderItem item in JsonUtility.FromJson<BorderList>(borderJson.text).items)
-                borders[item.name] = item.border;
+            {
+                int bx = item.bx > 0 ? item.bx : item.border, by = item.by > 0 ? item.by : item.border;
+                borders[item.name] = new RectOffset(bx, bx, by, by);
+            }
     }
 
     public bool Has(string name) => tex.ContainsKey(name);
@@ -55,20 +60,23 @@ public class UISkin
         Texture2D t;
         if (tex.TryGetValue(normal, out t)) style.normal.background = t;
         if (hover != null && tex.TryGetValue(hover, out t)) style.hover.background = t;
-        int b;
-        if (borders.TryGetValue(normal, out b)) style.border = new RectOffset(b, b, b, b);
+        RectOffset b;
+        if (borders.TryGetValue(normal, out b)) style.border = new RectOffset(b.left, b.right, b.top, b.bottom);
         styles[key] = style;
         return style;
     }
 
-    /// <summary>주 버튼(보라 틀, 마우스를 올리면 밝아짐).</summary>
+    /// <summary>주 버튼: 수선 공방 데님 리본(ws_button, 마우스를 올리면 밝아짐). 조각이 없으면 예전 보라 버튼.</summary>
     public GUIStyle Button(int fontSize = 24)
     {
         string key = "button:" + fontSize;
         GUIStyle style;
         if (styles.TryGetValue(key, out style)) return style;
-        style = new GUIStyle(FrameStyle("button_primary", "button_primary_hover")) { fontSize = fontSize, alignment = TextAnchor.MiddleCenter };
-        style.normal.textColor = style.hover.textColor = Light;
+        bool denim = tex.ContainsKey("ws_button");
+        style = new GUIStyle(denim ? FrameStyle("ws_button", "ws_button_hover") : FrameStyle("button_primary", "button_primary_hover"))
+            { fontSize = fontSize, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+        if (denim) style.padding = new RectOffset(48, 48, 0, 6); // 양끝 리본 꼬리를 피해 가운데에
+        style.normal.textColor = style.hover.textColor = style.active.textColor = Light;
         styles[key] = style;
         return style;
     }
@@ -86,11 +94,24 @@ public class UISkin
     }
 
     /// <summary>가로 게이지(틀 + 채움).</summary>
-    public void Gauge(Rect r, float t, string fill = "gauge_fill")
+    public void Gauge(Rect r, float t, string fill = "ws_gauge_fill")
     {
-        Frame(r, "gauge_track");
-        float inner = r.width - 8f;
-        if (t > 0.001f) Frame(new Rect(r.x + 4f, r.y + 4f, Mathf.Max(16f, inner * Mathf.Clamp01(t)), r.height - 8f), fill);
+        Frame(r, "ws_gauge_track");
+        float inner = r.width - 12f;
+        if (t > 0.001f) Frame(new Rect(r.x + 6f, r.y + 6f, Mathf.Max(16f, inner * Mathf.Clamp01(t)), r.height - 12f), fill);
+    }
+
+    /// <summary>양피지 꼬리표·리넨 탭 모양 작은 버튼(잉크 글자). on이면 가죽 탭(밝은 글자).</summary>
+    public GUIStyle Tab(bool on, int fontSize = 18)
+    {
+        string key = "tab:" + on + ":" + fontSize;
+        GUIStyle style;
+        if (styles.TryGetValue(key, out style)) return style;
+        style = new GUIStyle(FrameStyle(on ? "ws_tab_on" : "ws_tab_off", on ? null : "ws_tab_on")) { fontSize = fontSize, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+        style.normal.textColor = on ? Light : Ink;
+        style.hover.textColor = style.active.textColor = Light;
+        styles[key] = style;
+        return style;
     }
 
     public static Color Hex(string hex)

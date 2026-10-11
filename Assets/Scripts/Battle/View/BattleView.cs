@@ -13,12 +13,15 @@ public class BattleView : MonoBehaviour
     public MapView mapView;
     public Sprite square;
     public Sprite circle;
+    [Tooltip("화려한 공격 연출용 가산(빛) 머티리얼")]
+    public Material glowMaterial;
 
     readonly Dictionary<EnemyState, EnemyView> enemyViews = new Dictionary<EnemyState, EnemyView>();
     readonly Dictionary<TowerState, TowerView> towerViews = new Dictionary<TowerState, TowerView>();
 
     void Start()
     {
+        BattleFx.Glow = glowMaterial;
         BattleSession session = controller.Session;
         if (session == null) return;
         session.EnemySpawned += OnEnemySpawned;
@@ -88,7 +91,9 @@ public class BattleView : MonoBehaviour
     void OnTowerUpgraded(TowerState tower)
     {
         TowerView view = FindTowerView(tower);
-        if (view != null) view.OnUpgraded();
+        if (view == null) return;
+        view.OnUpgraded();
+        if (view.Fancy) BattleFx.UpgradeSparkle(transform, view.transform.position, view.FxStyle);
     }
 
     void OnTowerFired(HitResult hit)
@@ -103,6 +108,12 @@ public class BattleView : MonoBehaviour
         {
             // 찌르기는 투사체 없이 맞은 적이 번쩍인다(6프레임 중 4번째가 타격).
             if (target != null) target.Flash(0.15f);
+            return;
+        }
+        if (towerView.Fancy)
+        {
+            BattleFx.MuzzleFlash(transform, towerView.FirePoint, towerView.FxStyle, hit.Crit);
+            BattleFx.NeedleShot(transform, towerView.FirePoint, to, towerView.FxStyle, hit.Crit);
             return;
         }
         ProjectileView.Spawn(transform, towerView.FirePoint, to, towerView.ProjectileSprite != null ? towerView.ProjectileSprite : circle, hit.Crit);

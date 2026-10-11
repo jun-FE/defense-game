@@ -49,4 +49,12 @@ public class TowerAsset : DefinitionAsset
     public Sprite iconDisabled;
     [Tooltip("연출용 투사체(오른쪽이 앞). 피해는 발사 순간 즉시 계산된다.")]
     public Sprite projectile;
+
+    [Header("화려한 공격 연출(BattleFx)")]
+    [Tooltip("켜면 발사 불꽃 + 꿈실 꼬리를 남기는 투사체 + 명중 폭발로 그린다(projectile을 바늘로 사용).")]
+    public bool fancyShot;
+    public Color fxColor = new Color(0.72f, 0.55f, 1f);
+    public Sprite fxSpark;
+    public Sprite fxRing;
+    public Sprite fxGlow;
 }
