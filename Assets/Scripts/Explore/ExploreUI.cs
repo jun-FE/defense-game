@@ -8,6 +8,9 @@ using UnityEngine;
 /// - 막힌 암흑과 맵 밖으로는 못 간다. 결정·출현 지점은 암흑 속에서도 보인다.
 /// - 출현 지점까지 길이 이어지면 "전투 준비"로 넘어간다(탐색 제한 없음). 몬스터는 밝힌 칸의 최단 경로로 온다.
 ///   몬스터 경로는 미리 보여 주지 않는다(기획: 연결 상태를 보고 판단).
+/// 연출: 이안(랜턴을 든 전신 캐릭터, 4방향·걷기 2장)이 칸 사이를 통통 미끄러지듯 걷고, 랜턴 빛이 둘레 어둠을 밝힌다.
+///       암흑을 밝히면 빛이 터지며 고리·불티가 퍼지고 안개가 걷히며 화면이 살짝 흔들린다. 결정이면 보라 폭발과 +값 글자.
+///       막힌 암흑에 부딪히면 짧게 흔들리고 먼지가 튄다.
 /// 조작: WASD·방향키 이동(한 번 누르면 한 칸, 누르고 있으면 잠깐 뒤부터 천천히 반복), 인접 칸 클릭,
 ///       휠 확대/축소, 마우스 드래그로 화면 이동, F 전체 보기, Esc 메뉴.
 /// </summary>
@@ -51,9 +54,39 @@ public class ExploreUI : MonoBehaviour
     bool panning, pressing;
     Vector2 lastMouse, pressStart;
 
+    // ───────── 연출 상태 ─────────
+
+    class Fx
+    {
+        public Vector2 pos, vel;      // 칸 단위(칸 (x, y)의 가운데 = x + 0.5, y + 0.5)
+        public float age, life, size0, size1, spin, angle;
+        public Color color;
+        public int kind;              // 0 빛 점, 1 불티, 2 고리, 3 글자
+        public string text;
+    }
+
+    readonly List<Fx> effects = new List<Fx>();
+    float shakeTime, shakeAmp;
+    Texture2D oldFog;
+    float oldFogFade;
+    Vector2Int prevPlayer, facing = new Vector2Int(0, 1);
+    float moveT = 1f;
+    Vector2Int flashCell;
+    float flashT;
+    Sprite[] ian;   // 아래·위·왼쪽·오른쪽 × (서 있기, 걷기)
+
+    void LoadIan()
+    {
+        ian = new Sprite[8];
+        string[] dirs = { "down", "up", "left", "right" };
+        for (int i = 0; i < 8; i++) ian[i] = Resources.Load<Sprite>($"Characters/Ian/ian_{dirs[i % 4]}_{i / 4}");
+        if (ian[0] == null) ian = null;
+    }
+
     void Start()
     {
         skin = new UISkin(uiSprites, uiBorders);
+        LoadIan();
         map = DreamRun.Map;
         if (map == null)
         {
@@ -64,6 +97,7 @@ public class ExploreUI : MonoBehaviour
             map = DreamRun.Map;
         }
         player = map.HasGoal ? new Vector2Int(map.GoalX, map.GoalY) : Vector2Int.zero;
+        prevPlayer = player;
         connected = map.ShortestPath() != null;
         FitView();
         ShowToast("목표(파란 칸)에서 출발해요. 출현 지점(보라 칸)까지 암흑을 밝혀 길을 이어 주세요.", 5f);
@@ -73,6 +107,7 @@ public class ExploreUI : MonoBehaviour
 
     void Update()
     {
+        UpdateEffects(Time.unscaledDeltaTime);
         if (map == null || menuOpen) return;
         // 새로 누른 키가 있으면 그 방향으로 바로 한 칸
         Vector2Int pressed = Vector2Int.zero;
@@ -112,9 +147,11 @@ public class ExploreUI : MonoBehaviour
             if (value < 0)
             {
                 ShowToast("밝힐 수 없는 암흑이에요", 1.2f);
+                Bump(x, y);
                 return;
             }
             opened++;
+            Reveal(x, y, before, value);
             if (value > 0)
             {
                 DreamRun.Collected += value;
@@ -124,8 +161,167 @@ public class ExploreUI : MonoBehaviour
             connected = map.ShortestPath() != null;
             if (connected && !wasConnected) ShowToast("출현 지점까지 길이 이어졌어요! 더 탐색하거나 전투를 준비하세요.", 3f);
         }
+        facing = new Vector2Int(x - player.x, y - player.y);
+        prevPlayer = player;
         player = new Vector2Int(x, y);
+        moveT = 0f;
         KeepPlayerInView();
+    }
+
+    void OnDestroy()
+    {
+        if (fogTexture != null) Destroy(fogTexture);
+        if (oldFog != null) Destroy(oldFog);
+    }
+
+    // ───────── 타격감 연출 ─────────
+
+    void AddFx(int kind, Vector2 pos, Vector2 vel, float life, float size0, float size1, Color color, float spin = 0f, string text = null)
+    {
+        effects.Add(new Fx { kind = kind, pos = pos, vel = vel, life = life, size0 = size0, size1 = size1, color = color, spin = spin, text = text, angle = Random.value * 360f });
+    }
+
+    void Shake(float amount, float time)
+    {
+        shakeAmp = Mathf.Max(shakeAmp, amount);
+        shakeTime = Mathf.Max(shakeTime, time);
+    }
+
+    /// <summary>암흑을 밝힌 순간: 빛 폭발 → 금빛 고리 → 사방 불티 → 떠오르는 반딧불, 칸 번쩍임, 화면 흔들림. 결정이면 더 크게.</summary>
+    void Reveal(int x, int y, CellType before, int value)
+    {
+        var c = new Vector2(x + 0.5f, y + 0.5f);
+        var warm = new Color(1f, 0.86f, 0.55f);
+        var violet = new Color(0.75f, 0.58f, 1f);
+        flashCell = new Vector2Int(x, y);
+        flashT = 1f;
+        AddFx(0, c, Vector2.zero, 0.32f, 0.5f, 2.4f, new Color(1f, 0.97f, 0.88f, 0.9f));
+        AddFx(2, c, Vector2.zero, 0.45f, 0.3f, 2.2f, warm);
+        for (int i = 0; i < 10; i++)
+        {
+            float a = (i + Random.value * 0.5f) / 10f * Mathf.PI * 2f;
+            var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+            AddFx(1, c, dir * Random.Range(2f, 3.6f), Random.Range(0.35f, 0.55f), 0.28f, 0.06f, i % 2 == 0 ? warm : Color.white, Random.Range(-400f, 400f));
+        }
+        for (int i = 0; i < 4; i++)
+            AddFx(0, c + Random.insideUnitCircle * 0.3f, new Vector2(Random.Range(-0.3f, 0.3f), -Random.Range(0.6f, 1.1f)), Random.Range(0.8f, 1.3f), 0.16f, 0.04f, new Color(0.85f, 0.8f, 1f, 0.9f));
+        Shake(0.07f, 0.14f);
+
+        if (value <= 0) return;
+        bool big = before == CellType.CrystalLarge;
+        AddFx(2, c, Vector2.zero, 0.55f, 0.4f, big ? 3.6f : 2.8f, violet);
+        AddFx(0, c, Vector2.zero, 0.4f, 0.8f, big ? 3.2f : 2.4f, new Color(0.8f, 0.65f, 1f, 0.8f));
+        int n = big ? 22 : 14;
+        for (int i = 0; i < n; i++)
+        {
+            float a = (i + Random.value) / n * Mathf.PI * 2f;
+            var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+            Color col = i % 3 == 0 ? Color.white : i % 3 == 1 ? violet : new Color(0.55f, 0.9f, 1f);
+            AddFx(1, c, dir * Random.Range(2.5f, big ? 5.5f : 4.2f), Random.Range(0.45f, 0.75f), big ? 0.42f : 0.34f, 0.06f, col, Random.Range(-500f, 500f));
+        }
+        if (big) AddFx(2, c, Vector2.zero, 0.7f, 0.2f, 4.4f, new Color(1f, 0.9f, 0.6f));
+        AddFx(3, c + new Vector2(0f, -0.4f), new Vector2(0f, -1.1f), 1.1f, 1f, 1f, big ? new Color(1f, 0.9f, 0.55f) : new Color(0.85f, 0.75f, 1f), 0f, $"+{value}");
+        Shake(big ? 0.16f : 0.11f, big ? 0.3f : 0.2f);
+    }
+
+    /// <summary>막힌 암흑에 부딪힘: 짧은 흔들림과 가시 먼지.</summary>
+    void Bump(int x, int y)
+    {
+        var edge = new Vector2((player.x + x) / 2f + 0.5f, (player.y + y) / 2f + 0.5f);
+        for (int i = 0; i < 6; i++)
+            AddFx(1, edge, Random.insideUnitCircle * 1.6f, Random.Range(0.25f, 0.4f), 0.2f, 0.05f, new Color(0.7f, 0.4f, 0.6f), Random.Range(-300f, 300f));
+        Shake(0.05f, 0.12f);
+    }
+
+    void UpdateEffects(float dt)
+    {
+        for (int i = effects.Count - 1; i >= 0; i--)
+        {
+            Fx f = effects[i];
+            f.age += dt;
+            f.pos += f.vel * dt;
+            if (f.kind != 3) f.vel *= Mathf.Exp(-3.5f * dt);
+            f.angle += f.spin * dt;
+            if (f.age >= f.life) effects.RemoveAt(i);
+        }
+        if (shakeTime > 0f) shakeTime -= dt;
+        else shakeAmp = 0f;
+        if (oldFogFade > 0f)
+        {
+            oldFogFade -= dt / 0.35f;
+            if (oldFogFade <= 0f && oldFog != null) { Destroy(oldFog); oldFog = null; }
+        }
+        if (flashT > 0f) flashT -= dt / 0.3f;
+        if (moveT < 1f) moveT = Mathf.Min(1f, moveT + dt / 0.14f);
+    }
+
+    Vector2 CellToScreen(Vector2 p, Vector2 shift) => origin + shift + p * cell;
+
+    void DrawEffects(Vector2 shift)
+    {
+        if (theme == null) return;
+        foreach (Fx f in effects)
+        {
+            float t = f.age / f.life;
+            float size = Mathf.Lerp(f.size0, f.size1, 1f - (1f - t) * (1f - t)) * cell;
+            Color c = f.color;
+            c.a *= 1f - t * t;
+            Vector2 p = CellToScreen(f.pos, shift);
+            if (f.kind == 3)
+            {
+                GUIStyle style = skin.Text(Mathf.Clamp(Mathf.RoundToInt(cell * 0.55f), 14, 40), c, TextAnchor.MiddleCenter, true);
+                UIKit.ShadowLabel(new Rect(p.x - cell * 1.5f, p.y - cell * 0.4f, cell * 3f, cell * 0.8f), f.text, style);
+                continue;
+            }
+            Sprite sprite = f.kind == 0 ? theme.FxGlow : f.kind == 1 ? theme.FxSpark : theme.FxRing;
+            var r = new Rect(p.x - size / 2f, p.y - size / 2f, size, size);
+            if (f.kind == 1)
+            {
+                Matrix4x4 m = GUI.matrix;
+                GUIUtility.RotateAroundPivot(f.angle, p);
+                DrawSprite(r, sprite, c);
+                GUI.matrix = m;
+            }
+            else DrawSprite(r, sprite, c);
+        }
+    }
+
+    /// <summary>이안: 칸 사이를 통통 뛰듯 이동(0.14초), 바라보는 방향 그림, 걷는 중엔 걷기 그림, 서 있으면 숨쉬기. 랜턴 빛이 둘레를 밝힌다.</summary>
+    void DrawIan(Vector2 shift, float px)
+    {
+        float e = 1f - (1f - moveT) * (1f - moveT);
+        Vector2 pos = Vector2.Lerp(new Vector2(prevPlayer.x + 0.5f, prevPlayer.y + 0.5f), new Vector2(player.x + 0.5f, player.y + 0.5f), e);
+        float hop = Mathf.Sin(moveT * Mathf.PI) * 0.16f;
+        Vector2 p = CellToScreen(pos, shift);
+
+        // 랜턴 빛(어둠 위에 따뜻하게 번짐, 살짝 일렁임)
+        if (theme != null && theme.FxGlow != null)
+        {
+            float flicker = 0.9f + 0.1f * Mathf.PerlinNoise(Time.time * 3f, 0.5f);
+            float big = cell * 3.6f * flicker, small = cell * 1.6f;
+            DrawSprite(new Rect(p.x - big / 2f, p.y - big / 2f, big, big), theme.FxGlow, new Color(1f, 0.78f, 0.42f, 0.32f));
+            DrawSprite(new Rect(p.x - small / 2f, p.y - small / 2f, small, small), theme.FxGlow, new Color(1f, 0.85f, 0.55f, 0.35f));
+        }
+
+        if (ian == null)
+        {
+            Rect fallback = CellRect(player.x, player.y);
+            fallback.position += shift;
+            if (skin.Has("mock_ian")) skin.Icon(Shrink(fallback, -0.15f), "mock_ian");
+            else Fill(Shrink(fallback, 0.2f), ColPlayer);
+            Outline(Shrink(fallback, 0.04f), ColPlayer, 2f * px);
+            return;
+        }
+        int dir = facing.y > 0 ? 0 : facing.y < 0 ? 1 : facing.x < 0 ? 2 : 3;
+        bool walking = moveT < 1f && moveT > 0.15f && moveT < 0.85f;
+        Sprite sprite = ian[dir + (walking ? 4 : 0)] ?? ian[dir];
+        float breathe = moveT >= 1f ? 1f + 0.02f * Mathf.Sin(Time.time * 2.4f) : 1f;
+        float h = cell * 1.45f * breathe, w = h * sprite.rect.width / sprite.rect.height;
+        float feet = p.y + cell * 0.42f - hop * cell;
+        // 발밑 그림자
+        if (theme != null && theme.FxGlow != null)
+            DrawSprite(new Rect(p.x - cell * 0.35f, p.y + cell * 0.3f, cell * 0.7f, cell * 0.22f), theme.FxGlow, new Color(0f, 0f, 0f, 0.45f));
+        DrawSprite(new Rect(p.x - w / 2f, feet - h, w, h), sprite, Color.white);
     }
 
     void StartBattle()
@@ -236,14 +432,36 @@ public class ExploreUI : MonoBehaviour
         int open = CountOpen();
         if (open != fogOpenCount || fogTexture == null)
         {
-            fogTexture = MapTheme.BuildFog(map, fogTexture);
+            // 예전 안개는 0.35초 동안 서서히 사라지게 남겨 둔다(안개가 걷히는 느낌)
+            if (fogTexture != null && fogOpenCount >= 0)
+            {
+                if (oldFog != null) Destroy(oldFog);
+                oldFog = fogTexture;
+                oldFogFade = 1f;
+            }
+            fogTexture = MapTheme.BuildFog(map);
             fogOpenCount = open;
         }
         Vector2 o = origin + shift;
+        var fogRect = new Rect(o.x, o.y, cell * map.Width, cell * map.Height);
         Color before = GUI.color;
-        GUI.color = new Color(1f, 1f, 1f, 0.94f + 0.06f * Mathf.Sin(Time.time * 0.8f));
-        GUI.DrawTexture(new Rect(o.x, o.y, cell * map.Width, cell * map.Height), fogTexture);
+        float breath = 0.94f + 0.06f * Mathf.Sin(Time.time * 0.8f);
+        GUI.color = new Color(1f, 1f, 1f, breath);
+        GUI.DrawTexture(fogRect, fogTexture);
+        if (oldFog != null && oldFogFade > 0f)
+        {
+            GUI.color = new Color(1f, 1f, 1f, breath * oldFogFade * oldFogFade);
+            GUI.DrawTexture(fogRect, oldFog);
+        }
         GUI.color = before;
+
+        // 방금 밝힌 칸 번쩍임
+        if (flashT > 0f)
+        {
+            Rect fr = CellRect(flashCell.x, flashCell.y);
+            fr.position += shift;
+            Fill(fr, new Color(1f, 0.95f, 0.8f, 0.55f * flashT * flashT));
+        }
 
         float t = Time.time;
         for (int y = 0; y < map.Height; y++)
@@ -266,6 +484,7 @@ public class ExploreUI : MonoBehaviour
         Rect area = MapArea;
         GUI.BeginClip(area);
         Vector2 shift = -area.position;
+        if (shakeAmp > 0f) shift += Random.insideUnitCircle * shakeAmp * cell;
         float px = 1f / Mathf.Max(0.01f, UIKit.Scale);
         if (theme == null) theme = MapTheme.Load();
         bool themed = theme.Valid;
@@ -308,11 +527,8 @@ public class ExploreUI : MonoBehaviour
             for (int y = 1; y < map.Height; y++) Fill(new Rect(o.x, o.y + y * cell, cell * map.Width, px), ColLine);
         }
 
-        Rect p = CellRect(player.x, player.y);
-        p.position += shift;
-        if (skin.Has("mock_ian")) skin.Icon(Shrink(p, -0.15f), "mock_ian");
-        else Fill(Shrink(p, 0.2f), ColPlayer);
-        Outline(Shrink(p, 0.04f), ColPlayer, 2f * px);
+        DrawIan(shift, px);
+        DrawEffects(shift);
         GUI.EndClip();
     }
 

@@ -12,11 +12,13 @@ public class MainArtImporter : AssetPostprocessor
     public const string MapsFolder = "Assets/Art/Maps/";
     /// <summary>칸 맵 테마(MapTheme). 오브젝트는 256px ≈ 1.1칸, 꿈실 띠·점선 네모·바닥 조각은 128px = 1칸.</summary>
     public const string ThemesFolder = "Assets/Resources/Themes/";
+    /// <summary>탐색 화면 캐릭터(이안) 그림. IMGUI로 그리므로 크기 단위는 상관없다.</summary>
+    public const string CharactersFolder = "Assets/Resources/Characters/";
     public const float PixelsPerUnit = 100f;
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Folder) || assetPath.StartsWith(LobbyFolder) || assetPath.StartsWith(BattleFolder) || assetPath.StartsWith(MapsFolder) || assetPath.StartsWith(ThemesFolder))
+        if (assetPath.StartsWith(Folder) || assetPath.StartsWith(LobbyFolder) || assetPath.StartsWith(BattleFolder) || assetPath.StartsWith(MapsFolder) || assetPath.StartsWith(ThemesFolder) || assetPath.StartsWith(CharactersFolder))
             Apply((TextureImporter)assetImporter);
     }
 
@@ -28,7 +30,7 @@ public class MainArtImporter : AssetPostprocessor
         if (importer.assetPath.StartsWith(ThemesFolder))
         {
             string file = System.IO.Path.GetFileNameWithoutExtension(importer.assetPath);
-            ppu = file == "path_thread" || file == "build_mark" || file == "ground" ? 128f : 230f;
+            ppu = file == "path_thread" || file == "build_mark" || file == "ground" || file.StartsWith("fx_") ? 128f : 230f;
         }
         bool changed = importer.textureType != TextureImporterType.Sprite
                        || importer.spritePixelsPerUnit != ppu

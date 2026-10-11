@@ -71,7 +71,7 @@ namespace UnityEngine {
   public class GUILayoutOption {}
   public static class GUILayout { public static void BeginArea(Rect r){} public static void EndArea(){} public static void BeginHorizontal(){} public static void EndHorizontal(){} public static void FlexibleSpace(){} public static void Label(string s,GUIStyle st,params GUILayoutOption[] o){} public static bool Button(string s,GUIStyle st,params GUILayoutOption[] o)=>false; public static GUILayoutOption Width(float w)=>null; }
   public class Event { public static Event current; public EventType type; public KeyCode keyCode; public int button; public Vector2 mousePosition, delta; public bool alt, control, command; public void Use(){} }
-  public static class GUIUtility { public static int keyboardControl; }
+  public static class GUIUtility { public static int keyboardControl; public static void RotateAroundPivot(float a, Vector2 p){} }
   public static class Input { public static Vector2 mouseScrollDelta; public static Vector3 mousePosition; public static bool GetMouseButtonDown(int b)=>false; public static bool GetMouseButton(int b)=>false; public static bool GetMouseButtonUp(int b)=>false; public static bool GetKey(KeyCode k)=>false; public static bool GetKeyDown(KeyCode k)=>false; }
   public enum EventType { KeyDown, MouseDown, MouseMove, MouseDrag, Repaint, MouseUp, ScrollWheel }
   public enum KeyCode { W, A, D, Space, Alpha1, Alpha6, Alpha7, Alpha9, B, F, P, S, Z, F12, LeftArrow, RightArrow, Escape, Return, KeypadEnter, F1, F2, UpArrow, DownArrow }

@@ -17,7 +17,7 @@ public class MapTheme
 
     public Texture2D Ground { get; private set; }
     public Sprite[] Walls { get; private set; }
-    public Sprite CrystalSmall, CrystalLarge, SpawnRift, CoreFlower, Sprout, PathThread, BuildMark;
+    public Sprite CrystalSmall, CrystalLarge, SpawnRift, CoreFlower, Sprout, PathThread, BuildMark, FxGlow, FxSpark, FxRing;
 
     readonly Dictionary<int, Sprite> groundSprites = new Dictionary<int, Sprite>();
     static readonly Dictionary<string, MapTheme> cache = new Dictionary<string, MapTheme>();
@@ -39,6 +39,9 @@ public class MapTheme
             Sprout = Resources.Load<Sprite>(dir + "sprout"),
             PathThread = Resources.Load<Sprite>(dir + "path_thread"),
             BuildMark = Resources.Load<Sprite>(dir + "build_mark"),
+            FxGlow = Resources.Load<Sprite>(dir + "fx_glow"),
+            FxSpark = Resources.Load<Sprite>(dir + "fx_spark"),
+            FxRing = Resources.Load<Sprite>(dir + "fx_ring"),
         };
         var walls = new List<Sprite>();
         foreach (string wall in new[] { "wall_bramble", "wall_knot", "wall_rock", "wall_fence" })
