@@ -7,7 +7,8 @@
 2단계(사용자 샘플 reference/sample_moon_garden.png에 맞춘 밝은 정원):
 - ground_stone.png(밝힌 칸: 레이스 무늬 돌길), ground_grass.png(안 연 칸: 달빛 잔디) — 512px = 4×4칸, ground_flower.png(막힌 암흑: 꽃밭) — 1024px = 8×8칸.
 - flower_tuft_0~3.png: 꽃밭 가장자리를 덮는 들쭉날쭉한 꽃덤불 조각(벽 칸 경계를 부드럽게).
-- border_0~3.png: 돌길과 잔디 사이 경계(꽃·황동 기둥·실패·금사슬), 한 조각 = 칸 한 변.
+- border_0~3.png(가로)·border_v_0~3.png(세로): 돌길과 잔디 사이 경계(꽃·황동 기둥·실패·금사슬), 한 조각 = 칸 한 변.
+- fx_ring_0~2.png: 실이 휘감기는 고리 3가지(밝히기 연출).
 - garden_*.png(props2.png 3×3 시트): 가로등, 수국 덤불, 실패 더미, 꽃 화분, 백합, 작은 랜턴, 돌기둥, 황동 단추, 벨벳 상자."""
 import os
 import subprocess
@@ -87,6 +88,14 @@ def garden_v2(slicer):
         tuft(flower, 11 + i).save(os.path.join(OUT, f'flower_tuft_{i}.png'))
     print('flower_tuft_0~3')
 
+    # 꿈실 고리 변형 3장(재봉틀 타워와 같은 모양, 탐색 화면에서 매번 다른 모양으로)
+    src = open(os.path.join(ROOT, 'Tools/Art/build_sewing_tower.py'), encoding='utf-8').read()
+    ns = {'__file__': os.path.join(ROOT, 'Tools/Art/build_sewing_tower.py')}
+    exec(src[:src.index('def fx_sprites():')], ns)
+    for i, seed in enumerate((7, 21, 42)):
+        Image.fromarray((ns['thread_ring'](256, seed) * 255).astype('uint8'), 'RGBA').save(os.path.join(OUT, f'fx_ring_{i}.png'))
+    print('fx_ring_0~2')
+
     # 경계 띠: 초록 배경 제거 → 띠 높이만큼 잘라 → 칸 한 변 길이(띠 두께의 약 3배)로 4조각
     b = np.asarray(Image.open(os.path.join(SRC, 'border.png')).convert('RGB'), float) / 255.0
     rgb, alpha = slicer.key_green(b)
@@ -103,7 +112,10 @@ def garden_v2(slicer):
         if xs + seg > x_end:
             break
         piece = Image.fromarray((np.clip(strip[:, xs:xs + seg], 0, 1) * 255).astype('uint8'), 'RGBA')
-        piece.resize((384, round(384 * h / seg)), Image.LANCZOS).save(os.path.join(OUT, f'border_{i}.png'))
+        piece = piece.resize((384, round(384 * h / seg)), Image.LANCZOS)
+        piece.save(os.path.join(OUT, f'border_{i}.png'))
+        # 세로 변용(미리 90° 돌려 둠: 탐색 화면 IMGUI는 확대 배율에서 회전 그리기가 어긋남)
+        piece.rotate(90, expand=True).save(os.path.join(OUT, f'border_v_{i}.png'))
         count += 1
     print(f'border_0~{count - 1} (띠 두께 {h}px, 조각 길이 {seg}px)')
 

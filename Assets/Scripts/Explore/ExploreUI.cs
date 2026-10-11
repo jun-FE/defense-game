@@ -290,16 +290,16 @@ public class ExploreUI : MonoBehaviour
                 UIKit.ShadowLabel(new Rect(p.x - cell * 1.5f, p.y - cell * 0.4f, cell * 3f, cell * 0.8f), f.text, style);
                 continue;
             }
-            Sprite sprite = f.kind == 1 ? theme.FxSpark : f.kind == 2 ? theme.FxRing : theme.FxGlow;
             var r = new Rect(p.x - size / 2f, p.y - size / 2f, size, size);
-            if (f.kind == 1 || f.kind == 2)
+            if (f.kind == 2 && theme.FxRings.Length > 0)
             {
-                Matrix4x4 m = GUI.matrix;
-                GUIUtility.RotateAroundPivot(f.angle, p);
-                DrawSprite(r, sprite, c);
-                GUI.matrix = m;
+                // 고리: 3가지 모양 × 뒤집기 4가지 중 하나(회전 대신), 커지면서 살짝 납작해졌다 펴진다
+                int k = (int)Mathf.Abs(f.angle);
+                float squash = 1f - 0.12f * Mathf.Sin(t * Mathf.PI);
+                var rr = new Rect(p.x - size / 2f, p.y - size * squash / 2f, size, size * squash);
+                DrawFlipped(rr, theme.FxRings[k % theme.FxRings.Length], c, (k / 3) % 2 == 1, (k / 6) % 2 == 1);
             }
-            else DrawSprite(r, sprite, c);
+            else DrawSprite(r, f.kind == 1 ? theme.FxSpark : theme.FxGlow, c);
         }
     }
 
@@ -350,7 +350,10 @@ public class ExploreUI : MonoBehaviour
 
     // ───────── 보기 ─────────
 
+    /// <summary>맵을 맞춰 보여 주고 클릭을 받는 영역(위·아래 HUD 띠 사이).</summary>
     Rect MapArea => new Rect(8f, 76f, UIKit.Width - 16f, UIKit.Height - 76f - 70f);
+    /// <summary>맵을 그리는 영역: 화면 전체. 맵·바깥 꽃밭이 HUD 아래까지 이어지고, 테두리 레이어(DrawScreenFrame)가 가장자리를 덮는다.</summary>
+    Rect ViewArea => new Rect(0f, 0f, UIKit.Width, UIKit.Height);
 
     void FitView()
     {
@@ -384,7 +387,11 @@ public class ExploreUI : MonoBehaviour
         UIKit.Begin();
         Fill(new Rect(0, 0, UIKit.Width, UIKit.Height), ColBack);
         if (!menuOpen) HandleMouse(e, mouse);
-        if (e.type == EventType.Repaint) DrawMap();
+        if (e.type == EventType.Repaint)
+        {
+            DrawMap();
+            MapTheme.DrawScreenFrame(new Rect(0, 0, UIKit.Width, UIKit.Height), 120f, 110f);
+        }
         DrawHud();
         if (menuOpen) DrawMenu();
         HandleKeys(e);
@@ -418,21 +425,22 @@ public class ExploreUI : MonoBehaviour
         GUI.color = old;
     }
 
-    /// <summary>회전(도)·좌우 뒤집기를 적용해 그린다(가운데 기준).</summary>
-    static void DrawRotated(Rect r, Sprite sprite, Color color, float angle, bool flip)
+    /// <summary>
+    /// 좌우·상하 뒤집기를 적용해 그린다. 회전은 쓰지 않는다: 확대 배율(UIKit)이 걸린 IMGUI에서 GUIUtility.RotateAroundPivot은
+    /// 그림을 엉뚱한 곳에 그린다(세로 경계 띠가 맵 밖에 떠 보이던 문제).
+    /// </summary>
+    static void DrawFlipped(Rect r, Sprite sprite, Color color, bool flipX, bool flipY)
     {
         if (sprite == null) return;
         Texture2D t = sprite.texture;
         Rect tr = sprite.textureRect;
         var uv = new Rect(tr.x / t.width, tr.y / t.height, tr.width / t.width, tr.height / t.height);
-        if (flip) uv = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
-        Matrix4x4 m = GUI.matrix;
-        if (angle != 0f) GUIUtility.RotateAroundPivot(angle, r.center);
+        if (flipX) uv = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
+        if (flipY) uv = new Rect(uv.x, uv.yMax, uv.width, -uv.height);
         Color old = GUI.color;
         GUI.color = color;
         GUI.DrawTextureWithTexCoords(r, t, uv);
         GUI.color = old;
-        GUI.matrix = m;
     }
 
     /// <summary>바닥에 서 있는 오브젝트: 폭 width칸, 아래쪽이 칸 바닥 근처에 닿게.</summary>
@@ -460,9 +468,12 @@ public class ExploreUI : MonoBehaviour
             float cx0 = -o0.x / cell, cx1 = (area.width - o0.x) / cell;
             float cy0 = -o0.y / cell, cy1 = (area.height - o0.y) / cell;
             float n = MapTheme.Tiles(MapTheme.Ground.Flower);
-            GUI.color = MapTheme.Shade(MapTheme.Ground.Flower) * new Color(0.3f, 0.3f, 0.38f);
+            GUI.color = MapTheme.Shade(MapTheme.Ground.Flower);
             GUI.DrawTextureWithTexCoords(new Rect(0, 0, area.width, area.height), theme.Flower,
                 new Rect(cx0 / n, (map.Height - cy1) / n, (cx1 - cx0) / n, (cy1 - cy0) / n));
+            // 맵 안 어둠과 같은 안개를 덮는다(맵 경계가 사각형으로 드러나지 않게)
+            GUI.color = new Color(MapTheme.FogColor.r, MapTheme.FogColor.g, MapTheme.FogColor.b, MapTheme.ExploreFog);
+            GUI.DrawTexture(new Rect(0, 0, area.width, area.height), Texture2D.whiteTexture);
         }
         for (int y = 0; y < map.Height; y++)
             for (int x = 0; x < map.Width; x++)
@@ -491,15 +502,21 @@ public class ExploreUI : MonoBehaviour
                 {
                     Vector2 c = r.center + offset * cell;
                     float s = size * cell;
-                    DrawRotated(new Rect(c.x - s / 2f, c.y - s / 2f, s, s), tuft, MapTheme.Shade(MapTheme.Ground.Flower), angle, flip);
+                    bool fx, fy;
+                    MapTheme.FlipsFor(angle, flip, out fx, out fy);
+                    DrawFlipped(new Rect(c.x - s / 2f, c.y - s / 2f, s, s), tuft, MapTheme.Shade(MapTheme.Ground.Flower), fx, fy);
                 }
                 foreach (Vector2Int side in MapTheme.Sides)
                 {
                     Sprite border = theme.BorderFor(map, x, y, side);
                     if (border == null) continue;
-                    float w = cell * 1.06f, h = w * border.rect.height / border.rect.width;
+                    // 세로 변은 미리 돌려 둔 그림(border_v_*)이라 길이 방향이 세로
+                    bool vertical = side.x != 0;
+                    float len = cell * 1.06f;
+                    float thick = len * (vertical ? border.rect.width / border.rect.height : border.rect.height / border.rect.width);
+                    float w = vertical ? thick : len, h = vertical ? len : thick;
                     Vector2 c = r.center + new Vector2(side.x, side.y) * (cell * 0.5f);
-                    DrawRotated(new Rect(c.x - w / 2f, c.y - h / 2f, w, h), border, Color.white, side.x != 0 ? 90f : 0f, false);
+                    DrawSprite(new Rect(c.x - w / 2f, c.y - h / 2f, w, h), border, Color.white);
                 }
             }
 
@@ -528,6 +545,9 @@ public class ExploreUI : MonoBehaviour
             GUI.DrawTexture(fogRect, oldFog);
         }
         GUI.color = before;
+
+        // 맵 가장자리를 바깥 어둠으로 부드럽게 녹인다(맵 경계의 딱딱한 선 없애기)
+        MapTheme.DrawMapEdge(fogRect, cell * 1.5f, 0.35f);
 
         // 방금 밝힌 칸 번쩍임
         if (flashT > 0f)
@@ -568,7 +588,7 @@ public class ExploreUI : MonoBehaviour
 
     void DrawMap()
     {
-        Rect area = MapArea;
+        Rect area = ViewArea;
         GUI.BeginClip(area);
         Vector2 shift = -area.position;
         float px = 1f / Mathf.Max(0.01f, UIKit.Scale);

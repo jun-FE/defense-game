@@ -111,6 +111,8 @@ public class BattleHUD : MonoBehaviour
         uiRects.Clear();
         GUI.matrix = Matrix4x4.Scale(new Vector3(UIKit.Scale * HudScale, UIKit.Scale * HudScale, 1f));
         Vector2 virtualMouse = mouseScreen / (UIKit.Scale * HudScale);
+        // 화면 테두리 레이어: 가장자리 비네트 + 위·아래 HUD 띠 뒤 밤색 그라데이션(맵 바깥이 화면 끝에서 자연스럽게 가라앉게)
+        if (e.type == EventType.Repaint && DreamRun.Active) MapTheme.DrawScreenFrame(new Rect(0f, 0f, W, H), H * 0.14f, H * 0.21f);
         bool overlay = pauseMenu || Session.Phase == BattlePhase.Ended;
         GUI.enabled = !overlay;
         DrawStagePlate();

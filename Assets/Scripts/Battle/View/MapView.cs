@@ -143,11 +143,11 @@ public class MapView : MonoBehaviour
         if (path != null) foreach (Akmong.Battle.GridPoint p in path) onPath.Add(new Vector2Int(p.X, p.Y));
 
         // 0) 맵 바깥: 어두운 꽃밭을 넉넉히 반복해 깔고, 그 너머는 밤하늘색
-        if (Camera.main != null) Camera.main.backgroundColor = new Color(0.04f, 0.045f, 0.1f);
+        if (Camera.main != null) Camera.main.backgroundColor = MapTheme.Night;
         int margin = Mathf.Max(g.Width, g.Height);
         var flowerSprite = Sprite.Create(theme.Flower, new Rect(0, 0, theme.Flower.width, theme.Flower.height), new Vector2(0.5f, 0.5f),
             theme.Flower.width / (float)MapTheme.Tiles(MapTheme.Ground.Flower), 0, SpriteMeshType.FullRect);
-        GameObject backdrop = Create("Backdrop", flowerSprite, MapTheme.Shade(MapTheme.Ground.Flower) * new Color(0.55f, 0.55f, 0.62f), 
+        GameObject backdrop = Create("Backdrop", flowerSprite, MapTheme.Shade(MapTheme.Ground.Flower) * new Color(0.3f, 0.3f, 0.4f),
             new Vector2((g.Width - 1) / 2f, (g.Height - 1) / 2f), Vector2.one, -23);
         var backdropRenderer = backdrop.GetComponent<SpriteRenderer>();
         backdropRenderer.drawMode = SpriteDrawMode.Tiled;
@@ -192,6 +192,21 @@ public class MapView : MonoBehaviour
         var fogSprite = Sprite.Create(fogTexture, new Rect(0, 0, fogTexture.width, fogTexture.height), Vector2.zero, MapTheme.FogPixelsPerCell);
         GameObject fogGo = Create("Fog", fogSprite, Color.white, new Vector2(-0.5f, -0.5f), Vector2.one, -14);
         fog = fogGo.GetComponent<SpriteRenderer>();
+
+        // 3-1) 맵 가장자리를 바깥 어둠으로 부드럽게 녹인다(폭 1.5칸, 맵 경계의 딱딱한 선 없애기)
+        var fadeSprite = Sprite.Create(MapTheme.FadeH, new Rect(0, 0, MapTheme.FadeH.width, 1), new Vector2(0f, 0.5f), MapTheme.FadeH.width);
+        var night = new Color(MapTheme.Night.r, MapTheme.Night.g, MapTheme.Night.b, 0.5f);
+        const float fadeWidth = 1.5f;
+        float edgeL = -0.5f, edgeR = g.Width - 0.5f, edgeB = -0.5f, edgeT = g.Height - 0.5f;
+        float midX = (edgeL + edgeR) / 2f, midY = (edgeB + edgeT) / 2f;
+        // 스프라이트 왼쪽 끝(불투명)이 맵 경계에 오고 안쪽으로 투명해진다
+        Create("EdgeL", fadeSprite, night, new Vector2(edgeL, midY), new Vector2(fadeWidth, g.Height * MapTheme.FadeH.width), -12);
+        Create("EdgeR", fadeSprite, night, new Vector2(edgeR, midY), new Vector2(fadeWidth, g.Height * MapTheme.FadeH.width), -12)
+            .transform.rotation = Quaternion.Euler(0f, 0f, 180f);
+        Create("EdgeT", fadeSprite, night, new Vector2(midX, edgeT), new Vector2(fadeWidth, g.Width * MapTheme.FadeH.width), -12)
+            .transform.rotation = Quaternion.Euler(0f, 0f, -90f);
+        Create("EdgeB", fadeSprite, night, new Vector2(midX, edgeB), new Vector2(fadeWidth, g.Width * MapTheme.FadeH.width), -12)
+            .transform.rotation = Quaternion.Euler(0f, 0f, 90f);
 
         // 4) 몬스터 경로: 칸 중심을 잇는 은은한 꿈실
         if (path != null)

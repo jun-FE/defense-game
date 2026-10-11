@@ -21,7 +21,8 @@ MAP = args[1] if len(args) > 1 else os.path.join(ROOT, 'Assets/Resources/Maps/MA
 PX = int(opts.get('px', 64))
 MODE = opts.get('mode', 'battle')
 M = int(opts.get('margin', 3))
-FOG = {'battle': 0.34, 'explore': 0.8}[MODE]
+FOG = {'battle': 0.34, 'explore': 0.94}[MODE]
+NIGHT = (9, 10, 23)
 
 m = json.load(open(MAP, encoding='utf-8'))
 W, H, rows = m['width'], m['height'], m['rows']
@@ -69,7 +70,7 @@ h32 = lambda x, y: ((x * 73856093) ^ (y * 19349663)) & 0x7fffffff
 TILES = {'stone': 4, 'grass': 4, 'flower': 8}
 SHADE = {'stone': (0.95, 0.95, 1.0), 'grass': (1.0, 1.05, 1.0), 'flower': (0.78, 0.78, 0.86)}
 grounds = {k: tint(ld('ground_' + k).resize((PX * n, PX * n), Image.LANCZOS), SHADE[k]) for k, n in TILES.items()}
-img = Image.new('RGBA', ((W + 2 * M) * PX, (H + 2 * M) * PX), (8, 10, 22, 255))
+img = Image.new('RGBA', ((W + 2 * M) * PX, (H + 2 * M) * PX), NIGHT + (255,))
 O = M * PX
 
 
@@ -84,7 +85,12 @@ for y in range(-M, H + M):
     for x in range(-M, W + M):
         if 0 <= x < W and 0 <= y < H:
             continue
-        img.alpha_composite(tint(piece('flower', x, y), (0.5, 0.5, 0.6)), (O + x * PX, O + y * PX))
+        if MODE == 'battle':
+            img.alpha_composite(tint(piece('flower', x, y), (0.3, 0.3, 0.4)), (O + x * PX, O + y * PX))
+        else:  # 탐색: 꽃밭 위에 맵 안과 같은 안개
+            t = np.asarray(piece('flower', x, y), float)
+            t[..., :3] = t[..., :3] * (1 - FOG) + np.array([10, 12, 34]) * FOG
+            img.alpha_composite(Image.fromarray(t.astype('uint8'), 'RGBA'), (O + x * PX, O + y * PX))
 for y in range(H):
     for x in range(W):
         kind = 'flower' if cellt[y][x] == '#' else 'stone' if (x, y) in opened else 'grass'
@@ -137,6 +143,19 @@ layer = np.zeros((H * PX, W * PX, 4))
 layer[..., 0], layer[..., 1], layer[..., 2], layer[..., 3] = 10 / 255, 12 / 255, 34 / 255, a
 img.alpha_composite(Image.fromarray((layer * 255).astype('uint8'), 'RGBA'), (O, O))
 
+# 맵 가장자리 그라데이션(1.5칸, 바깥 어둠으로 녹임)
+fw = int(PX * 1.5)
+ramp = np.linspace(1, 0, fw)
+ramp = ramp * ramp * (3 - 2 * ramp) * (0.5 if MODE == 'battle' else 0.35)
+edge = np.zeros((H * PX, W * PX))
+yy = np.arange(H * PX)[:, None]
+xx = np.arange(W * PX)[None, :]
+for d in (yy, H * PX - 1 - yy, xx, W * PX - 1 - xx):
+    edge = np.maximum(edge, np.where(d < fw, ramp[np.clip(d, 0, fw - 1)], 0))
+el = np.zeros((H * PX, W * PX, 4))
+el[..., 0], el[..., 1], el[..., 2], el[..., 3] = NIGHT[0] / 255, NIGHT[1] / 255, NIGHT[2] / 255, edge
+img.alpha_composite(Image.fromarray((el * 255).astype('uint8'), 'RGBA'), (O, O))
+
 # 빛길(전투만, 은은하게)
 if MODE == 'battle':
     thread = ld('path_thread')
@@ -175,6 +194,19 @@ for y in range(H):
             prop('crystal_large', x, y, 0.85)
 prop('spawn_rift', sx, sy, 1.1)
 prop('core_flower', gx, gy, 0.85)
+
+# 화면 테두리 레이어: 비네트 + 위·아래 그라데이션
+Wt, Ht = img.size
+yy, xx = np.mgrid[0:Ht, 0:Wt]
+dx, dy = (xx + .5) / Wt * 2 - 1, (yy + .5) / Ht * 2 - 1
+d = np.sqrt(dx * dx * 0.8 + dy * dy * 1.1)
+a = np.clip((d - 0.62) / 0.6, 0, 1) ** 2 * 235 / 255
+for band, frac in ((yy / Ht, 0.14), ((Ht - 1 - yy) / Ht, 0.21)):
+    r = np.clip(1 - band / frac, 0, 1)
+    a = np.maximum(a, r * r * (3 - 2 * r) * 0.92)
+fl = np.zeros((Ht, Wt, 4))
+fl[..., 0], fl[..., 1], fl[..., 2], fl[..., 3] = NIGHT[0] / 255, NIGHT[1] / 255, NIGHT[2] / 255, a
+img.alpha_composite(Image.fromarray((fl * 255).astype('uint8'), 'RGBA'))
 
 img.convert('RGB').save(OUT, quality=88)
 print('saved', OUT, img.size)
