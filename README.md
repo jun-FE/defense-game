@@ -186,6 +186,7 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - 시스템 기획서의 계산 사례(16피해, 7회 7초 처치, 잔액 76, 강화 실패 시 변화 없음 등)를 자동으로 검사합니다.
   - Unity: 메뉴 **Defense → 전투 검산 테스트 실행** (Console에 결과)
   - 터미널(Mono 필요): `bash Tools/CoreTests/run.sh`
+- 전체 스크립트 컴파일 검사(Unity 없이, Mono 필요): `bash Tools/StubCompile/compile.sh` — Unity API 빈 껍데기(`Tools/StubCompile/UnityStubs.cs`)로 에디터(Mac)·Windows 두 설정을 검사합니다.
 - 밸런스 모의 플레이: `bash Tools/CoreTests/balance.sh` (병정인형을 섞어 지으려면 `balance.sh 200 mix`) → 성공률, 잔여 중심 HP, 소요 시간을 기획 목표와 함께 보여줍니다.
 - 첫 의뢰 웨이브는 기획서 샘플보다 적을 줄인 1차 밸런스입니다(기획서 샘플은 시작 재화 120으로 막기 어려운 스트레스 테스트). 기획서 샘플 그대로의 웨이브는 테스트 전용(`SampleContent.SpecSampleStage`)으로 남겨 두었습니다.
 
