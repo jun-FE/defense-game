@@ -262,18 +262,43 @@ namespace Akmong.Battle
                 return;
             }
 
+            // 여러 적 동시 공격: 첫 대상 + 사거리 안에서 중심에 가까운 순으로 나머지
+            targets.Clear();
+            targets.Add(target);
+            if (level.HitCount > 1)
+            {
+                float rangeSq = level.Range * level.Range + (float)Epsilon;
+                foreach (EnemyState enemy in enemies)
+                {
+                    if (!enemy.Alive || enemy == target) continue;
+                    if (Vector2.DistanceSquared(tower.Position, enemy.Position) > rangeSq) continue;
+                    targets.Add(enemy);
+                }
+                targets.Sort((a, b) => a == target ? -1 : b == target ? 1 : Closer(a, b) ? -1 : Closer(b, a) ? 1 : 0);
+                if (targets.Count > level.HitCount) targets.RemoveRange(level.HitCount, targets.Count - level.HitCount);
+            }
+
             bool crit = level.CritChance > 0f && random.NextDouble() < level.CritChance;
+            tower.AttackRemaining += BattleMath.AttackInterval(level.AttackSec, Rules);
+            for (int i = 0; i < targets.Count; i++) Hit(tower, level, targets[i], crit, i, targets.Count);
+        }
+
+        readonly List<EnemyState> targets = new List<EnemyState>();
+
+        void Hit(TowerState tower, TowerLevelDef level, EnemyState target, bool crit, int index, int total)
+        {
             int damage = BattleMath.ResolveDamage(new DamageInput
             {
                 BaseDamage = level.Damage,
                 Armor = target.Def.Armor,
+                ArmorAdd = target.Pinned ? -target.ArmorDown : 0f,
+                Vulnerability = target.Tagged ? target.Vulnerable : 0f,
                 Crit = crit,
                 CritMult = level.CritMult,
             }, Rules);
 
             float before = target.Hp;
             target.Hp = Math.Max(0f, target.Hp - damage);
-            tower.AttackRemaining += BattleMath.AttackInterval(level.AttackSec, Rules);
 
             bool killed = target.Hp <= 0f;
             bool knockback = !killed && level.Knockback > 0f && !target.Def.IsBoss;
@@ -292,6 +317,20 @@ namespace Akmong.Battle
                 if (!target.Slowed || mult <= target.SlowMult) target.SlowMult = mult;
                 target.SlowRemaining = Math.Max(target.SlowRemaining, level.SlowSec);
             }
+            bool pinned = !killed && level.Marks && level.ArmorShred > 0f;
+            if (pinned)
+            {
+                if (!target.Pinned || level.ArmorShred >= target.ArmorDown) target.ArmorDown = level.ArmorShred;
+                target.ArmorDownRemaining = Math.Max(target.ArmorDownRemaining, level.MarkSec);
+            }
+            bool tagged = !killed && level.Marks && level.Vulnerability > 0f;
+            if (tagged)
+            {
+                // 보스는 절반만(약한 디버프)
+                float v = target.Def.IsBoss ? level.Vulnerability * 0.5f : level.Vulnerability;
+                if (!target.Tagged || v >= target.Vulnerable) target.Vulnerable = v;
+                target.VulnerableRemaining = Math.Max(target.VulnerableRemaining, level.MarkSec);
+            }
             TowerFired?.Invoke(new HitResult
             {
                 Tower = tower,
@@ -303,6 +342,10 @@ namespace Akmong.Battle
                 Killed = killed,
                 Knockback = knockback,
                 Slowed = slowed,
+                Pinned = pinned,
+                Tagged = tagged,
+                HitIndex = index,
+                HitTotal = total,
             });
             if (killed) Kill(target);
         }
@@ -388,6 +431,16 @@ namespace Akmong.Battle
             {
                 enemy.SlowRemaining = Math.Max(0, enemy.SlowRemaining - dt);
                 if (enemy.SlowRemaining <= 0) enemy.SlowMult = 1f;
+            }
+            if (enemy.ArmorDownRemaining > 0)
+            {
+                enemy.ArmorDownRemaining = Math.Max(0, enemy.ArmorDownRemaining - dt);
+                if (enemy.ArmorDownRemaining <= 0) enemy.ArmorDown = 0f;
+            }
+            if (enemy.VulnerableRemaining > 0)
+            {
+                enemy.VulnerableRemaining = Math.Max(0, enemy.VulnerableRemaining - dt);
+                if (enemy.VulnerableRemaining <= 0) enemy.Vulnerable = 0f;
             }
             if (enemy.BlockedBy != null) return; // 저지당한 적은 제자리에 멈춘다.
             // 2주차: 침식 속도 배율, 가속·속박 효과

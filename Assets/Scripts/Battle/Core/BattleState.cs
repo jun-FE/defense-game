@@ -26,6 +26,14 @@ namespace Akmong.Battle
         public float SlowMult { get; internal set; } = 1f;
         public double SlowRemaining { get; internal set; }
         public bool Slowed => SlowRemaining > 0;
+        /// <summary>바늘꽂이 표식: 깎인 방어력과 남은 시간(초).</summary>
+        public float ArmorDown { get; internal set; }
+        public double ArmorDownRemaining { get; internal set; }
+        /// <summary>수선표 표식: 받는 피해 증가 비율과 남은 시간(초).</summary>
+        public float Vulnerable { get; internal set; }
+        public double VulnerableRemaining { get; internal set; }
+        public bool Pinned => ArmorDownRemaining > 0;
+        public bool Tagged => VulnerableRemaining > 0;
         internal readonly System.Collections.Generic.Dictionary<int, double> BlockLeft = new System.Collections.Generic.Dictionary<int, double>();
 
         /// <summary>중심까지 남은 경로 거리. NEAREST_CORE 타겟팅 기준.</summary>
@@ -85,5 +93,12 @@ namespace Akmong.Battle
         public bool Knockback;
         /// <summary>이번 공격으로 감속이 걸렸는지.</summary>
         public bool Slowed;
+        /// <summary>이번 공격으로 방어 감소(바늘꽂이)·받는 피해 증가(수선표) 표식이 걸렸는지.</summary>
+        public bool Pinned;
+        public bool Tagged;
+        /// <summary>여러 적 동시 공격에서 몇 번째 적인지(0 = 첫 적). 화면은 0일 때만 공격 동작을 보여 준다.</summary>
+        public int HitIndex;
+        /// <summary>이번 공격에 맞은 적 수.</summary>
+        public int HitTotal;
     }
 }

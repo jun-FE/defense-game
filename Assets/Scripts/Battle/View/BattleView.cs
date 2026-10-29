@@ -103,7 +103,9 @@ public class BattleView : MonoBehaviour
         EnemyView target;
         enemyViews.TryGetValue(hit.Target, out target);
         Vector3 to = target != null ? target.transform.position : (Vector3)BattleContentBuilder.ToUnity(hit.Target.Position);
-        towerView.PlayAttack(to);
+        // 여러 적 동시 공격이면 공격 동작·발사 불꽃은 첫 적에서 한 번만
+        bool first = hit.HitIndex == 0;
+        if (first) towerView.PlayAttack(to);
         if (towerView.Melee)
         {
             // 찌르기는 투사체 없이 맞은 적이 번쩍인다(6프레임 중 4번째가 타격).
@@ -112,8 +114,25 @@ public class BattleView : MonoBehaviour
         }
         if (towerView.Fancy)
         {
-            BattleFx.MuzzleFlash(transform, towerView.FirePoint, towerView.FxStyle, hit.Crit);
-            BattleFx.NeedleShot(transform, towerView.FirePoint, to, towerView.FxStyle, hit.Crit);
+            BattleFx.Style style = towerView.FxStyle;
+            Vector3 from = towerView.FirePoint;
+            switch (towerView.FxKind)
+            {
+                case TowerFxKind.Beam:
+                    BattleFx.Beam(transform, from, to, style, hit.Crit);
+                    break;
+                case TowerFxKind.Snip:
+                    BattleFx.Snip(transform, towerView.transform.position, to, style, hit.Crit, first);
+                    if (target != null) target.Flash(0.12f);
+                    break;
+                case TowerFxKind.Whip:
+                    BattleFx.Whip(transform, from, to, style, hit.Crit);
+                    break;
+                default:   // 바늘·시침핀·꼬리표 바늘
+                    if (first) BattleFx.MuzzleFlash(transform, from, style, hit.Crit);
+                    BattleFx.NeedleShot(transform, from, to, style, hit.Crit);
+                    break;
+            }
             return;
         }
         ProjectileView.Spawn(transform, towerView.FirePoint, to, towerView.ProjectileSprite != null ? towerView.ProjectileSprite : circle, hit.Crit);

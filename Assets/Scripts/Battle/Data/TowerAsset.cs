@@ -33,6 +33,33 @@ public class TowerLevelData
     [Label("감속 시간 (초)")]
     [Tooltip("감속이 이어지는 시간. 다시 맞으면 새로 이어진다.")]
     public float slowSec;
+
+    [Header("여러 적 동시 공격 (가위·바늘꽂이)")]
+    [Label("한 번에 맞히는 적 수")]
+    [Tooltip("사거리 안에서 중심에 가까운 순으로 이만큼 한꺼번에 친다. 1이면 한 적.")]
+    [Min(1)] public int hitCount = 1;
+
+    [Header("표식 (바늘꽂이·수선표 활)")]
+    [Label("방어 감소")]
+    [Tooltip("맞은 적의 방어력을 이만큼 깎는다. 0이면 없음.")]
+    public float armorShred;
+    [Label("받는 피해 증가")]
+    [Tooltip("맞은 적이 모든 타워에게 이 비율만큼 더 맞는다(0.2 = 20%). 보스는 절반. 0이면 없음.")]
+    [Range(0f, 1f)] public float vulnerability;
+    [Label("표식 시간 (초)")]
+    [Tooltip("표식이 이어지는 시간. 다시 맞으면 새로 이어진다.")]
+    public float markSec;
+}
+
+/// <summary>공격 연출 종류(BattleFx). fancyShot을 켠 타워만 쓴다.</summary>
+public enum TowerFxKind
+{
+    [InspectorName("바늘(재봉틀)")] Needle,
+    [InspectorName("빛줄기(스탠드 조명)")] Beam,
+    [InspectorName("가위질(가위)")] Snip,
+    [InspectorName("줄자 휘감기(줄자)")] Whip,
+    [InspectorName("시침핀(바늘꽂이)")] Pins,
+    [InspectorName("꼬리표 바늘(수선표 활)")] Tag,
 }
 
 [CreateAssetMenu(menuName = "Defense/전투 데이터/Tower", fileName = "TW_NEW")]
@@ -53,8 +80,11 @@ public class TowerAsset : DefinitionAsset
     [Header("화려한 공격 연출(BattleFx)")]
     [Tooltip("켜면 발사 불꽃 + 꿈실 꼬리를 남기는 투사체 + 명중 폭발로 그린다(projectile을 바늘로 사용).")]
     public bool fancyShot;
+    public TowerFxKind fxKind = TowerFxKind.Needle;
     public Color fxColor = new Color(0.72f, 0.55f, 1f);
     public Sprite fxSpark;
     public Sprite fxRing;
     public Sprite fxGlow;
+    [Tooltip("가위질 연출용 칼날 빛(가위). 비우면 빛 점으로 대신한다.")]
+    public Sprite fxSlash;
 }

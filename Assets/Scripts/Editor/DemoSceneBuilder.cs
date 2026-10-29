@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "18";
+    public const string BuildVersion = "19";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -43,6 +43,18 @@ public static class DemoSceneBuilder
     public const string SoldierDir = "Assets/Art/Towers/Soldier";
     public const string SnowballDir = "Assets/Art/Towers/Snowball";
     public const string SewingDir = "Assets/Art/Towers/Sewing";
+    /// <summary>
+    /// 수선소 물품 타워: id → (그림 폴더, 파일 앞이름, 발사 지점 px(256px 캔버스 가운데 기준, 오른쪽·위가 +), 그림이 왼쪽을 보는지, 연출 종류, 연출 색, 크기 배율(넓은 그림은 한 칸에 맞게 줄임)).
+    /// 그림은 Tools/Art/build_tower_art.py가 만든다.
+    /// </summary>
+    static readonly (string id, string dir, string prefix, Vector2 fire, bool facesLeft, TowerFxKind fx, Color color, float scale)[] CraftTowers =
+    {
+        ("TW_LAMP", "Assets/Art/Towers/Lamp", "lamp", new Vector2(-30f, 30f), true, TowerFxKind.Beam, new Color(1f, 0.78f, 0.42f), 1f),
+        ("TW_SCISSORS", "Assets/Art/Towers/Scissors", "scissors", new Vector2(0f, 45f), false, TowerFxKind.Snip, new Color(0.78f, 0.62f, 1f), 1f),
+        ("TW_TAPE", "Assets/Art/Towers/Tape", "tape", new Vector2(10f, 15f), false, TowerFxKind.Whip, new Color(0.74f, 0.56f, 1f), 0.85f),
+        ("TW_PIN", "Assets/Art/Towers/Pin", "pin", new Vector2(0f, 35f), false, TowerFxKind.Pins, new Color(0.88f, 0.9f, 1f), 0.8f),
+        ("TW_TAGBOW", "Assets/Art/Towers/TagBow", "tagbow", new Vector2(-80f, -15f), true, TowerFxKind.Tag, new Color(1f, 0.84f, 0.45f), 0.9f),
+    };
     const string ResourcesDir = "Assets/Resources";
 
     // 이전 버전(단일 경로 디펜스)이 만든 파일. 업데이트할 때 지운다.
@@ -330,20 +342,47 @@ public static class DemoSceneBuilder
                     critChance = l.CritChance, critMult = l.CritMult, upgradeCost = l.UpgradeCost,
                     blockCount = l.BlockCount, blockSec = l.BlockSec, knockback = l.Knockback,
                     slowMult = l.SlowMult, slowSec = l.SlowSec,
+                    hitCount = l.HitCount, armorShred = l.ArmorShred, vulnerability = l.Vulnerability, markSec = l.MarkSec,
                 }).ToArray();
             }));
         }
-        // 스탠드(TW_LAMP)는 드림캐처 아트를 쓴다. 프리팹·아이콘이 비어 있으면 채운다.
+        // 스탠드(TW_LAMP)는 예전에 2단계·드림캐처 그림이었다. 3단계 스탠드 조명으로 한 번 바꾼다(수치·그림 모두).
         foreach (TowerAsset tower in towers)
         {
-            if (tower.id != "TW_LAMP") continue;
-            if (tower.prefab == null) tower.prefab = CreateDreamcatcherPrefab(tower.id);
-            if (tower.icon == null) tower.icon = LoadTowerSprite("icon_tower.png");
-            if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_tower_disabled.png");
-            if (tower.projectile == null) tower.projectile = LoadTowerSprite("feather_projectile.png");
+            if (tower.id != "TW_LAMP" || tower.levels.Length >= 3) continue;
+            TowerDef def = SampleContent.Lamp();
+            tower.displayName = def.Name;
+            tower.levels = def.Levels.ConvertAll(l => new TowerLevelData
+            {
+                id = l.Id, damage = l.Damage, range = l.Range, attackSec = l.AttackSec,
+                critChance = l.CritChance, critMult = l.CritMult, upgradeCost = l.UpgradeCost, hitCount = 1,
+            }).ToArray();
+            tower.prefab = null;
+            tower.icon = null;
+            tower.iconDisabled = null;
+            tower.projectile = null;
             EditorUtility.SetDirty(tower);
+            Debug.Log("[빌더] 스탠드를 3단계 스탠드 조명으로 바꿨습니다.");
         }
-        // 병정인형(TW_SOLDIER): 4방향·3단계 아트.
+        // 수선소 물품 타워: 단계별 기본·대기·공격 그림, 화려한 연출(재봉틀의 빛 조각을 같이 쓴다).
+        foreach (TowerAsset tower in towers)
+            foreach (var craft in CraftTowers)
+            {
+                if (tower.id != craft.id) continue;
+                if (tower.prefab == null) tower.prefab = CreateFramedPrefab(tower.id, craft.dir, craft.prefix, craft.fire, craft.facesLeft, craft.scale);
+                if (tower.icon == null) tower.icon = LoadTowerSprite("icon.png", craft.dir);
+                if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_disabled.png", craft.dir);
+                if (tower.projectile == null) tower.projectile = LoadTowerSprite("fx_needle.png", SewingDir);
+                if (tower.fxSpark == null) tower.fxSpark = LoadTowerSprite("fx_spark.png", SewingDir);
+                if (tower.fxRing == null) tower.fxRing = LoadTowerSprite("fx_ring.png", SewingDir);
+                if (tower.fxGlow == null) tower.fxGlow = LoadTowerSprite("fx_glow.png", SewingDir);
+                if (tower.fxSlash == null) tower.fxSlash = LoadTowerSprite("fx_slash.png", SewingDir);
+                tower.fancyShot = true;
+                tower.fxKind = craft.fx;
+                tower.fxColor = craft.color;
+                EditorUtility.SetDirty(tower);
+            }
+        // 병정인형(TW_SOLDIER): 4방향·3단계 아트. (지금 전투 목록에는 없음, 다시 넣으면 쓰인다)
         foreach (TowerAsset tower in towers)
         {
             if (tower.id != "TW_SOLDIER") continue;
@@ -428,8 +467,16 @@ public static class DemoSceneBuilder
             Debug.Log("[빌더] 첫 의뢰 전투를 정원 맵(MAP_GARDEN)으로 옮겼습니다.");
         }
 
-        // 이미 있던 스테이지에는 새로 생긴 타워(예: 병정인형)만 뒤에 붙인다. 고친 수치는 그대로 둔다.
+        // 예전 목록(병정인형·스노우볼이 있던 때)이면 수선소 물품 타워 목록으로 한 번 바꾼다.
         var stageTowers = new List<TowerAsset>(stageAsset.towers ?? new TowerAsset[0]);
+        if (stageTowers.Exists(t => t != null && (t.id == "TW_SNOWBALL" || t.id == "TW_SOLDIER")))
+        {
+            stageAsset.towers = towers.ToArray();
+            EditorUtility.SetDirty(stageAsset);
+            stageTowers = new List<TowerAsset>(towers);
+            Debug.Log("[빌더] 첫 의뢰 타워를 수선소 물품 6종으로 바꿨습니다.");
+        }
+        // 이미 있던 스테이지에는 새로 생긴 타워만 뒤에 붙인다. 고친 수치는 그대로 둔다.
         bool added = false;
         foreach (TowerAsset tower in towers)
             if (!stageTowers.Contains(tower)) { stageTowers.Add(tower); added = true; }
@@ -594,6 +641,44 @@ public static class DemoSceneBuilder
         firePoint.SetParent(root.transform, false);
         // 바늘 끝: 캔버스 중심에서 왼쪽 77px, 아래 13px
         firePoint.localPosition = new Vector3(-77f / TowerArtImporter.SewingPixelsPerUnit, visualOffset.y - 13f / TowerArtImporter.SewingPixelsPerUnit, 0f);
+
+        GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
+        Object.DestroyImmediate(root);
+        return prefab;
+    }
+
+    /// <summary>
+    /// 단계별 그림 3장(기본·대기·공격)으로 만든 타워 프리팹(재봉틀과 같은 256px 캔버스 규칙).
+    /// fire는 발사 지점(캔버스 가운데 기준 px, 오른쪽·위가 +). 그림이 없으면 null(데이터만 있는 타워는 임시 도형).
+    /// </summary>
+    static GameObject CreateFramedPrefab(string id, string dir, string prefix, Vector2 fire, bool facesLeft, float scale)
+    {
+        var stages = new TowerVisual.StageFrames[3];
+        for (int level = 0; level < 3; level++)
+        {
+            Sprite idle0 = LoadTowerSprite($"{prefix}_L{level + 1}_idle0.png", dir);
+            Sprite idle1 = LoadTowerSprite($"{prefix}_L{level + 1}_idle1.png", dir);
+            Sprite attack = LoadTowerSprite($"{prefix}_L{level + 1}_attack0.png", dir);
+            if (idle0 == null || idle1 == null || attack == null) return null;
+            stages[level] = new TowerVisual.StageFrames { idle = new[] { idle0, idle1 }, attack = new[] { attack, attack, idle0 } };
+        }
+
+        EnsureFolder($"{PrefabDir}/Towers");
+        var root = new GameObject(id);
+        // 그림 1px = scale / PPU 유닛(배율만큼 작게, 받침 바닥은 칸 아래쪽 같은 위치)
+        float unit = scale / TowerArtImporter.SewingPixelsPerUnit;
+        var visualOffset = new Vector2(0f, 113f * unit - 0.35f);
+        GameObject visualGo = CreateSprite("Visual", stages[0].idle[0], Color.white, root.transform, visualOffset, Vector2.one * scale, 1);
+        var visual = visualGo.AddComponent<TowerVisual>();
+        visual.stages = stages;
+        visual.artFacesLeft = facesLeft;
+        visual.lively = true;
+        visual.idleFps = 3f;
+        visual.attackFps = 14f;
+
+        var firePoint = new GameObject("FirePoint").transform;
+        firePoint.SetParent(root.transform, false);
+        firePoint.localPosition = new Vector3(fire.x * unit, visualOffset.y + fire.y * unit, 0f);
 
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/Towers/{id}.prefab");
         Object.DestroyImmediate(root);

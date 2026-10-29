@@ -145,6 +145,10 @@ public static class BattleContentBuilder
                 Knockback = level.knockback,
                 SlowMult = level.slowMult <= 0f ? 1f : level.slowMult,
                 SlowSec = level.slowSec,
+                HitCount = level.hitCount < 1 ? 1 : level.hitCount,
+                ArmorShred = level.armorShred,
+                Vulnerability = level.vulnerability,
+                MarkSec = level.markSec,
             });
         }
         return tower;

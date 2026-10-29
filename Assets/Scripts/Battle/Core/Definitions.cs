@@ -59,6 +59,19 @@ namespace Akmong.Battle
         /// <summary>감속이 이어지는 시간(초). 다시 맞으면 새로 이어진다.</summary>
         public float SlowSec;
         public bool Slows => SlowMult < 1f && SlowSec > 0f;
+
+        // 여러 적 동시 공격(가위·바늘꽂이). 사거리 안에서 중심에 가까운 순으로 최대 HitCount명을 한 번에 친다.
+        /// <summary>한 번 공격에 맞히는 적 수(1 = 한 적).</summary>
+        public int HitCount = 1;
+
+        // 표식(바늘꽂이: 근거리 방어 감소, 수선표 활: 원거리 받는 피해 증가). 다시 맞으면 시간이 새로 이어지고, 더 센 쪽을 유지.
+        /// <summary>맞은 적의 방어력을 이만큼 깎는다(0이면 없음).</summary>
+        public float ArmorShred;
+        /// <summary>받는 피해 증가 비율(0.2면 모든 타워에게 20% 더 맞음, 0이면 없음).</summary>
+        public float Vulnerability;
+        /// <summary>표식이 이어지는 시간(초).</summary>
+        public float MarkSec;
+        public bool Marks => (ArmorShred > 0f || Vulnerability > 0f) && MarkSec > 0f;
     }
 
     public sealed class TowerDef

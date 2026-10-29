@@ -113,6 +113,10 @@ namespace Akmong.Battle
                 if (level.Knockback < 0) errors.Add($"{levelWhere}: knockback은 0 이상이어야 합니다.");
                 if (level.SlowMult <= 0f || level.SlowMult > 1f) errors.Add($"{levelWhere}: 감속 배율은 0보다 크고 1 이하여야 합니다.");
                 if (level.SlowSec < 0) errors.Add($"{levelWhere}: 감속 시간은 0 이상이어야 합니다.");
+                if (level.HitCount < 1) errors.Add($"{levelWhere}: 한 번에 맞히는 적 수는 1 이상이어야 합니다.");
+                if (level.ArmorShred < 0) errors.Add($"{levelWhere}: 방어 감소는 0 이상이어야 합니다.");
+                if (level.Vulnerability < 0 || level.Vulnerability > 1) errors.Add($"{levelWhere}: 받는 피해 증가는 0~1이어야 합니다.");
+                if ((level.ArmorShred > 0 || level.Vulnerability > 0) && level.MarkSec <= 0) errors.Add($"{levelWhere}: 표식을 거는 타워는 표식 시간이 0보다 커야 합니다.");
             }
         }
 

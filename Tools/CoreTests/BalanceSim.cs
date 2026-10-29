@@ -1,6 +1,6 @@
 // 모의 플레이어(봇)로 스테이지를 여러 번 돌려 성공률·잔여 중심 HP·소요 시간을 잰다.
 // 실행: bash Tools/CoreTests/balance.sh [횟수] [mix]
-//   mix: 세 번째 건설마다 병정인형을 길 바로 옆 칸에 짓는다(없으면 스탠드만).
+//   mix: 세 번째 건설마다 두 번째 타워(지금은 가위, 근거리)를 길 바로 옆 칸에 짓는다(없으면 첫 타워만).
 //   garden: 정원 맵 스테이지(SampleContent.StageGarden). 봇은 지을 수 있는 칸 중 길에 가까운 칸부터 고른다.
 // 봇은 "적당히 하는 플레이어"를 흉내낸다: 좋은 칸 8곳을 무작위 순서로 짓고, 가끔 강화한다.
 // 실제 사람과 다르므로 방향 확인용으로만 쓰고, 최종 수치는 플레이테스트로 정한다.
@@ -67,7 +67,7 @@ static class BalanceSim
                 if (session.Coin >= next.BuildCost)
                     foreach (int[] tile in order)
                     {
-                        // 병정인형은 길에 붙은 칸에만 짓는다.
+                        // 근거리 타워는 길에 붙은 칸에만 짓는다.
                         if (next.Levels[0].BlockCount > 0 && !NearPath(stage.Map, tile, next.Levels[0].Range)) continue;
                         TowerState built;
                         if (session.TryBuild(next, tile[0], tile[1], out built) == CommandError.None) break;
@@ -84,7 +84,7 @@ static class BalanceSim
 
         coreHp.Sort();
         seconds.Sort();
-        Console.WriteLine($"스테이지 {makeStage().Name}, {runs}회 모의 플레이{(mix ? " (병정인형 섞어 짓기)" : "")}");
+        Console.WriteLine($"스테이지 {makeStage().Name}, {runs}회 모의 플레이{(mix ? " (두 번째 타워 섞어 짓기)" : "")}");
         Console.WriteLine($"  성공률        {100.0 * wins / runs:0}%   (기획 목표 70~85%)");
         Console.WriteLine($"  잔여 중심 HP  중앙값 {coreHp[runs / 2]}   (기획 목표 40~70)");
         Console.WriteLine($"  소요 시간     중앙값 {seconds[runs / 2]:0}초, 준비 포함   (기획 목표 120~180초)");

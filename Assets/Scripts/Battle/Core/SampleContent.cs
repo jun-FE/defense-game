@@ -13,17 +13,93 @@ namespace Akmong.Battle
         public static EnemyDef Rush() => new EnemyDef { Id = "EN_RUSH", Name = "빠른 그림자", MaxHp = 60, Armor = 0, MoveSpeed = 2.5f, CoreDamage = 4, KillCoin = 3 };
         public static EnemyDef Heavy() => new EnemyDef { Id = "EN_HEAVY", Name = "무거운 봉제", MaxHp = 260, Armor = 50, MoveSpeed = 0.8f, CoreDamage = 12, KillCoin = 8 };
 
+        /// <summary>
+        /// 스탠드 조명: 따뜻한 빛줄기로 멀리 있는 한 적을 꾸준히 지진다(원거리 단일, 기본 딜러).
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
         public static TowerDef Lamp() => new TowerDef
         {
             Id = "TW_LAMP",
-            Name = "스탠드",
+            Name = "스탠드 조명",
             BuildCost = 50,
             Levels =
             {
                 new TowerLevelDef { Id = "TL_LAMP_1", Damage = 20, Range = 4.0f, AttackSec = 1.0f, CritChance = 0.10f, CritMult = 1.5f, UpgradeCost = 70 },
-                new TowerLevelDef { Id = "TL_LAMP_2", Damage = 34, Range = 4.5f, AttackSec = 0.9f, CritChance = 0.10f, CritMult = 1.5f, UpgradeCost = 0 },
+                new TowerLevelDef { Id = "TL_LAMP_2", Damage = 32, Range = 4.4f, AttackSec = 0.9f, CritChance = 0.12f, CritMult = 1.5f, UpgradeCost = 100 },
+                new TowerLevelDef { Id = "TL_LAMP_3", Damage = 48, Range = 4.8f, AttackSec = 0.85f, CritChance = 0.15f, CritMult = 1.6f, UpgradeCost = 0 },
             },
         };
+
+        /// <summary>
+        /// 가위: 가까이 온 적 여럿을 한꺼번에 싹둑(근거리 범위). 3단계는 짧은 간격으로 연달아 가위질(그웬 느낌).
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
+        public static TowerDef Scissors() => new TowerDef
+        {
+            Id = "TW_SCISSORS",
+            Name = "가위",
+            BuildCost = 55,
+            Levels =
+            {
+                new TowerLevelDef { Id = "TL_SCISSORS_1", Damage = 18, Range = 1.6f, AttackSec = 0.9f, CritChance = 0.10f, CritMult = 1.5f, UpgradeCost = 75, HitCount = 3 },
+                new TowerLevelDef { Id = "TL_SCISSORS_2", Damage = 26, Range = 1.7f, AttackSec = 0.8f, CritChance = 0.12f, CritMult = 1.5f, UpgradeCost = 110, HitCount = 4 },
+                new TowerLevelDef { Id = "TL_SCISSORS_3", Damage = 24, Range = 1.8f, AttackSec = 0.45f, CritChance = 0.15f, CritMult = 1.6f, UpgradeCost = 0, HitCount = 5 },
+            },
+        };
+
+        /// <summary>
+        /// 줄자: 줄자를 휙 감아 적의 발을 묶는다(감속). 3단계는 두 적을 한꺼번에 감는다.
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
+        public static TowerDef Tape() => new TowerDef
+        {
+            Id = "TW_TAPE",
+            Name = "줄자",
+            BuildCost = 55,
+            Levels =
+            {
+                new TowerLevelDef { Id = "TL_TAPE_1", Damage = 8, Range = 3.5f, AttackSec = 1.0f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 60, SlowMult = 0.70f, SlowSec = 2.0f },
+                new TowerLevelDef { Id = "TL_TAPE_2", Damage = 12, Range = 3.8f, AttackSec = 0.95f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 90, SlowMult = 0.60f, SlowSec = 2.5f },
+                new TowerLevelDef { Id = "TL_TAPE_3", Damage = 18, Range = 4.1f, AttackSec = 0.9f, CritChance = 0.05f, CritMult = 1.5f, UpgradeCost = 0, SlowMult = 0.50f, SlowSec = 3.0f, HitCount = 2 },
+            },
+        };
+
+        /// <summary>
+        /// 바늘꽂이(근거리 표식): 둘레 적들에게 시침핀을 꽂아 방어력을 깎는다. 피해는 약하고, 다른 타워가 더 세게 때리게 돕는다.
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
+        public static TowerDef PinCushion() => new TowerDef
+        {
+            Id = "TW_PIN",
+            Name = "바늘꽂이",
+            BuildCost = 45,
+            Levels =
+            {
+                new TowerLevelDef { Id = "TL_PIN_1", Damage = 6, Range = 1.8f, AttackSec = 1.2f, CritChance = 0f, CritMult = 1.5f, UpgradeCost = 60, HitCount = 3, ArmorShred = 15f, MarkSec = 3f },
+                new TowerLevelDef { Id = "TL_PIN_2", Damage = 9, Range = 1.9f, AttackSec = 1.1f, CritChance = 0f, CritMult = 1.5f, UpgradeCost = 85, HitCount = 4, ArmorShred = 25f, MarkSec = 3.5f },
+                new TowerLevelDef { Id = "TL_PIN_3", Damage = 12, Range = 2.0f, AttackSec = 1.0f, CritChance = 0f, CritMult = 1.5f, UpgradeCost = 0, HitCount = 6, ArmorShred = 35f, MarkSec = 4f },
+            },
+        };
+
+        /// <summary>
+        /// 수선표 활(원거리 표식): 멀리 있는 적에게 꼬리표 바늘을 쏴서, 그 적이 모든 타워에게 더 아프게 맞게 한다. 보스는 절반만.
+        /// 수치는 프로토타입 임시값(밸런싱에서 확정).
+        /// </summary>
+        public static TowerDef TagBow() => new TowerDef
+        {
+            Id = "TW_TAGBOW",
+            Name = "수선표 활",
+            BuildCost = 60,
+            Levels =
+            {
+                new TowerLevelDef { Id = "TL_TAGBOW_1", Damage = 12, Range = 5.0f, AttackSec = 1.3f, CritChance = 0.10f, CritMult = 1.5f, UpgradeCost = 75, Vulnerability = 0.15f, MarkSec = 4f },
+                new TowerLevelDef { Id = "TL_TAGBOW_2", Damage = 18, Range = 5.5f, AttackSec = 1.2f, CritChance = 0.12f, CritMult = 1.5f, UpgradeCost = 110, Vulnerability = 0.22f, MarkSec = 4.5f },
+                new TowerLevelDef { Id = "TL_TAGBOW_3", Damage = 26, Range = 6.0f, AttackSec = 1.1f, CritChance = 0.15f, CritMult = 1.6f, UpgradeCost = 0, Vulnerability = 0.30f, MarkSec = 5f },
+            },
+        };
+
+        /// <summary>전투에 나오는 타워(건설 고리 순서). 병정인형·스노우볼은 수선소 물품 타워로 바뀌면서 빠졌다(정의는 검산용으로 남김).</summary>
+        public static List<TowerDef> Roster() => new List<TowerDef> { Lamp(), Scissors(), Sewing(), Tape(), PinCushion(), TagBow() };
 
         /// <summary>
         /// 병정인형: 근거리 저지(타워 역할 기획서). 접근한 적을 붙잡아 다른 타워가 칠 시간을 번다.
@@ -140,7 +216,7 @@ namespace Akmong.Battle
                 StartCoin = 120,
                 CoreMaxHp = 100,
                 EnemyHpScale = 1.55f, // 길이 길어 맞는 시간이 길므로 적 HP를 올린다
-                Towers = { Lamp(), Soldier(), Snowball(), Sewing() },
+                Towers = Roster(),
                 Waves =
                 {
                     new WaveDef
@@ -209,7 +285,7 @@ namespace Akmong.Battle
                 Map = Room(),
                 StartCoin = 120,
                 CoreMaxHp = 100,
-                Towers = { Lamp(), Soldier(), Snowball(), Sewing() },
+                Towers = Roster(),
                 Waves =
                 {
                     new WaveDef

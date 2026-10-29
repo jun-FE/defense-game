@@ -8,7 +8,7 @@ using UnityEngine;
 /// - 오른쪽 위: 꿈의 불빛 HP, 몽결정(전투 재화), 일시정지, 배속
 /// - 왼쪽 아래: 미니맵(클릭·드래그로 그 자리로 화면 이동) / 오른쪽 아래: 도하(스킬 자리)
 /// - 건설: 지을 수 있는 칸을 클릭하면 그 칸 둘레에 타워 5종(병정인형·재봉틀·스탠드·오르골·스노우볼)이
-///   동그란 버튼으로 펼쳐진다(건설 고리). 버튼을 누르거나 1~5로 짓는다. 다른 곳 클릭·우클릭·Esc로 닫는다.
+///   동그란 버튼으로 펼쳐진다(건설 고리). 버튼을 누르거나 1~6으로 짓는다. 다른 곳 클릭·우클릭·Esc로 닫는다.
 /// 아이콘은 시안에서 잘라 낸 임시 그림(Assets/Art/Battle/UI/mock_*)이다. 정식 UI 아트가 오면 교체한다.
 /// 입력은 명령으로만 전달한다: 건설 / 강화 / 웨이브 시작 / 속도 / 일시정지 / 귀환.
 /// 조작: 타워 클릭 → 정보·강화. Space 웨이브 바로 시작. Esc 일시정지.
@@ -26,15 +26,26 @@ public class BattleHUD : MonoBehaviour
     [Tooltip("Assets/Art/Main/UI/ui_borders.json")]
     public TextAsset uiBorders;
 
-    /// <summary>타워 카드 5칸. 데이터에 없는 타워는 "준비 중"으로 잠가 보여 준다(타워 역할 기획서 순서).</summary>
+    /// <summary>건설 고리 6칸(수선소 물품 타워). 데이터에 없는 타워는 "준비 중"으로 잠가 보여 준다.</summary>
     static readonly Slot[] Slots =
     {
-        new Slot("TW_SOLDIER", "병정인형", "mock_tower_soldier", "접근한 적을 붙잡아 다른 타워가 칠 시간을 법니다."),
+        new Slot("TW_LAMP", "스탠드 조명", "mock_tower_lamp", "따뜻한 빛줄기로 멀리 있는 한 적을 꾸준히 지집니다."),
+        new Slot("TW_SCISSORS", "가위", "mock_tower_scissors", "가까이 온 적 여럿을 한꺼번에 싹둑 자릅니다. 3단계는 연달아 가위질."),
         new Slot("TW_SEWING", "재봉틀", "mock_tower_sewing", "빠르게 바늘을 쏘아 한 적을 꿰뚫습니다. 치명타가 잦아요."),
-        new Slot("TW_LAMP", "스탠드", "mock_tower_stand", "빛으로 한 적을 집중 공격합니다."),
-        new Slot("TW_MUSICBOX", "오르골", "mock_tower_musicbox", "음파로 주변 적들의 발을 느리게 합니다."),
-        new Slot("TW_SNOWBALL", "스노우볼", "mock_tower_snowball", "얼음 조각으로 적을 맞혀 잠시 느리게 합니다."),
+        new Slot("TW_TAPE", "줄자", "mock_tower_tape", "줄자를 휙 감아 적의 발을 묶어 느리게 합니다."),
+        new Slot("TW_PIN", "바늘꽂이", "mock_tower_pin", "둘레 적들에게 시침핀을 꽂아 방어력을 깎습니다."),
+        new Slot("TW_TAGBOW", "수선표 활", "mock_tower_tagbow", "멀리 있는 적에게 꼬리표를 꽂아, 모든 타워에게 더 아프게 맞게 합니다."),
     };
+
+    /// <summary>여러 적 동시 공격·표식 설명 한 줄(없으면 빈 문자열).</summary>
+    static string ExtraText(TowerLevelDef level)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        if (level.HitCount > 1) parts.Add($"한 번에 {level.HitCount}명");
+        if (level.Marks && level.ArmorShred > 0f) parts.Add($"방어 -{level.ArmorShred:0} · {level.MarkSec:0.#}초");
+        if (level.Marks && level.Vulnerability > 0f) parts.Add($"받는 피해 +{level.Vulnerability * 100f:0}% · {level.MarkSec:0.#}초");
+        return string.Join(", ", parts);
+    }
 
     class Slot
     {
@@ -594,6 +605,12 @@ public class BattleHUD : MonoBehaviour
             GUI.Label(new Rect(x, y, width, 30), $"감속 {(1f - level.SlowMult) * 100f:0}% · {level.SlowSec:0.#}초", hudInk);
             y += 34;
         }
+        string extra = ExtraText(level);
+        if (extra.Length > 0)
+        {
+            GUI.Label(new Rect(x, y, width, 30), extra, hudInk);
+            y += 34;
+        }
         GUI.Label(new Rect(x, y, width, 30), $"투자 몽결정 {selectedTower.TotalSpent}", hudInk);
         y += 48;
 
@@ -603,6 +620,7 @@ public class BattleHUD : MonoBehaviour
             string nextText = blocks
                 ? $"다음: 공격력 {next.Damage:0.#}\n저지 {next.BlockCount}명 · {next.BlockSec:0.#}초{(next.Knockback > level.Knockback ? " · 밀어내기" : "")}"
                 : next.Slows ? $"다음: 공격력 {next.Damage:0.#}, 감속 {(1f - next.SlowMult) * 100f:0}% · {next.SlowSec:0.#}초"
+                : next.Marks || next.HitCount > 1 ? $"다음: 공격력 {next.Damage:0.#}, {ExtraText(next)}"
                 : $"다음: 공격력 {next.Damage:0.#}, 사거리 {next.Range:0.#}";
             float nextH = blocks ? 62f : 30f;
             GUI.Label(new Rect(x, y, width, nextH), nextText, hudInk);

@@ -61,10 +61,81 @@ namespace Akmong.Battle
             run("병정인형: 1단계는 1명만, 2단계는 2명 저지", BlockCountCase);
             run("병정인형 3단계: 일반 적은 밀어내고 보스는 면역", KnockbackCase);
             run("스노우볼: 맞은 적 30% 감속(보스 15%), 2초 뒤 원래 속도", SlowCase);
+            run("가위: 사거리 안 적 3명을 한 번에, 4번째는 안 맞음", MultiHitCase);
+            run("바늘꽂이·수선표: 방어 감소·받는 피해 증가 표식이 다른 타워 피해를 늘리고 시간이 지나면 풀림", MarkCase);
             return cases;
         }
 
         // ───────── 공식 ─────────
+
+        /// <summary>거의 멈춘 적 count명이 (0,5) 근처에 0.1초 간격으로 나오는 세션. 타워는 사거리를 크게 늘려 위치와 상관없이 맞힌다.</summary>
+        static BattleSession CrowdSession(EnemyDef enemy, int count, TowerDef[] towers)
+        {
+            StageDef stage = SingleTargetStage(enemy, 1000);
+            stage.Map.SpawnPoints[0].Path = new List<Vector2> { new Vector2(0, 5), new Vector2(0, -995) };
+            stage.Waves[0].Groups[0].Count = count;
+            stage.Waves[0].Groups[0].IntervalSec = 0.1f;
+            stage.StartCoin = 1000;
+            stage.Towers = new List<TowerDef>(towers);
+            var session = new BattleSession(stage, new GameRules(), new FixedRandom(0.99));
+            int y = 5;
+            foreach (TowerDef t in towers)
+            {
+                CommandError error = session.TryBuild(t, 2, y, out _);
+                if (error != CommandError.None) throw new Exception($"검산용 타워 {t.Id} 건설 실패: {error}");
+                y += 3;
+            }
+            return session;
+        }
+
+        static void MultiHitCase(List<Case> cases, string name)
+        {
+            EnemyDef dummy = new EnemyDef { Id = "EN_DUMMY", Name = "허수아비", MaxHp = 100000, Armor = 0, MoveSpeed = 0.0001f, CoreDamage = 1, KillCoin = 0 };
+            TowerDef scissors = SampleContent.Scissors();
+            scissors.Levels[0].CritChance = 0f;
+            scissors.Levels[0].Range = 30f;
+            scissors.Levels[0].AttackSec = 2f;   // 4명이 다 나온 뒤(0.3초) 한 번 더 치는지 본다
+            BattleSession session = CrowdSession(dummy, 4, new[] { scissors });
+            int attacks = 0, maxTotal = 0;
+            session.TowerFired += h => { if (h.HitIndex == 0) attacks++; maxTotal = Math.Max(maxTotal, h.HitTotal); };
+            Run(session, 5.0);
+            Check(cases, name, attacks >= 2 && maxTotal == 3, $"공격 {attacks}번, 4명이 있을 때 한 번에 맞은 적 최대 {maxTotal}명(3)");
+        }
+
+        static void MarkCase(List<Case> cases, string name)
+        {
+            var rules = new GameRules();
+            int plain = BattleMath.ResolveDamage(new DamageInput { BaseDamage = 100, Armor = 50 }, rules);
+            int shred = BattleMath.ResolveDamage(new DamageInput { BaseDamage = 100, Armor = 50, ArmorAdd = -25 }, rules);
+            int tagged = BattleMath.ResolveDamage(new DamageInput { BaseDamage = 100, Armor = 50, Vulnerability = 0.15f }, rules);
+
+            EnemyDef dummy = new EnemyDef { Id = "EN_DUMMY", Name = "허수아비", MaxHp = 100000, Armor = 50, MoveSpeed = 0.0001f, CoreDamage = 1, KillCoin = 0 };
+            TowerDef pin = SampleContent.PinCushion();
+            pin.Levels[0].Range = 30f;
+            pin.Levels[0].AttackSec = 6f;        // 다음 공격(6초 뒤) 전에 풀리는지 본다
+            TowerDef bow = SampleContent.TagBow();
+            bow.Levels[0].Range = 30f;
+            bow.Levels[0].AttackSec = 6f;
+            bow.Levels[0].CritChance = 0f;
+            BattleSession session = CrowdSession(dummy, 1, new[] { pin, bow });
+            EnemyState target = null;
+            double pinAt = -1, tagAt = -1;
+            session.TowerFired += h =>
+            {
+                target = h.Target;
+                if (h.Pinned && pinAt < 0) pinAt = session.CombatTime;
+                if (h.Tagged && tagAt < 0) tagAt = session.CombatTime;
+            };
+            double dt = session.Rules.FixedDt;
+            while ((pinAt < 0 || tagAt < 0) && session.CombatTime < 20) session.Tick(dt);
+            bool marked = target != null && target.Pinned && Math.Abs(target.ArmorDown - 15f) < 1e-4 && target.Tagged && Math.Abs(target.Vulnerable - 0.15f) < 1e-4;
+            while (session.CombatTime < pinAt + 3.05) session.Tick(dt);
+            bool pinEnded = target != null && !target.Pinned && target.ArmorDown == 0f && (tagAt + 4.0 <= session.CombatTime || target.Tagged);
+            while (session.CombatTime < tagAt + 4.05) session.Tick(dt);
+            bool tagEnded = target != null && !target.Tagged && target.Vulnerable == 0f;
+            Check(cases, name, shred > plain && tagged > plain && marked && pinEnded && tagEnded,
+                $"방어 50 기준 피해 {plain} → 방어 -25 {shred}, 받는 피해 +15% {tagged}, 표식 걸림 {marked}(핀 {pinAt:0.00}초·꼬리표 {tagAt:0.00}초), 3초 뒤 방어 감소 풀림 {pinEnded}, 4초 뒤 피해 증가 풀림 {tagEnded}");
+        }
 
         static void DamageCases(List<Case> cases, string name)
         {
@@ -268,9 +339,12 @@ namespace Akmong.Battle
             bool unchanged = session.Coin == 69 && tower.LevelIndex == 0;
             session.DebugAddCoin(1);
             CommandError ok = session.TryUpgrade(tower);
+            bool second = tower.LevelIndex == 1 && session.Coin == 0;
+            session.DebugAddCoin(100);
+            CommandError third = session.TryUpgrade(tower);
             CommandError max = session.TryUpgrade(tower);
-            Check(cases, name, poor == CommandError.NotEnoughCoin && unchanged && ok == CommandError.None && tower.LevelIndex == 1 && session.Coin == 0 && max == CommandError.MaxLevel,
-                $"잔액 69 강화 {poor}(변화 없음 {unchanged}), 70 강화 {ok} → {tower.LevelIndex + 1}단계, 잔액 {session.Coin}, 추가 강화 {max}");
+            Check(cases, name, poor == CommandError.NotEnoughCoin && unchanged && ok == CommandError.None && second && third == CommandError.None && tower.LevelIndex == 2 && max == CommandError.MaxLevel,
+                $"잔액 69 강화 {poor}(변화 없음 {unchanged}), 70 강화 {ok}(2단계 {second}), 100 더 강화 {third} → {tower.LevelIndex + 1}단계, 추가 강화 {max}");
         }
 
         static void TargetingCase(List<Case> cases, string name)

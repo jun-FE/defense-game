@@ -1,7 +1,7 @@
 using Akmong.Battle;
 using UnityEngine;
 
-/// <summary>적 하나의 화면 표시: 두 틱 사이 위치 보간, 체력바, 감속 중 푸른 빛, 사라지는 연출.</summary>
+/// <summary>적 하나의 화면 표시: 두 틱 사이 위치 보간, 체력바, 감속 중 푸른 빛, 표식(체력바 위 은빛 핀·금빛 꼬리표), 사라지는 연출.</summary>
 public class EnemyView : MonoBehaviour
 {
     EnemyState state;
@@ -12,6 +12,7 @@ public class EnemyView : MonoBehaviour
     bool flashing;
     Color baseColor;
     static readonly Color IceTint = new Color(0.55f, 0.85f, 1f);
+    SpriteRenderer pinMark, tagMark;
 
     public void Init(EnemyState enemy, EnemyAsset asset, Sprite circle, Sprite square)
     {
@@ -31,6 +32,9 @@ public class EnemyView : MonoBehaviour
         float barY = scale * 0.5f + 0.2f;
         CreateBar("HealthBack", square, new Color(0.08f, 0.08f, 0.1f), barY, 3);
         healthFill = CreateBar("HealthFill", square, new Color(0.45f, 0.9f, 0.5f), barY, 4).transform;
+        // 표식: 바늘꽂이(방어 감소) = 은빛 동그라미, 수선표 활(받는 피해 증가) = 금빛 마름모
+        pinMark = CreateMark("PinMark", circle, new Color(0.85f, 0.88f, 0.95f), new Vector2(-0.14f, barY + 0.16f), 0f);
+        tagMark = CreateMark("TagMark", square, new Color(1f, 0.82f, 0.4f), new Vector2(0.14f, barY + 0.16f), 45f);
 
         transform.position = BattleContentBuilder.ToUnity(enemy.Position);
     }
@@ -46,6 +50,24 @@ public class EnemyView : MonoBehaviour
 
         // 감속(스노우볼)에 걸린 동안 얼음빛으로 물든다.
         if (!flashing) body.color = state.Slowed ? Color.Lerp(baseColor, IceTint, 0.6f) : baseColor;
+        pinMark.enabled = state.Pinned;
+        tagMark.enabled = state.Tagged;
+        if (state.Tagged) tagMark.transform.localScale = Vector3.one * (0.13f + 0.02f * Mathf.Sin(Time.time * 6f));
+    }
+
+    SpriteRenderer CreateMark(string objectName, Sprite sprite, Color color, Vector2 position, float angle)
+    {
+        var go = new GameObject(objectName);
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = position;
+        go.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+        go.transform.localScale = Vector3.one * 0.13f;
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.color = color;
+        renderer.sortingOrder = 5;
+        renderer.enabled = false;
+        return renderer;
     }
 
     /// <summary>근거리 타격 연출: delay 뒤(찌르기 모션의 타격 프레임) 잠깐 밝게 번쩍인다.</summary>

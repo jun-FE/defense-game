@@ -38,9 +38,12 @@ public class TowerView : MonoBehaviour
 
     public BattleFx.Style FxStyle => new BattleFx.Style
     {
-        needle = ProjectileSprite, spark = asset.fxSpark, ring = asset.fxRing, glow = asset.fxGlow,
+        needle = ProjectileSprite, spark = asset.fxSpark, ring = asset.fxRing, glow = asset.fxGlow, slash = asset.fxSlash,
         color = asset.fxColor, level = State.LevelIndex,
+        scale = asset.fxKind == TowerFxKind.Pins ? 0.55f : asset.fxKind == TowerFxKind.Tag ? 0.85f : 1f,
     };
+
+    public TowerFxKind FxKind => asset != null ? asset.fxKind : TowerFxKind.Needle;
 
     /// <summary>근거리 타워(저지)는 투사체 없이 찌르기 모션만 보인다.</summary>
     public bool Melee => State.Blocks;
