@@ -42,7 +42,10 @@ public static class BattleFx
             Particle(parent, s.spark, p, Random.insideUnitCircle * 0.6f, 0.2f * k, 0.04f, Random.Range(0.2f, 0.35f), Color.Lerp(Color.white, s.color, Random.value), 9, Random.Range(-300f, 300f));
         }
         Particle(parent, s.glow, from, Vector2.zero, 0.5f * k, 1.1f * k, 0.18f, Color.white, 9, 0f);
-        HitBurst(parent, to, s, crit);
+        // 맞은 자리: 고리 없이 따뜻한 빛과 불티만(빛줄기와 겹쳐 이중으로 보이지 않게)
+        Particle(parent, s.glow, to, Vector2.zero, 0.35f * k, 1.1f * k, 0.2f, new Color(1f, 0.95f, 0.8f), 9, 0f);
+        for (int i = 0; i < 4 + s.level * 2; i++)
+            Particle(parent, s.spark, to, Random.insideUnitCircle.normalized * Random.Range(1.2f, 2.4f), 0.18f, 0.04f, Random.Range(0.18f, 0.3f), Color.Lerp(Color.white, s.color, Random.value), 9, Random.Range(-400f, 400f));
     }
 
     /// <summary>

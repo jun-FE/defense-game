@@ -46,9 +46,13 @@ public class EnemyView : MonoBehaviour
         }
         bodyBase = bodyGo.transform.localPosition;
 
-        barWidth = Mathf.Max(0.6f, scale);
-        CreateBar("HealthBack", square, new Color(0.08f, 0.08f, 0.1f), barY, 3);
-        healthFill = CreateBar("HealthFill", square, new Color(0.45f, 0.9f, 0.5f), barY, 4).transform;
+        // 체력바: 가늘게, 어두운 테두리, 남은 체력에 따라 초록 → 노랑 → 빨강. 다 찬 동안은 숨긴다.
+        barWidth = Mathf.Clamp(scale * 0.8f, 0.42f, 0.7f);
+        healthFrame = CreateBar("HealthFrame", square, new Color(0.05f, 0.04f, 0.09f, 0.9f), barY, 3, barWidth + 0.05f, BarHeight + 0.05f);
+        healthBack = CreateBar("HealthBack", square, new Color(0.22f, 0.16f, 0.3f, 0.95f), barY, 4, barWidth, BarHeight);
+        healthFillRenderer = CreateBar("HealthFill", square, new Color(0.45f, 0.9f, 0.5f), barY, 5, barWidth, BarHeight);
+        healthFill = healthFillRenderer.transform;
+        SetBarVisible(false);
         // 표식: 바늘꽂이(방어 감소) = 은빛 동그라미, 수선표 활(받는 피해 증가) = 금빛 마름모
         pinMark = CreateMark("PinMark", circle, new Color(0.85f, 0.88f, 0.95f), new Vector2(-0.14f, barY + 0.16f), 0f);
         tagMark = CreateMark("TagMark", square, new Color(1f, 0.82f, 0.4f), new Vector2(0.14f, barY + 0.16f), 45f);
@@ -62,7 +66,10 @@ public class EnemyView : MonoBehaviour
         transform.position = Vector2.Lerp(BattleContentBuilder.ToUnity(state.PreviousPosition), BattleContentBuilder.ToUnity(state.Position), alpha);
 
         float t = Mathf.Clamp01(state.Hp / state.MaxHp);
-        healthFill.localScale = new Vector3(barWidth * t, 0.08f, 1f);
+        SetBarVisible(t < 0.999f);
+        healthFill.localScale = new Vector3(barWidth * t, BarHeight, 1f);
+        healthFillRenderer.color = t > 0.5f ? Color.Lerp(new Color(1f, 0.85f, 0.3f), new Color(0.5f, 0.92f, 0.55f), (t - 0.5f) * 2f)
+                                            : Color.Lerp(new Color(1f, 0.35f, 0.35f), new Color(1f, 0.85f, 0.3f), t * 2f);
         healthFill.localPosition = new Vector3(-barWidth * (1f - t) * 0.5f, healthFill.localPosition.y, 0f);
 
         if (walk != null) AnimateWalk();
@@ -151,16 +158,25 @@ public class EnemyView : MonoBehaviour
         Destroy(gameObject);
     }
 
-    GameObject CreateBar(string objectName, Sprite square, Color color, float y, int order)
+    const float BarHeight = 0.055f;
+    SpriteRenderer healthFrame, healthBack, healthFillRenderer;
+
+    void SetBarVisible(bool visible)
+    {
+        if (healthFrame.enabled == visible) return;
+        healthFrame.enabled = healthBack.enabled = healthFillRenderer.enabled = visible;
+    }
+
+    SpriteRenderer CreateBar(string objectName, Sprite square, Color color, float y, int order, float width, float height)
     {
         var go = new GameObject(objectName);
         go.transform.SetParent(transform, false);
         go.transform.localPosition = new Vector3(0f, y, 0f);
-        go.transform.localScale = new Vector3(barWidth, 0.08f, 1f);
+        go.transform.localScale = new Vector3(width, height, 1f);
         var renderer = go.AddComponent<SpriteRenderer>();
         renderer.sprite = square;
         renderer.color = color;
         renderer.sortingOrder = order;
-        return go;
+        return renderer;
     }
 }

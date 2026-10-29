@@ -34,8 +34,10 @@ public class ExploreUI : MonoBehaviour
     static readonly Color ColLine = new Color(1f, 1f, 1f, 0.06f);
 
     /// <summary>키를 누르면 바로 한 칸. 계속 누르고 있으면 이만큼 기다린 뒤부터 반복(실수로 두 칸 가지 않게).</summary>
-    const float RepeatDelay = 0.4f;
-    const float RepeatInterval = 0.18f;
+    /// <summary>한 칸을 걸어가는 시간(초). 키를 누르고 있으면 멈추지 않고 이어서 걷는다.</summary>
+    const float MoveSec = 0.26f;
+        const int WalkFrames = 4;
+    const float WalkFps = 8f;   // 걷기 그림 4장 = 반 초(두 칸에 한 번 걸음 주기)
 
     GridMap map;
     UISkin skin;
@@ -46,6 +48,7 @@ public class ExploreUI : MonoBehaviour
     string toast;
     float toastUntil;
     float holdTimer;
+    Vector2Int queuedDir;
     Vector2Int heldDir;
 
     Vector2 origin;
@@ -76,11 +79,16 @@ public class ExploreUI : MonoBehaviour
     float flashT;
     Sprite[] ian;   // 아래·위·왼쪽·오른쪽 × (서 있기, 걷기)
 
+    float walkClock, idleTime;
+
+    /// <summary>이안 그림: 아래·위·왼쪽·오른쪽 × 걷기 4장(ian[방향 * 4 + 장]). 0번 장은 서 있을 때도 쓴다.</summary>
     void LoadIan()
     {
-        ian = new Sprite[8];
+        ian = new Sprite[4 * WalkFrames];
         string[] dirs = { "down", "up", "left", "right" };
-        for (int i = 0; i < 8; i++) ian[i] = Resources.Load<Sprite>($"Characters/Ian/ian_{dirs[i % 4]}_{i / 4}");
+        for (int d = 0; d < 4; d++)
+            for (int f = 0; f < WalkFrames; f++)
+                ian[d * WalkFrames + f] = Resources.Load<Sprite>($"Characters/Ian/ian_{dirs[d]}_{f}");
         if (ian[0] == null) ian = null;
     }
 
@@ -110,7 +118,7 @@ public class ExploreUI : MonoBehaviour
     {
         UpdateEffects(Time.unscaledDeltaTime);
         if (map == null || menuOpen) return;
-        // 새로 누른 키가 있으면 그 방향으로 바로 한 칸
+        // 걷는 중(MoveSec 동안)에는 새 입력을 기억해 두었다가, 한 칸을 다 걸으면 이어서 간다(칸 사이에서 순간이동하거나 멈칫하지 않게).
         Vector2Int pressed = Vector2Int.zero;
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) pressed = new Vector2Int(0, -1);
         else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) pressed = new Vector2Int(0, 1);
@@ -119,21 +127,28 @@ public class ExploreUI : MonoBehaviour
         if (pressed != Vector2Int.zero)
         {
             heldDir = pressed;
-            holdTimer = RepeatDelay;
-            Step(player.x + pressed.x, player.y + pressed.y);
+            queuedDir = pressed;
+        }
+        if (moveT < 1f) return;
+
+        if (queuedDir != Vector2Int.zero)
+        {
+            Vector2Int d = queuedDir;
+            queuedDir = Vector2Int.zero;
+            Step(player.x + d.x, player.y + d.y);
             return;
         }
-
-        // 같은 방향을 계속 누르고 있을 때만, 잠깐 기다린 뒤 천천히 반복
+        // 같은 방향을 계속 누르고 있으면 멈추지 않고 이어서 걷는다
         bool stillHeld = heldDir.y < 0 ? Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)
                        : heldDir.y > 0 ? Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)
                        : heldDir.x < 0 ? Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)
                        : heldDir.x > 0 && (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow));
         if (!stillHeld) { heldDir = Vector2Int.zero; return; }
+        // 막힌 곳에 계속 부딪히지 않게 잠깐 쉬었다가
         holdTimer -= Time.unscaledDeltaTime;
         if (holdTimer > 0f) return;
-        holdTimer = RepeatInterval;
         Step(player.x + heldDir.x, player.y + heldDir.y);
+        if (moveT >= 1f) holdTimer = 0.35f;   // 못 갔으면(벽) 0.35초 뒤 다시
     }
 
     /// <summary>옆 칸으로 한 걸음. 암흑·결정이면 밝히고 들어간다. 막힌 암흑·맵 밖은 못 간다.</summary>
@@ -270,7 +285,13 @@ public class ExploreUI : MonoBehaviour
             if (oldFogFade <= 0f && oldFog != null) { Destroy(oldFog); oldFog = null; }
         }
         if (flashT > 0f) flashT -= dt / 0.3f;
-        if (moveT < 1f) moveT = Mathf.Min(1f, moveT + dt / 0.14f);
+        if (moveT < 1f)
+        {
+            moveT = Mathf.Min(1f, moveT + dt / MoveSec);
+            walkClock += dt * WalkFps;
+            idleTime = 0f;
+        }
+        else if ((idleTime += dt) > 0.12f) walkClock = 0f;   // 이어 걸을 때 칸 경계에서 걸음이 처음부터 다시 시작하지 않게
     }
 
     Vector2 CellToScreen(Vector2 p, Vector2 shift) => origin + shift + p * cell;
@@ -309,9 +330,10 @@ public class ExploreUI : MonoBehaviour
     /// <summary>이안: 칸 사이를 통통 뛰듯 이동(0.14초), 바라보는 방향 그림, 걷는 중엔 걷기 그림, 서 있으면 숨쉬기. 랜턴 빛이 둘레를 밝힌다.</summary>
     void DrawIan(Vector2 shift, float px)
     {
-        float e = 1f - (1f - moveT) * (1f - moveT);
-        Vector2 pos = Vector2.Lerp(new Vector2(prevPlayer.x + 0.5f, prevPlayer.y + 0.5f), new Vector2(player.x + 0.5f, player.y + 0.5f), e);
-        float hop = Mathf.Sin(moveT * Mathf.PI) * 0.16f;
+        // 일정한 속도로 걷는다(이어서 걸을 때 칸마다 멈칫하지 않게). 걸음마다 아주 살짝 들썩인다.
+        Vector2 pos = Vector2.Lerp(new Vector2(prevPlayer.x + 0.5f, prevPlayer.y + 0.5f), new Vector2(player.x + 0.5f, player.y + 0.5f), moveT);
+        bool walking = moveT < 1f;
+        float hop = walking ? Mathf.Abs(Mathf.Sin(walkClock * Mathf.PI / 2f)) * 0.035f : 0f;
         if (bumpT > 0f) pos += bumpDir * 0.14f * Mathf.Sin((1f - bumpT) * Mathf.PI);
         Vector2 p = CellToScreen(pos, shift);
 
@@ -334,14 +356,15 @@ public class ExploreUI : MonoBehaviour
             return;
         }
         int dir = facing.y > 0 ? 0 : facing.y < 0 ? 1 : facing.x < 0 ? 2 : 3;
-        bool walking = moveT < 1f && moveT > 0.15f && moveT < 0.85f;
-        Sprite sprite = ian[dir + (walking ? 4 : 0)] ?? ian[dir];
-        float breathe = moveT >= 1f ? 1f + 0.02f * Mathf.Sin(Time.time * 2.4f) : 1f;
-        float h = cell * 1.45f * breathe, w = h * sprite.rect.width / sprite.rect.height;
-        float feet = p.y + cell * 0.42f - hop * cell;
+        int frame = walking ? (1 + Mathf.FloorToInt(walkClock)) % WalkFrames : 0;
+        Sprite sprite = ian[dir * WalkFrames + frame] ?? ian[dir * WalkFrames];
+        float breathe = walking ? 1f : 1f + 0.015f * Mathf.Sin(Time.time * 2.4f);
+        // 크기: 타워·몬스터와 비슷하게 키 약 1칸(그림 캔버스에서 몸은 90%)
+        float h = cell * 1.15f * breathe, w = h * sprite.rect.width / sprite.rect.height;
+        float feet = p.y + cell * 0.36f - hop * cell;
         // 발밑 그림자
         if (theme != null && theme.FxGlow != null)
-            DrawSprite(new Rect(p.x - cell * 0.35f, p.y + cell * 0.3f, cell * 0.7f, cell * 0.22f), theme.FxGlow, new Color(0f, 0f, 0f, 0.45f));
+            DrawSprite(new Rect(p.x - cell * 0.3f, p.y + cell * 0.26f, cell * 0.6f, cell * 0.18f), theme.FxGlow, new Color(0f, 0f, 0f, 0.4f));
         DrawSprite(new Rect(p.x - w / 2f, feet - h, w, h), sprite, Color.white);
     }
 
@@ -518,7 +541,8 @@ public class ExploreUI : MonoBehaviour
                     float len = cell * 1.06f;
                     float thick = len * (vertical ? border.rect.width / border.rect.height : border.rect.height / border.rect.width);
                     float w = vertical ? thick : len, h = vertical ? len : thick;
-                    Vector2 c = r.center + new Vector2(side.x, side.y) * (cell * 0.5f);
+                    // 돌길이 아니라 잔디 쪽에 붙인다(길은 깔끔하게)
+                    Vector2 c = r.center + new Vector2(side.x, side.y) * (cell * 0.5f + thick * 0.45f);
                     DrawSprite(new Rect(c.x - w / 2f, c.y - h / 2f, w, h), border, Color.white);
                 }
             }
@@ -721,7 +745,13 @@ public class ExploreUI : MonoBehaviour
                 if (pressing && !panning && e.button == 0 && overMap)
                 {
                     Vector2Int c = CellAt(mouse);
-                    Step(c.x, c.y);
+                    // 걷는 중이면 다 걸은 뒤 그 방향으로(옆 칸 클릭만 이동)
+                    Vector2Int d = new Vector2Int(c.x - player.x, c.y - player.y);
+                    if (Mathf.Abs(d.x) + Mathf.Abs(d.y) == 1)
+                    {
+                        if (moveT < 1f) queuedDir = d;
+                        else Step(c.x, c.y);
+                    }
                 }
                 pressing = panning = false;
                 break;

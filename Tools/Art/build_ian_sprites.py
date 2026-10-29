@@ -1,7 +1,7 @@
-"""탐색 화면 이안 그림 만들기(Unity 없이): ArtSource/Characters/Ian/ian_sheet.png → Assets/Resources/Characters/Ian/ian_{방향}_{0,1}.png
+"""탐색 화면 이안 그림 만들기(Unity 없이): ArtSource/Characters/Ian/ian_pixel_sheet.png → Assets/Resources/Characters/Ian/ian_{방향}_{0~3}.png
 사용: python3 Tools/Art/build_ian_sprites.py
-- 시트는 초록 배경 6칸 × 2줄(윗줄 서 있기, 아랫줄 걷기). 칸 순서: 앞, 뒤(랜턴 둘), 뒤, 왼쪽, 왼쪽, 오른쪽.
-  쓰는 칸: 아래(앞)=0, 위(뒤)=2, 왼쪽=3, 오른쪽=5.
+- 시트(2026-10-29, 타워·몬스터와 같은 픽셀 그림체)는 초록 배경 4칸 × 4줄. 줄: 아래(앞)·왼쪽·오른쪽·위(뒤), 칸: 걷기 4장(0 = 서 있기에도 씀).
+  (예전 칠 그림 시트 ian_sheet.png는 그림체가 달라 쓰지 않는다.)
 - 초록 배경·발밑 그림자는 투명으로(slice_ui_sheet의 key_green), 랜턴 빛 번짐의 연두빛은 주황으로. 게임에서 그림자를 따로 그린다.
 - 모든 그림을 같은 크기 캔버스에 발바닥 높이·머리 가로 중심을 맞춰 놓는다(걸을 때 덜컹거리지 않게)."""
 import os
@@ -12,10 +12,11 @@ from PIL import Image
 from scipy import ndimage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SRC = os.path.join(ROOT, 'ArtSource/Characters/Ian/ian_sheet.png')
+SRC = os.path.join(ROOT, 'ArtSource/Characters/Ian/ian_pixel_sheet.png')
 OUT = os.path.join(ROOT, 'Assets/Resources/Characters/Ian')
-COLS, ROWS = 6, 2
-USE = {'down': 0, 'up': 2, 'left': 3, 'right': 5}
+COLS, ROWS = 4, 4
+ROW_OF = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
+FRAMES = 4
 CANVAS = (300, 420)   # 저장 크기(가로, 세로), 발바닥은 아래 4% 위
 
 src = open(os.path.join(ROOT, 'Tools/Art/slice_ui_sheet.py'), encoding='utf-8').read()
@@ -51,7 +52,7 @@ def anchor(rgba):
 def main():
     sheet = np.asarray(Image.open(SRC).convert('RGB'), float) / 255.0
     os.makedirs(OUT, exist_ok=True)
-    frames = {(d, f): cut(sheet, c, f) for d, c in USE.items() for f in (0, 1)}
+    frames = {(d, f): cut(sheet, f, r) for d, r in ROW_OF.items() for f in range(FRAMES)}
     tallest = max(anchor(fr)[2] for fr in frames.values())
     scale = CANVAS[1] * 0.9 / tallest
     for (d, f), fr in frames.items():

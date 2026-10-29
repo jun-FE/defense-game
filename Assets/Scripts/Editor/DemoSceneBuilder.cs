@@ -389,7 +389,10 @@ public static class DemoSceneBuilder
             foreach (var craft in CraftTowers)
             {
                 if (tower.id != craft.id) continue;
-                if (tower.prefab == null) tower.prefab = CreateFramedPrefab(tower.id, craft.dir, craft.prefix, craft.fire, craft.facesLeft, craft.scale);
+                // 생성된 프리팹이라 씬을 다시 만들 때마다 새로 만든다(그림·발사 지점 바뀐 것 반영)
+                GameObject framed = CreateFramedPrefab(tower.id, craft.dir, craft.prefix, craft.fire, craft.facesLeft, craft.scale,
+                    bakedAttack: craft.fx != TowerFxKind.Beam);
+                if (framed != null) tower.prefab = framed;
                 if (tower.icon == null) tower.icon = LoadTowerSprite("icon.png", craft.dir);
                 if (tower.iconDisabled == null) tower.iconDisabled = LoadTowerSprite("icon_disabled.png", craft.dir);
                 if (tower.projectile == null) tower.projectile = LoadTowerSprite("fx_needle.png", SewingDir);
@@ -671,7 +674,7 @@ public static class DemoSceneBuilder
     /// 단계별 그림 3장(기본·대기·공격)으로 만든 타워 프리팹(재봉틀과 같은 256px 캔버스 규칙).
     /// fire는 발사 지점(캔버스 가운데 기준 px, 오른쪽·위가 +). 그림이 없으면 null(데이터만 있는 타워는 임시 도형).
     /// </summary>
-    static GameObject CreateFramedPrefab(string id, string dir, string prefix, Vector2 fire, bool facesLeft, float scale)
+    static GameObject CreateFramedPrefab(string id, string dir, string prefix, Vector2 fire, bool facesLeft, float scale, bool bakedAttack = true)
     {
         var stages = new TowerVisual.StageFrames[3];
         for (int level = 0; level < 3; level++)
@@ -680,7 +683,9 @@ public static class DemoSceneBuilder
             Sprite idle1 = LoadTowerSprite($"{prefix}_L{level + 1}_idle1.png", dir);
             Sprite attack = LoadTowerSprite($"{prefix}_L{level + 1}_attack0.png", dir);
             if (idle0 == null || idle1 == null || attack == null) return null;
-            stages[level] = new TowerVisual.StageFrames { idle = new[] { idle0, idle1 }, attack = new[] { attack, attack, idle0 } };
+            // 공격 그림에 빛이 한 방향으로 그려져 있으면(스탠드 조명) 연출(빛줄기)과 겹쳐 이상해 보이므로 대기 그림(더 밝은 쪽)으로 번쩍임만 준다
+            Sprite hit = bakedAttack ? attack : idle1;
+            stages[level] = new TowerVisual.StageFrames { idle = new[] { idle0, idle1 }, attack = new[] { hit, hit, idle0 } };
         }
 
         EnsureFolder($"{PrefabDir}/Towers");

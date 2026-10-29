@@ -48,6 +48,8 @@ public class MapView : MonoBehaviour
     readonly List<float> moteT = new List<float>();
     float moteTimer;
     readonly List<SpriteRenderer> lanternGlows = new List<SpriteRenderer>();
+    readonly List<SpriteRenderer> threads = new List<SpriteRenderer>();
+    float pathAlpha = 1f;   // 몬스터 경로 표시: 준비 시간에만 보이고, 몬스터가 나오면 사라진다
     bool Themed => grid && theme != null && theme.Valid;
 
     void Start()
@@ -180,10 +182,14 @@ public class MapView : MonoBehaviour
                 {
                     Sprite border = theme.BorderFor(g, x, y, side);
                     if (border == null) continue;
-                    float scale = 1.06f / border.bounds.size.x;
-                    Vector2 at = (Vector2)CellWorld(g, x, y) + new Vector2(side.x * 0.5f, -side.y * 0.5f);
-                    GameObject b = Create("Border", border, Color.white, at, Vector2.one * scale, -18);
-                    if (side.x != 0) b.transform.rotation = Quaternion.Euler(0f, 0f, 90f);
+                    // 돌길이 아니라 잔디 쪽에 붙인다(길은 깔끔하게)
+                    bool vertical = side.x != 0;
+                    float length = vertical ? border.bounds.size.y : border.bounds.size.x;
+                    float thickness = vertical ? border.bounds.size.x : border.bounds.size.y;
+                    float scale = 1.06f / length;
+                    float out_ = 0.5f + thickness * scale * 0.45f;
+                    Vector2 at = (Vector2)CellWorld(g, x, y) + new Vector2(side.x * out_, -side.y * out_);
+                    Create("Border", border, Color.white, at, Vector2.one * scale, -18);
                 }
             }
 
@@ -217,6 +223,7 @@ public class MapView : MonoBehaviour
                 Vector3 a = pathPoints[i - 1], b = pathPoints[i];
                 GameObject seg = Create("PathThread", theme.PathThread, new Color(0.95f, 0.85f, 1f, 0.5f), (a + b) / 2f,
                     new Vector2(Vector3.Distance(a, b) + 0.12f, 0.4f), -13);
+                threads.Add(seg.GetComponent<SpriteRenderer>());
                 seg.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg);
             }
         }
@@ -281,13 +288,25 @@ public class MapView : MonoBehaviour
             rift.localScale = new Vector3(riftScale.x * k, riftScale.y * k, 1f);
         }
 
-        // 빛길: 빛 알갱이가 출현 지점에서 꿈의 중심으로 흐른다(약 2.5칸/초)
+        // 몬스터 경로(빛길): 준비 시간(적이 없을 때)에만 보이고, 몬스터가 나오기 시작하면 서서히 사라진다
+        BattleSession session = controller.Session;
+        bool showPath = session != null && session.Phase == BattlePhase.Prepare && session.AliveCount == 0;
+        pathAlpha = Mathf.MoveTowards(pathAlpha, showPath ? 1f : 0f, Time.deltaTime * (showPath ? 1.5f : 2.5f));
+        foreach (SpriteRenderer thread in threads)
+        {
+            Color c = thread.color;
+            c.a = 0.5f * pathAlpha;
+            thread.color = c;
+            thread.enabled = pathAlpha > 0.01f;
+        }
+
+        // 빛 알갱이가 출현 지점에서 꿈의 중심으로 흐른다(약 2.5칸/초)
         if (pathPoints.Count < 2) return;
         moteTimer -= Time.deltaTime;
-        if (moteTimer <= 0f)
+        if (moteTimer <= 0f && pathAlpha > 0.05f)
         {
             moteTimer = 0.45f;
-            GameObject mote = Create("PathMote", circle, new Color(1f, 0.9f, 1f, 0.9f), pathPoints[0], Vector2.one * 0.16f, -12);
+            GameObject mote = Create("PathMote", circle, new Color(0.92f, 0.82f, 1f, 0.8f), pathPoints[0], Vector2.one * 0.12f, -12);
             motes.Add(mote.transform);
             moteT.Add(0f);
         }
@@ -303,6 +322,8 @@ public class MapView : MonoBehaviour
                 continue;
             }
             motes[i].position = Vector3.Lerp(pathPoints[seg], pathPoints[seg + 1], moteT[i] - seg);
+            var moteRenderer = motes[i].GetComponent<SpriteRenderer>();
+            moteRenderer.color = new Color(0.92f, 0.82f, 1f, 0.8f * pathAlpha);
         }
     }
 

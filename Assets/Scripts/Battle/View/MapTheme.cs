@@ -159,19 +159,40 @@ public class MapTheme
         if (Tufts.Length == 0 || !IsEdgeWall(g, x, y)) return false;
         int k = Hash(x, y);
         sprite = Tufts[k % Tufts.Length];
-        size = 1.3f + ((k >> 4) % 5) * 0.05f;
-        offset = new Vector2(((k >> 10) % 5 - 2) * 0.05f, ((k >> 13) % 5 - 2) * 0.05f);
+        if (TouchesOpen(g, x, y))
+        {
+            // 돌길(밝힌 칸) 옆: 길 위로 넘치지 않게 칸 크기 그대로(길은 깔끔하게)
+            size = 1.02f;
+            offset = Vector2.zero;
+        }
+        else
+        {
+            size = 1.3f + ((k >> 4) % 5) * 0.05f;
+            offset = new Vector2(((k >> 10) % 5 - 2) * 0.05f, ((k >> 13) % 5 - 2) * 0.05f);
+        }
         angle = ((k >> 16) % 4) * 90f;
         flip = ((k >> 8) % 2) == 1;
         return true;
     }
 
-    /// <summary>정원 소품: 잔디·돌길과 변으로 맞닿은 꽃밭 칸 세 개 중 하나쯤. width는 칸 단위 폭.</summary>
+    static bool TouchesOpen(GridMap g, int x, int y)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (g.InBounds(x + dx, y + dy) && g.IsOpen(x + dx, y + dy)) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// 정원 소품: 꽃밭 안쪽(둘레 8칸이 모두 꽃밭)에만, 네 칸 중 하나쯤. 길·타워 자리 옆에는 두지 않는다
+    /// (몬스터 길이나 타워와 헷갈리지 않게). width는 칸 단위 폭.
+    /// </summary>
     public bool GardenProp(GridMap g, int x, int y, out Sprite sprite, out float width)
     {
         sprite = null; width = 0f;
-        if (Garden.Length == 0 || !IsWall(g, x, y) || Hash(x, y) % 3 != 0) return false;
-        if (IsWall(g, x + 1, y) && IsWall(g, x - 1, y) && IsWall(g, x, y + 1) && IsWall(g, x, y - 1)) return false;
+        if (Garden.Length == 0 || !IsWall(g, x, y) || IsEdgeWall(g, x, y) || Hash(x, y) % 4 != 0) return false;
+        // 위쪽 칸(그림이 위로 솟음)도 꽃밭 안쪽이어야 한다
+        if (!IsWall(g, x, y - 1) || IsEdgeWall(g, x, y - 1)) return false;
         int k = Hash(y + 7, x + 3) % Garden.Length;
         sprite = Garden[k];
         width = GardenWidth[k];
