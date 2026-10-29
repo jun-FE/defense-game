@@ -19,4 +19,7 @@ public class EnemyAsset : DefinitionAsset
     public Sprite sprite;
     public Color tint = Color.white;
     public float scale = 0.6f;
+    [Tooltip("걷기 그림(오른쪽으로 걷는 모습, 256px = 1칸). 있으면 sprite 대신 번갈아 보여 주고, 왼쪽으로 갈 때 뒤집는다.")]
+    public Sprite[] walkFrames;
+    public float walkFps = 5f;
 }

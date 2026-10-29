@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "19";
+    public const string BuildVersion = "20";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -43,6 +43,7 @@ public static class DemoSceneBuilder
     public const string SoldierDir = "Assets/Art/Towers/Soldier";
     public const string SnowballDir = "Assets/Art/Towers/Snowball";
     public const string SewingDir = "Assets/Art/Towers/Sewing";
+    public const string TangleDir = "Assets/Art/Enemies/Tangle";
     /// <summary>
     /// 수선소 물품 타워: id → (그림 폴더, 파일 앞이름, 발사 지점 px(256px 캔버스 가운데 기준, 오른쪽·위가 +), 그림이 왼쪽을 보는지, 연출 종류, 연출 색, 크기 배율(넓은 그림은 한 칸에 맞게 줄임)).
     /// 그림은 Tools/Art/build_tower_art.py가 만든다.
@@ -328,6 +329,25 @@ public static class DemoSceneBuilder
                 e.scale = enemyScales.ContainsKey(def.Id) ? enemyScales[def.Id] : 0.6f;
             });
         }
+
+        // 임시 몬스터 그림(실뭉치 악몽, 걷기 2장): 그림이 없는 적에게 모두 입힌다. 종류는 색·크기로 구분.
+        var tangle = new[] { LoadTowerSprite("tangle_0.png", TangleDir), LoadTowerSprite("tangle_1.png", TangleDir) };
+        var artTints = new Dictionary<string, Color>
+        {
+            { "EN_TOY", Color.white },
+            { "EN_RUSH", new Color(0.8f, 0.7f, 1f) },
+            { "EN_HEAVY", new Color(1f, 0.78f, 0.68f) },
+        };
+        if (tangle[0] != null)
+            foreach (EnemyAsset enemy in enemies.Values)
+            {
+                if (enemy.walkFrames != null && enemy.walkFrames.Length > 0) continue;
+                enemy.walkFrames = tangle[1] != null ? tangle : new[] { tangle[0] };
+                enemy.sprite = tangle[0];
+                enemy.walkFps = enemy.id == "EN_RUSH" ? 8f : enemy.id == "EN_HEAVY" ? 3.5f : 5f;
+                enemy.tint = artTints.ContainsKey(enemy.id) ? artTints[enemy.id] : Color.white;
+                EditorUtility.SetDirty(enemy);
+            }
 
         var towers = new List<TowerAsset>();
         foreach (TowerDef def in sample.Towers)

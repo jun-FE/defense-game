@@ -29,9 +29,17 @@ public static class UIKit
         GUI.matrix = Matrix4x4.identity;
     }
 
-    public static bool DrawButton(Rect rect, string text, GUIStyle style = null)
+    public static bool DrawButton(Rect rect, string text, GUIStyle style = null) => ClickButton(rect, text, style ?? Button);
+
+    // 버튼: GUI.Button과 같고, 눌리면 클릭 효과음(ui_click)을 낸다. 화면 코드는 GUI.Button 대신 UIKit.ClickButton을 쓴다.
+    public static bool ClickButton(Rect rect, string text) => Clicked(GUI.Button(rect, text));
+    public static bool ClickButton(Rect rect, string text, GUIStyle style) => Clicked(GUI.Button(rect, text, style));
+    public static bool ClickButton(Rect rect, GUIContent content, GUIStyle style) => Clicked(GUI.Button(rect, content, style));
+
+    static bool Clicked(bool pressed)
     {
-        return GUI.Button(rect, text, style ?? Button);
+        if (pressed) SoundFx.Play("ui_click", 0.8f, 0.04f);
+        return pressed;
     }
 
     public static void DrawPanel(Rect rect) => GUI.Box(rect, GUIContent.none, Panel);

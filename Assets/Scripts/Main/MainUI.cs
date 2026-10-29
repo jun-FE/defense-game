@@ -144,8 +144,8 @@ public class MainUI : MonoBehaviour
         DrawResource(new Rect(bar.x + 326, bar.y + 14, 40, 44), "ws_icon_key", PlayerPrefs.GetInt("Wallet.Key", 0));
 
         // 바느질 라벨(꼬리표) 모양 작은 버튼
-        if (GUI.Button(new Rect(w - 176, 24, 70, 72), "설정", TagStyle())) SetSettings(true);
-        if (GUI.Button(new Rect(w - 98, 24, 70, 72), "전체", TagStyle())) GameSettings.Fullscreen = !GameSettings.Fullscreen;
+        if (UIKit.ClickButton(new Rect(w - 176, 24, 70, 72), "설정", TagStyle())) SetSettings(true);
+        if (UIKit.ClickButton(new Rect(w - 98, 24, 70, 72), "전체", TagStyle())) GameSettings.Fullscreen = !GameSettings.Fullscreen;
     }
 
     void DrawResource(Rect icon, string iconName, int value)
@@ -167,7 +167,7 @@ public class MainUI : MonoBehaviour
 
         string[] names = { "전체", "진행 중", "완료" };
         for (int i = 0; i < names.Length; i++)
-            if (GUI.Button(new Rect(r.x + 30 + i * 128, r.y + 76, 120, 48), names[i], TabStyle((int)filter == i))) filter = (Filter)i;
+            if (UIKit.ClickButton(new Rect(r.x + 30 + i * 128, r.y + 76, 120, 48), names[i], TabStyle((int)filter == i))) filter = (Filter)i;
 
         float y = r.y + 142;
         int shown = 0;
@@ -191,7 +191,7 @@ public class MainUI : MonoBehaviour
         Color old = GUI.color;
         if (locked) GUI.color = new Color(1f, 1f, 1f, 0.45f);
 
-        if (GUI.Button(r, GUIContent.none, isSelected ? FrameStyle("ws_card_on") : FrameStyle("ws_card", "ws_card_on")))
+        if (UIKit.ClickButton(r, GUIContent.none, isSelected ? FrameStyle("ws_card_on") : FrameStyle("ws_card", "ws_card_on")))
         {
             if (locked) ShowToast(quest.stageIndex < 0 ? "아직 도착하지 않은 의뢰예요" : "앞의 의뢰를 먼저 해결해 주세요");
             else selected = quest;
@@ -254,7 +254,7 @@ public class MainUI : MonoBehaviour
         }
 
         string buttonText = selected.IsCompleted ? "다시 꿈에 들어가기" : "의뢰 시작하기";
-        if (GUI.Button(new Rect(r.x + 20, r.yMax - 104, r.width - 40, 84), buttonText, PrimaryButton()))
+        if (UIKit.ClickButton(new Rect(r.x + 20, r.yMax - 104, r.width - 40, 84), buttonText, PrimaryButton()))
             SceneFlow.StartQuest(selected);
     }
 
@@ -282,7 +282,7 @@ public class MainUI : MonoBehaviour
     void DrawDohaBubble(Rect r)
     {
         // 핀으로 꽂은 찢어진 양피지 쪽지
-        if (GUI.Button(r, GUIContent.none, FrameStyle("ws_bubble"))) dohaLine = (dohaLine + 1) % Mathf.Max(1, dohaLines.Length);
+        if (UIKit.ClickButton(r, GUIContent.none, FrameStyle("ws_bubble"))) dohaLine = (dohaLine + 1) % Mathf.Max(1, dohaLines.Length);
         GUI.Label(new Rect(r.x + 34, r.y + 16, r.width - 90, 34), "야옹…", Style("label", 22, Brown, TextAnchor.MiddleLeft, true));
         if (dohaLines.Length > 0)
             GUI.Label(new Rect(r.x + 34, r.y + 52, r.width - 90, 44), dohaLines[dohaLine], Style("label", 24, Ink, TextAnchor.MiddleLeft));
@@ -301,7 +301,7 @@ public class MainUI : MonoBehaviour
             bool locked = i == 2 || i == 3 || i == 5;
             Color old = GUI.color;
             if (locked) GUI.color = new Color(1f, 1f, 1f, 0.55f);
-            if (GUI.Button(r, GUIContent.none, GUIStyle.none)) OnTab(i);
+            if (UIKit.ClickButton(r, GUIContent.none, GUIStyle.none)) OnTab(i);
             // 천 이름표(바느질 라벨) 모양 탭. 선택된 탭은 금실 테두리.
             var tag = new Rect(r.center.x - 56, r.y - 6, 112, 112);
             Icon(tag, active ? "ws_nav_on" : "ws_nav");
@@ -322,8 +322,8 @@ public class MainUI : MonoBehaviour
         UIKit.DimScreen();
         UIKit.ShadowLabel(new Rect(0f, 70f, w, 80f), "설정", UIKit.Heading);
         settings.Draw(new Rect((w - SettingsPanel.Width) / 2f, 190f, SettingsPanel.Width, SettingsPanel.Height));
-        if (GUI.Button(new Rect(w / 2f - 330f, h - 150f, 300f, 80f), "닫기", PrimaryButton())) SetSettings(false);
-        if (GUI.Button(new Rect(w / 2f + 30f, h - 150f, 300f, 80f), "로비로", PrimaryButton())) SceneFlow.GoToLobby();
+        if (UIKit.ClickButton(new Rect(w / 2f - 330f, h - 150f, 300f, 80f), "닫기", PrimaryButton())) SetSettings(false);
+        if (UIKit.ClickButton(new Rect(w / 2f + 30f, h - 150f, 300f, 80f), "로비로", PrimaryButton())) SceneFlow.GoToLobby();
     }
 
     // ───────── 동작 ─────────

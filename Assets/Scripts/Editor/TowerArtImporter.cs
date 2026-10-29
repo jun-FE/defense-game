@@ -7,6 +7,8 @@ using UnityEditor;
 public class TowerArtImporter : AssetPostprocessor
 {
     public const string Folder = "Assets/Art/Towers/";
+    /// <summary>적 그림(256px 캔버스 = 1칸). EnemyAsset.scale로 크기를 정한다.</summary>
+    public const string EnemyFolder = "Assets/Art/Enemies/";
     public const float TowerPixelsPerUnit = 150f;
     public const float ProjectilePixelsPerUnit = 220f;
     /// <summary>병정인형 400px 캔버스(인물 약 260px) → 약 1.1칸 높이.</summary>
@@ -38,14 +40,15 @@ public class TowerArtImporter : AssetPostprocessor
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Folder)) Apply((TextureImporter)assetImporter, assetPath);
+        if (assetPath.StartsWith(Folder) || assetPath.StartsWith(EnemyFolder)) Apply((TextureImporter)assetImporter, assetPath);
     }
 
     /// <summary>설정이 바뀌었으면 true.</summary>
     public static bool Apply(TextureImporter importer, string path)
     {
         float fx = FxPixelsPerUnit(path);
-        float ppu = fx > 0f ? fx
+        float ppu = path.StartsWith(EnemyFolder) ? 256f
+                  : fx > 0f ? fx
                   : path.Contains("projectile") ? ProjectilePixelsPerUnit
                   : path.Contains("/Soldier/soldier_") ? SoldierPixelsPerUnit
                   : path.Contains("/Snowball/snowball_") ? SnowballPixelsPerUnit

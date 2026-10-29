@@ -216,6 +216,36 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - 곡 바꾸기: 새 곡을 `.ogg`(또는 .wav/.mp3)로 `Assets/Resources/Music/`에 넣고 `BattleController.BattleMusic` 경로를 바꿉니다. .m4a는 `ffmpeg -i 곡.m4a -vn -c:a libvorbis -q:a 6 곡.ogg`로 변환.
 - 다른 화면도 `MusicPlayer.Play("Music/파일이름")` 한 줄로 붙일 수 있습니다.
 
+## 효과음 (지금은 임시 합성음)
+`Assets/Resources/Sfx/<이름>.wav`를 `SoundFx.Play("이름")`으로 틉니다(설정의 효과음 크기 반영, 같은 소리는 짧은 간격 안에 겹치지 않음, 음높이 살짝 흔들림). 지금 파일은 `python3 Tools/Audio/make_temp_sfx.py`로 **코드로 합성한 임시 소리**입니다. Artlist 요금제(AI Suite)는 효과음 다운로드가 안 돼서, 고른 후보(전부 1번)는 아래에 적어 두었습니다. 받을 수 있게 되면 **같은 이름**으로 바꿔 넣기만 하면 됩니다(.wav/.ogg).
+
+| 이름 | 언제 | 고른 Artlist 후보(1번) |
+|---|---|---|
+| `reveal` | 탐색: 암흑 밝히기 | RPG Game - Magical Crystals |
+| `crystal` | 탐색: 결정 칸 밝힘 | Graphix - Bells Ding, Short, Snappy |
+| `bump` | 탐색: 막힌 암흑에 부딪힘 | Hit It - Soft Impact, Foliage |
+| `step` | 탐색: 한 칸 이동 | Sneakers, middle sized steps on the grass |
+| `tw_lamp` | 스탠드 조명 공격 | It's Magical - Small Projectile Burst |
+| `tw_scissors` | 가위 공격 | The Barbershop - Small Scissors, Single Cut, Snip |
+| `tw_sewing` | 재봉틀 공격 | Sewing Machine - Thread Fixing, Mechanical |
+| `tw_tape` | 줄자 공격 | Tiny Transitions Vol 1 - Tape Measure, Sliding Open |
+| `tw_pin` | 바늘꽂이 공격 | Graphix - Snappy Button Click, Short (더 맞는 소리 찾는 중) |
+| `tw_tagbow` | 수선표 활 공격 | D&D Foley - Bow Release With Arrow |
+| `hit` / `kill` | 적 맞음 / 처치 | Cartoon Basics - Muffled Thud, Hit / RPG Game - Electric Sparks Attack |
+| `core_hit` | 꿈의 중심 피해 | Booms & Wows - Dark Cave Impact |
+| `build` / `upgrade` | 타워 짓기 / 강화 | Building Game UI - Open Window / Slot Machines - Twinkle Glissando |
+| `wave_start` | 웨이브 시작 | Logo Legends - Shimmering Chimes, Deep Boom (더 맞는 소리 찾는 중) |
+| `victory` / `defeat` | 승리 / 패배 | Magical Game - Power Up, Magic Bowl, Win Sound / Magical Game UI - Mission Failed |
+| `ui_click` | 모든 버튼(`UIKit.ClickButton`) | RPG Game - Menu Button Click |
+| `ui_open` | 건설 고리·일시정지·탐색 메뉴 열기 | UI Clicks - Newspaper Page Flip |
+
+화면 코드는 버튼을 `GUI.Button` 대신 `UIKit.ClickButton`으로 그립니다(누르면 클릭 소리).
+
+## 몬스터 (임시)
+- **실뭉치 악몽**: 엉킨 남보라 실뭉치에 빨간 눈·지그재그 입·단추가 박힌 작은 몬스터(재봉틀 그림체, Artlist 2장). 원본 `ArtSource/Enemies/실뭉치/{base,walk}.png` → `python3 Tools/Art/build_enemy_art.py` → `Assets/Art/Enemies/Tangle/tangle_{0,1}.png`.
+- 지금은 세 종류 모두 이 그림을 씁니다: 병정 = 기본색·보통 크기, 빠른 그림자 = 보랏빛·작고 빠른 걸음, 무거운 봉제 = 붉은빛·크고 느린 걸음(`EnemyAsset.walkFrames`·`walkFps`·`tint`·`scale`).
+- 걷는 동안 그림 2장을 번갈아 보이며 통통 튀고, 가는 방향을 바라보고, 느려지면 걸음도 느려집니다.
+
 ## 타워 아트
 
 ### 수선소 물품 타워 6종 (지금 전투 목록, 건설 고리 순서 = 단축키 `1`~`6`)

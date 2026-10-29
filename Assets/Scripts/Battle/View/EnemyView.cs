@@ -13,6 +13,9 @@ public class EnemyView : MonoBehaviour
     Color baseColor;
     static readonly Color IceTint = new Color(0.55f, 0.85f, 1f);
     SpriteRenderer pinMark, tagMark;
+    Sprite[] walk;
+    float walkFps, walkTime, artHeight;
+    Vector3 bodyBase;
 
     public void Init(EnemyState enemy, EnemyAsset asset, Sprite circle, Sprite square)
     {
@@ -27,9 +30,23 @@ public class EnemyView : MonoBehaviour
         body.color = asset != null ? asset.tint : new Color(0.85f, 0.3f, 0.35f);
         body.sortingOrder = 2;
         baseColor = body.color;
+        float barY = scale * 0.5f + 0.2f;
+        if (asset != null && asset.walkFrames != null && asset.walkFrames.Length > 0 && asset.walkFrames[0] != null)
+        {
+            // 그림 몬스터: 캔버스 1칸(256px) 안에 발바닥이 아래 6%. 칸 가운데보다 조금 아래에 발이 닿게 올려 놓는다.
+            walk = asset.walkFrames;
+            walkFps = Mathf.Max(1f, asset.walkFps);
+            walkTime = Random.value;
+            float size = scale * 1.4f;
+            bodyGo.transform.localScale = Vector3.one * size;
+            bodyGo.transform.localPosition = new Vector3(0f, size * 0.44f - 0.25f, 0f);
+            body.sprite = walk[0];
+            artHeight = size;
+            barY = bodyGo.transform.localPosition.y + size * 0.42f + 0.08f;
+        }
+        bodyBase = bodyGo.transform.localPosition;
 
         barWidth = Mathf.Max(0.6f, scale);
-        float barY = scale * 0.5f + 0.2f;
         CreateBar("HealthBack", square, new Color(0.08f, 0.08f, 0.1f), barY, 3);
         healthFill = CreateBar("HealthFill", square, new Color(0.45f, 0.9f, 0.5f), barY, 4).transform;
         // 표식: 바늘꽂이(방어 감소) = 은빛 동그라미, 수선표 활(받는 피해 증가) = 금빛 마름모
@@ -48,11 +65,29 @@ public class EnemyView : MonoBehaviour
         healthFill.localScale = new Vector3(barWidth * t, 0.08f, 1f);
         healthFill.localPosition = new Vector3(-barWidth * (1f - t) * 0.5f, healthFill.localPosition.y, 0f);
 
-        // 감속(스노우볼)에 걸린 동안 얼음빛으로 물든다.
+        if (walk != null) AnimateWalk();
+
+        // 감속(줄자)에 걸린 동안 얼음빛으로 물든다.
         if (!flashing) body.color = state.Slowed ? Color.Lerp(baseColor, IceTint, 0.6f) : baseColor;
         pinMark.enabled = state.Pinned;
         tagMark.enabled = state.Tagged;
         if (state.Tagged) tagMark.transform.localScale = Vector3.one * (0.13f + 0.02f * Mathf.Sin(Time.time * 6f));
+    }
+
+    /// <summary>걷기: 그림을 번갈아 보여 주고(느려지면 천천히), 걸음마다 통통 튀고, 가는 방향으로 좌우를 뒤집는다.</summary>
+    void AnimateWalk()
+    {
+        Vector2 delta = BattleContentBuilder.ToUnity(state.Position) - BattleContentBuilder.ToUnity(state.PreviousPosition);
+        bool moving = delta.sqrMagnitude > 1e-8f;
+        float speed = state.Slowed ? state.SlowMult : 1f;
+        if (moving) walkTime += Time.deltaTime * walkFps * speed;
+        int frame = moving ? Mathf.FloorToInt(walkTime) % walk.Length : 0;
+        if (walk[frame] != null) body.sprite = walk[frame];
+        if (Mathf.Abs(delta.x) > 1e-5f) body.flipX = delta.x < 0f;
+        float hop = moving ? Mathf.Abs(Mathf.Sin(walkTime * Mathf.PI)) * artHeight * 0.06f : 0f;
+        float squash = moving ? 1f - 0.05f * Mathf.Abs(Mathf.Cos(walkTime * Mathf.PI)) : 1f + 0.02f * Mathf.Sin(Time.time * 3f);
+        body.transform.localPosition = bodyBase + new Vector3(0f, hop, 0f);
+        body.transform.localScale = new Vector3(artHeight * (2f - squash), artHeight * squash, 1f);
     }
 
     SpriteRenderer CreateMark(string objectName, Sprite sprite, Color color, Vector2 position, float angle)

@@ -36,7 +36,7 @@ public class SettingsPanel
         for (int i = 0; i < GameSettings.TextSpeedNames.Length; i++)
         {
             GUIStyle style = i == GameSettings.TextSpeed ? UIKit.ButtonSelected : UIKit.ButtonSmall;
-            if (GUI.Button(new Rect(valueX + i * 135f, y + 4f, 125f, 56f), GameSettings.TextSpeedNames[i], style))
+            if (UIKit.ClickButton(new Rect(valueX + i * 135f, y + 4f, 125f, 56f), GameSettings.TextSpeedNames[i], style))
                 GameSettings.TextSpeed = i;
         }
         y += 100f;
@@ -44,14 +44,14 @@ public class SettingsPanel
         // 전체 화면
         GUI.Label(new Rect(labelX, y, 300f, 60f), "전체 화면", UIKit.Body);
         bool fullscreen = GameSettings.Fullscreen;
-        if (GUI.Button(new Rect(valueX, y + 4f, 125f, 56f), "켜기", fullscreen ? UIKit.ButtonSelected : UIKit.ButtonSmall)) GameSettings.Fullscreen = true;
-        if (GUI.Button(new Rect(valueX + 135f, y + 4f, 125f, 56f), "끄기", fullscreen ? UIKit.ButtonSmall : UIKit.ButtonSelected)) GameSettings.Fullscreen = false;
+        if (UIKit.ClickButton(new Rect(valueX, y + 4f, 125f, 56f), "켜기", fullscreen ? UIKit.ButtonSelected : UIKit.ButtonSmall)) GameSettings.Fullscreen = true;
+        if (UIKit.ClickButton(new Rect(valueX + 135f, y + 4f, 125f, 56f), "끄기", fullscreen ? UIKit.ButtonSmall : UIKit.ButtonSelected)) GameSettings.Fullscreen = false;
         y += 100f;
 
         // 진행 초기화
         GUI.Label(new Rect(labelX, y, 300f, 60f), "진행 상황", UIKit.Body);
         string resetText = confirmReset ? "정말 초기화할까요?" : "초기화";
-        if (GUI.Button(new Rect(valueX, y + 4f, 395f, 56f), resetText, confirmReset ? UIKit.ButtonSelected : UIKit.ButtonSmall))
+        if (UIKit.ClickButton(new Rect(valueX, y + 4f, 395f, 56f), resetText, confirmReset ? UIKit.ButtonSelected : UIKit.ButtonSmall))
         {
             if (confirmReset)
             {

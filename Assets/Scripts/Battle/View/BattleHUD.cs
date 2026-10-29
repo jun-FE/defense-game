@@ -187,7 +187,7 @@ public class BattleHUD : MonoBehaviour
         if (Session.Phase == BattlePhase.Prepare)
         {
             Rect start = Ui(new Rect(60, 148, 300, 56));
-            if (GUI.Button(start, $"바로 시작 [Space] · {Mathf.CeilToInt((float)Session.PrepareRemaining)}초", skin.Button(22))) Session.StartWaveNow();
+            if (UIKit.ClickButton(start, $"바로 시작 [Space] · {Mathf.CeilToInt((float)Session.PrepareRemaining)}초", skin.Button(22))) Session.StartWaveNow();
         }
     }
 
@@ -231,7 +231,7 @@ public class BattleHUD : MonoBehaviour
 
         Rect pause = Ui(new Rect(w - 136, 16, 80, 80));
         // 쇠고리 달린 꼬리표 모양 일시정지 버튼
-        if (GUI.Button(pause, GUIContent.none, skin.FrameStyle("ws_tag"))) SetPauseMenu(true);
+        if (UIKit.ClickButton(pause, GUIContent.none, skin.FrameStyle("ws_tag"))) SetPauseMenu(true);
         GUI.Label(new Rect(pause.x, pause.y + 12, pause.width, pause.height - 12), "<b>II</b>", skin.Text(30, UISkin.Ink, TextAnchor.MiddleCenter));
 
         // 배속: 시안에는 없지만 테스트에 필요해서 작게 둔다.
@@ -242,7 +242,7 @@ public class BattleHUD : MonoBehaviour
         {
             Rect r = Ui(new Rect(x + i * 62, 104, 56, 40));
             bool active = Mathf.Approximately(controller.Speed, speeds[i]);
-            if (GUI.Button(r, labels[i], skin.Tab(active)) && !active) controller.SetSpeed(speeds[i]);
+            if (UIKit.ClickButton(r, labels[i], skin.Tab(active)) && !active) controller.SetSpeed(speeds[i]);
         }
     }
 
@@ -442,6 +442,7 @@ public class BattleHUD : MonoBehaviour
     void OpenRing(Vector2Int tile)
     {
         ringOpen = true;
+        SoundFx.Play("ui_open", 0.6f);
         ringTile = tile;
         ringOpenedAt = Time.unscaledTime;
         selectedTower = null;
@@ -625,7 +626,7 @@ public class BattleHUD : MonoBehaviour
             float nextH = blocks ? 62f : 30f;
             GUI.Label(new Rect(x, y, width, nextH), nextText, hudInk);
             y += nextH + 12f;
-            if (GUI.Button(new Rect(x, y, width, 60), $"강화 (몽결정 {level.UpgradeCost})", skin.Button(24)))
+            if (UIKit.ClickButton(new Rect(x, y, width, 60), $"강화 (몽결정 {level.UpgradeCost})", skin.Button(24)))
             {
                 CommandError error = Session.TryUpgrade(selectedTower);
                 if (error != CommandError.None) ShowMessage(BattleText.Error(error, level.UpgradeCost));
@@ -652,11 +653,11 @@ public class BattleHUD : MonoBehaviour
         float w = UIKit.Width;
         UIKit.ShadowLabel(new Rect(0, 220, w, 100), "일시정지", UIKit.Heading);
         float x = (w - 420f) / 2f;
-        if (GUI.Button(new Rect(x, 380, 420, 80), "계속하기", skin.Button(28))) SetPauseMenu(false);
-        if (GUI.Button(new Rect(x, 480, 420, 80), "처음부터 다시", skin.Button(28))) SceneFlow.RestartStage();
-        if (GUI.Button(new Rect(x, 580, 420, 80), "중도 귀환", skin.Button(28))) { SetPauseMenu(false); Session.Retreat(); }
-        if (GUI.Button(new Rect(x, 680, 420, 80), "수선소로", skin.Button(28))) SceneFlow.GoToMain();
-        if (DreamRun.TestMode && SceneFlow.DeveloperMode && GUI.Button(new Rect(x, 780, 420, 80), "맵 에디터로", skin.Button(28))) SceneFlow.GoToMapEditor();
+        if (UIKit.ClickButton(new Rect(x, 380, 420, 80), "계속하기", skin.Button(28))) SetPauseMenu(false);
+        if (UIKit.ClickButton(new Rect(x, 480, 420, 80), "처음부터 다시", skin.Button(28))) SceneFlow.RestartStage();
+        if (UIKit.ClickButton(new Rect(x, 580, 420, 80), "중도 귀환", skin.Button(28))) { SetPauseMenu(false); Session.Retreat(); }
+        if (UIKit.ClickButton(new Rect(x, 680, 420, 80), "수선소로", skin.Button(28))) SceneFlow.GoToMain();
+        if (DreamRun.TestMode && SceneFlow.DeveloperMode && UIKit.ClickButton(new Rect(x, 780, 420, 80), "맵 에디터로", skin.Button(28))) SceneFlow.GoToMapEditor();
     }
 
     void DrawResult()
@@ -672,14 +673,14 @@ public class BattleHUD : MonoBehaviour
         float x = (w - 420f) / 2f, y = 460f;
         if (Session.Result == BattleResult.Success && SceneFlow.HasNextStage)
         {
-            if (GUI.Button(new Rect(x, y, 420, 80), "다음 스테이지", skin.Button(28))) SceneFlow.StartNextStage();
+            if (UIKit.ClickButton(new Rect(x, y, 420, 80), "다음 스테이지", skin.Button(28))) SceneFlow.StartNextStage();
             y += 100;
         }
-        if (GUI.Button(new Rect(x, y, 420, 80), DreamRun.Active ? "다시 탐색부터" : "다시 도전", skin.Button(28))) SceneFlow.RestartStage();
+        if (UIKit.ClickButton(new Rect(x, y, 420, 80), DreamRun.Active ? "다시 탐색부터" : "다시 도전", skin.Button(28))) SceneFlow.RestartStage();
         y += 100;
-        if (GUI.Button(new Rect(x, y, 420, 80), "수선소로", skin.Button(28))) SceneFlow.GoToMain();
+        if (UIKit.ClickButton(new Rect(x, y, 420, 80), "수선소로", skin.Button(28))) SceneFlow.GoToMain();
         y += 100;
-        if (DreamRun.TestMode && SceneFlow.DeveloperMode && GUI.Button(new Rect(x, y, 420, 80), "맵 에디터로", skin.Button(28))) SceneFlow.GoToMapEditor();
+        if (DreamRun.TestMode && SceneFlow.DeveloperMode && UIKit.ClickButton(new Rect(x, y, 420, 80), "맵 에디터로", skin.Button(28))) SceneFlow.GoToMapEditor();
     }
 
     void DrawDataErrors()
@@ -761,6 +762,7 @@ public class BattleHUD : MonoBehaviour
 
     void SetPauseMenu(bool open)
     {
+        if (open) SoundFx.Play("ui_open", 0.7f);
         pauseMenu = open;
         controller.SetPaused(open);
     }

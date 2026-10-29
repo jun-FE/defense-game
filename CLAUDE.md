@@ -71,6 +71,12 @@
 - 밸런스(봇은 첫 두 타워만 씀): 스탠드 조명만 90%, 가위 섞기 53%. 표식·감속을 쓰는 봇은 아직 없음 → 사람 플레이로 조정 필요.
 - 새 세션 컨테이너에는 게임 저장소가 없을 수 있다: `git clone https://github.com/jun-FE/defense-game /home/user/defense-game`(공개 저장소, push도 됨). 파이썬은 `python3.13`(PIL·numpy·scipy), C# 검사는 `apt-get install mono-mcs`.
 
+### 2026-10-29: 전투 음악·효과음·임시 몬스터
+- 전투 배경음악: 사용자 제공 Endless Drift(m4a → ogg). `MusicPlayer.Play`.
+- 효과음: Artlist 요금제(AI Suite)는 **효과음 다운로드 불가**(subscription_required). 사용자가 후보 전부 1번 선택 → README 표에 기록, 지금은 `Tools/Audio/make_temp_sfx.py` 합성 임시음. 같은 이름으로 바꾸면 됨.
+- 임시 몬스터 "실뭉치 악몽"(Artlist 2장, 250크레딧). 적 3종 모두 같은 그림, 색·크기·걸음 속도로 구분. 빌더 20.
+- Artlist 남은 크레딧 약 8,100.
+
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
   - 전체 스크립트 컴파일 검사: `bash Tools/StubCompile/compile.sh` (Unity API 빈 껍데기 `UnityStubs.cs` 사용, 없는 API는 스텁에 추가)

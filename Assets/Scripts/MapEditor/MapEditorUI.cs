@@ -358,14 +358,14 @@ public class MapEditorUI : MonoBehaviour
         heightText = GUI.TextField(new Rect(x + 112, y, 80, 32), heightText);
         int tw = 0, th = 0;
         bool pending = int.TryParse(widthText, out tw) && int.TryParse(heightText, out th) && (tw != map.Width || th != map.Height);
-        if (GUI.Button(new Rect(x + 200, y, w - 200, 32), pending ? "크기 적용 ←" : "크기 적용") && pending) ResizeTo(tw, th);
+        if (UIKit.ClickButton(new Rect(x + 200, y, w - 200, 32), pending ? "크기 적용 ←" : "크기 적용") && pending) ResizeTo(tw, th);
         y += 38;
         for (int i = 0; i < Presets.GetLength(0); i++)
         {
             int pw = Presets[i, 0], ph = Presets[i, 1];
             bool current = pw == map.Width && ph == map.Height;
             if (current) Fill(new Rect(x + i * (w / 4f) - 2, y - 2, w / 4f, 34), ColBorder);
-            if (GUI.Button(new Rect(x + i * (w / 4f), y, w / 4f - 4, 30), $"{pw}×{ph}") && !current) ResizeTo(pw, ph);
+            if (UIKit.ClickButton(new Rect(x + i * (w / 4f), y, w / 4f - 4, 30), $"{pw}×{ph}") && !current) ResizeTo(pw, ph);
         }
         y += 34;
         GUI.Label(new Rect(x, y, w, 22), pending ? "숫자를 바꿨으면 '크기 적용'을 눌러 주세요" : $"{GridMap.MinSize}~{GridMap.MaxSize}칸 · 버튼은 바로 적용", Text(14, pending ? new Color(1f, 0.8f, 0.4f) : new Color(0.7f, 0.68f, 0.8f)));
@@ -380,7 +380,7 @@ public class MapEditorUI : MonoBehaviour
             var r = new Rect(x, y, w, 34);
             bool active = (int)tool == i;
             if (active) Fill(r, new Color(0.35f, 0.28f, 0.6f));
-            if (GUI.Button(r, GUIContent.none, GUIStyle.none)) tool = (Tool)i;
+            if (UIKit.ClickButton(r, GUIContent.none, GUIStyle.none)) tool = (Tool)i;
             Fill(new Rect(r.x + 8, r.y + 7, 20, 20), swatches[i]);
             GUI.Label(new Rect(r.x + 38, r.y, r.width - 40, r.height), $"{i + 1}. {ToolNames[i]}", Text(18, active ? Color.white : new Color(0.8f, 0.78f, 0.9f)));
             y += 36;
@@ -404,13 +404,13 @@ public class MapEditorUI : MonoBehaviour
 
         // 파일
         float bw = (w - 8) / 3f;
-        if (GUI.Button(new Rect(x, y, bw, 40), "새 맵"))
+        if (UIKit.ClickButton(new Rect(x, y, bw, 40), "새 맵"))
         {
             int nw, nh;
             NewMap(int.TryParse(widthText, out nw) ? nw : 32, int.TryParse(heightText, out nh) ? nh : 18);
         }
-        if (GUI.Button(new Rect(x + bw + 4, y, bw, 40), dirty ? "저장 *" : "저장")) Save();
-        if (GUI.Button(new Rect(x + 2 * (bw + 4), y, bw, 40), "불러오기"))
+        if (UIKit.ClickButton(new Rect(x + bw + 4, y, bw, 40), dirty ? "저장 *" : "저장")) Save();
+        if (UIKit.ClickButton(new Rect(x + 2 * (bw + 4), y, bw, 40), "불러오기"))
         {
             mapIds = MapStorage.ListIds();
             loadOpen = !loadOpen;
@@ -425,9 +425,9 @@ public class MapEditorUI : MonoBehaviour
                 GUI.Label(new Rect(x, y, w, 24), "· " + errors[i], Text(15, new Color(1f, 0.6f, 0.6f)));
         y = Mathf.Max(y + 30, UIKit.Height - 70);
         GUI.enabled = errors.Count == 0;
-        if (GUI.Button(new Rect(x, UIKit.Height - 108, w, 44), "▶ 테스트 플레이 (탐색 → 전투)")) TestPlay();
+        if (UIKit.ClickButton(new Rect(x, UIKit.Height - 108, w, 44), "▶ 테스트 플레이 (탐색 → 전투)")) TestPlay();
         GUI.enabled = true;
-        if (GUI.Button(new Rect(x, UIKit.Height - 56, w, 40), "로비로")) SceneFlow.GoToLobby();
+        if (UIKit.ClickButton(new Rect(x, UIKit.Height - 56, w, 40), "로비로")) SceneFlow.GoToLobby();
     }
 
     void DrawStatus()
@@ -451,10 +451,10 @@ public class MapEditorUI : MonoBehaviour
         var view = new Rect(r.x + 12, r.y + 48, r.width - 24, r.height - 110);
         loadScroll = GUI.BeginScrollView(view, loadScroll, new Rect(0, 0, view.width - 20, Mathf.Max(view.height, mapIds.Count * 40)));
         for (int i = 0; i < mapIds.Count; i++)
-            if (GUI.Button(new Rect(0, i * 40, view.width - 24, 36), mapIds[i])) Load(mapIds[i]);
+            if (UIKit.ClickButton(new Rect(0, i * 40, view.width - 24, 36), mapIds[i])) Load(mapIds[i]);
         if (mapIds.Count == 0) GUI.Label(new Rect(0, 0, view.width, 30), "저장된 맵이 없어요", Text(16, Color.white));
         GUI.EndScrollView();
-        if (GUI.Button(new Rect(r.x + 16, r.yMax - 52, r.width - 32, 40), "닫기")) loadOpen = false;
+        if (UIKit.ClickButton(new Rect(r.x + 16, r.yMax - 52, r.width - 32, 40), "닫기")) loadOpen = false;
     }
 
     // ───────── 입력 ─────────

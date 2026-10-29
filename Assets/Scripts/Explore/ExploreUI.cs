@@ -166,6 +166,7 @@ public class ExploreUI : MonoBehaviour
         prevPlayer = player;
         player = new Vector2Int(x, y);
         moveT = 0f;
+        SoundFx.Play("step", 0.6f, 0.12f, 0.08f);
         KeepPlayerInView();
     }
 
@@ -193,6 +194,7 @@ public class ExploreUI : MonoBehaviour
         var violet = new Color(0.75f, 0.58f, 1f);
         flashCell = new Vector2Int(x, y);
         flashT = 1f;
+        SoundFx.Play(value > 0 ? "crystal" : "reveal", value > 0 ? 1f : 0.8f, 0.06f);
 
         // 어둠 먼지: 칸 곳곳에서 바깥으로 흩어지며 커지고 옅어진다
         for (int i = 0; i < 16; i++)
@@ -241,6 +243,7 @@ public class ExploreUI : MonoBehaviour
     {
         bumpDir = new Vector2(x - player.x, y - player.y);
         bumpT = 1f;
+        SoundFx.Play("bump", 0.8f, 0.08f, 0.15f);
         facing = new Vector2Int(x - player.x, y - player.y);
         var edge = new Vector2((player.x + x) / 2f + 0.5f, (player.y + y) / 2f + 0.5f);
         for (int i = 0; i < 6; i++)
@@ -660,7 +663,7 @@ public class ExploreUI : MonoBehaviour
             : "WASD·방향키 이동 · 드래그 화면 이동 · 휠 확대/축소 · F 전체 보기 · Esc 메뉴";
         GUI.Label(new Rect(bottom.x + 20, bottom.y, bottom.width - 270, bottom.height), hint, skin.Text(16, UISkin.Light));
         GUI.enabled = connected && !menuOpen;
-        if (GUI.Button(new Rect(bottom.xMax - 240, bottom.y + 6, 232, 42), connected ? "전투 준비 →" : "출현 지점까지 이어 주세요", skin.Button(connected ? 20 : 15)))
+        if (UIKit.ClickButton(new Rect(bottom.xMax - 240, bottom.y + 6, 232, 42), connected ? "전투 준비 →" : "출현 지점까지 이어 주세요", skin.Button(connected ? 20 : 15)))
             StartBattle();
         GUI.enabled = true;
 
@@ -674,16 +677,16 @@ public class ExploreUI : MonoBehaviour
         float w = UIKit.Width;
         UIKit.ShadowLabel(new Rect(0, 260, w, 90), "탐색 메뉴", UIKit.Heading);
         float x = (w - 420f) / 2f, y = 400f;
-        if (GUI.Button(new Rect(x, y, 420, 76), "계속 탐색", skin.Button(26))) menuOpen = false;
+        if (UIKit.ClickButton(new Rect(x, y, 420, 76), "계속 탐색", skin.Button(26))) menuOpen = false;
         y += 96;
-        if (GUI.Button(new Rect(x, y, 420, 76), "처음부터 다시 탐색", skin.Button(26))) SceneFlow.RestartStage();
+        if (UIKit.ClickButton(new Rect(x, y, 420, 76), "처음부터 다시 탐색", skin.Button(26))) SceneFlow.RestartStage();
         y += 96;
         if (DreamRun.TestMode && SceneFlow.DeveloperMode)
         {
-            if (GUI.Button(new Rect(x, y, 420, 76), "맵 에디터로", skin.Button(26))) SceneFlow.GoToMapEditor();
+            if (UIKit.ClickButton(new Rect(x, y, 420, 76), "맵 에디터로", skin.Button(26))) SceneFlow.GoToMapEditor();
             y += 96;
         }
-        if (GUI.Button(new Rect(x, y, 420, 76), "수선소로", skin.Button(26))) SceneFlow.GoToMain();
+        if (UIKit.ClickButton(new Rect(x, y, 420, 76), "수선소로", skin.Button(26))) SceneFlow.GoToMain();
     }
 
     // ───────── 입력 ─────────
@@ -728,7 +731,7 @@ public class ExploreUI : MonoBehaviour
     void HandleKeys(Event e)
     {
         if (e.type != EventType.KeyDown) return;
-        if (e.keyCode == KeyCode.Escape) { menuOpen = !menuOpen; e.Use(); }
+        if (e.keyCode == KeyCode.Escape) { menuOpen = !menuOpen; if (menuOpen) SoundFx.Play("ui_open", 0.7f); e.Use(); }
         else if (!menuOpen && e.keyCode == KeyCode.F) { FitView(); e.Use(); }
         else if (!menuOpen && (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && connected) { StartBattle(); e.Use(); }
     }

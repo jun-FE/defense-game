@@ -43,7 +43,7 @@ namespace UnityEngine {
   public enum CameraClearFlags { SolidColor }
   public class AudioListener : Behaviour { public static float volume; }
   public class AudioClip : Object { }
-  public class AudioSource : Behaviour { public AudioClip clip; public bool loop, playOnAwake; public float spatialBlend, volume; public void Play(){} }
+  public class AudioSource : Behaviour { public AudioClip clip; public bool loop, playOnAwake; public float spatialBlend, volume, pitch; public void Play(){} public void PlayOneShot(AudioClip c, float v){} }
   public class SpriteRenderer : Component { public Sprite sprite; public Color color; public int sortingOrder; public bool enabled, flipX; public Material sharedMaterial; public SpriteDrawMode drawMode; public Vector2 size; }
   public enum SpriteDrawMode { Simple, Sliced, Tiled }
   public enum SpriteMeshType { FullRect, Tight }

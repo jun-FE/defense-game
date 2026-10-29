@@ -48,6 +48,7 @@ public class BattleController : MonoBehaviour
         Session = new BattleSession(Content.Stage, Content.Rules, new SeededRandom(Seed));
         Debug.Log($"[전투] {Content.Stage.Id} 시작, 시드 {Seed}");
         Session.Ended += OnEnded;
+        BattleSounds.Attach(Session);
     }
 
     void Update()

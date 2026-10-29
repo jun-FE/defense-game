@@ -281,7 +281,7 @@ public class LobbyPopups
             bool on = i == tab;
             Prefixed(on ? "tab_selected" : "tab_normal", r);
             GUI.Label(r, TabNames[i], Text(21, on ? TabOn : TabOff, TextAnchor.MiddleCenter, on));
-            if (GUI.Button(r, GUIContent.none, GUIStyle.none)) tab = i;
+            if (UIKit.ClickButton(r, GUIContent.none, GUIStyle.none)) tab = i;
         }
 
         if (tab == 0)
@@ -344,7 +344,7 @@ public class LobbyPopups
         GUI.Label(new Rect(field.x + field.height * 0.4f, field.y, field.width - field.height * 1.4f, field.height), value, Text(18, Cream));
         float arrow = field.height * 0.42f;
         Prefixed("dropdown_arrow", new Rect(field.xMax - arrow - field.height * 0.35f, field.center.y - arrow / 2f, arrow, arrow));
-        if (GUI.Button(field, GUIContent.none, GUIStyle.none)) next();
+        if (UIKit.ClickButton(field, GUIContent.none, GUIStyle.none)) next();
     }
 
     /// <summary>
@@ -415,7 +415,7 @@ public class LobbyPopups
         else Body(normal, body, false);
 
         GUI.Label(body, label, Text(22, enabled ? ButtonText : Muted, TextAnchor.MiddleCenter));
-        return enabled && GUI.Button(body, GUIContent.none, GUIStyle.none);
+        return enabled && UIKit.ClickButton(body, GUIContent.none, GUIStyle.none);
     }
 
     /// <summary>그림 이름 찾기: 지금 팝업 모양(ArtPrefix) → 아무 팝업이나 같은 이름.</summary>
