@@ -25,9 +25,13 @@ public class BattleController : MonoBehaviour
 
     double accumulator;
 
+    /// <summary>전투 배경음악(Assets/Resources/Music/). 원본은 ArtSource/Music/.</summary>
+    public const string BattleMusic = "Music/battle_endless_drift";
+
     void Awake()
     {
         Time.timeScale = 1f;
+        MusicPlayer.Play(BattleMusic);
         StageAsset stage = defaultStage;
         StageData selected = SceneFlow.CurrentStage;
         if (selected != null && selected.battleStage != null) stage = selected.battleStage;

@@ -42,6 +42,8 @@ namespace UnityEngine {
   public class Camera : Behaviour { public Vector3 WorldToScreenPoint(Vector3 p)=>p; public float aspect; public static Camera main; public bool orthographic; public float orthographicSize; public CameraClearFlags clearFlags; public Color backgroundColor; public Vector3 ScreenToWorldPoint(Vector3 v)=>v; }
   public enum CameraClearFlags { SolidColor }
   public class AudioListener : Behaviour { public static float volume; }
+  public class AudioClip : Object { }
+  public class AudioSource : Behaviour { public AudioClip clip; public bool loop, playOnAwake; public float spatialBlend, volume; public void Play(){} }
   public class SpriteRenderer : Component { public Sprite sprite; public Color color; public int sortingOrder; public bool enabled, flipX; public Material sharedMaterial; public SpriteDrawMode drawMode; public Vector2 size; }
   public enum SpriteDrawMode { Simple, Sliced, Tiled }
   public enum SpriteMeshType { FullRect, Tight }

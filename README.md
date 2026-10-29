@@ -211,6 +211,11 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - 밸런스 모의 플레이: `bash Tools/CoreTests/balance.sh` (병정인형을 섞어 지으려면 `balance.sh 200 mix`) → 성공률, 잔여 중심 HP, 소요 시간을 기획 목표와 함께 보여줍니다.
 - 첫 의뢰 웨이브는 기획서 샘플보다 적을 줄인 1차 밸런스입니다(기획서 샘플은 시작 재화 120으로 막기 어려운 스트레스 테스트). 기획서 샘플 그대로의 웨이브는 테스트 전용(`SampleContent.SpecSampleStage`)으로 남겨 두었습니다.
 
+## 배경음악
+- 전투: `Assets/Resources/Music/battle_endless_drift.ogg`(원본 `ArtSource/Music/Endless_Drift.m4a`, Unity가 .m4a를 못 읽는 환경이 있어 .ogg로 변환). 전투 씬이 시작되면 2초 동안 서서히 커지며 반복 재생, 일시정지 중에도 흐릅니다. 크기는 설정의 배경음 크기를 따릅니다.
+- 곡 바꾸기: 새 곡을 `.ogg`(또는 .wav/.mp3)로 `Assets/Resources/Music/`에 넣고 `BattleController.BattleMusic` 경로를 바꿉니다. .m4a는 `ffmpeg -i 곡.m4a -vn -c:a libvorbis -q:a 6 곡.ogg`로 변환.
+- 다른 화면도 `MusicPlayer.Play("Music/파일이름")` 한 줄로 붙일 수 있습니다.
+
 ## 타워 아트
 
 ### 수선소 물품 타워 6종 (지금 전투 목록, 건설 고리 순서 = 단축키 `1`~`6`)
