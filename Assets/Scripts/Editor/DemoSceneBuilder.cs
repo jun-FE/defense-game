@@ -19,7 +19,7 @@ public static class DemoSceneBuilder
     public const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
     public const string LobbyArtDir = "Assets/Art/Lobby";
     /// <summary>빌더가 만드는 씬 구성이 바뀔 때 올린다. 값이 다르면 프로젝트를 열 때 다시 만든다.</summary>
-    public const string BuildVersion = "21";
+    public const string BuildVersion = "22";
     public const string BuildVersionPath = "Assets/Scenes/.builder_version";
     public const string StoryScenePath = "Assets/Scenes/Story.unity";
     public const string BattleScenePath = "Assets/Scenes/Battle.unity";
@@ -44,6 +44,8 @@ public static class DemoSceneBuilder
     public const string SnowballDir = "Assets/Art/Towers/Snowball";
     public const string SewingDir = "Assets/Art/Towers/Sewing";
     public const string TangleDir = "Assets/Art/Enemies/Tangle";
+    public const string ShadeDir = "Assets/Art/Enemies/Shade";
+    public const string BearDir = "Assets/Art/Enemies/Bear";
     /// <summary>
     /// 수선소 물품 타워: id → (그림 폴더, 파일 앞이름, 발사 지점 px(256px 캔버스 가운데 기준, 오른쪽·위가 +), 그림이 왼쪽을 보는지, 연출 종류, 연출 색, 크기 배율(넓은 그림은 한 칸에 맞게 줄임)).
     /// 그림은 Tools/Art/build_tower_art.py가 만든다.
@@ -330,23 +332,35 @@ public static class DemoSceneBuilder
             });
         }
 
-        // 임시 몬스터 그림(실뭉치 악몽, 걷기 2장): 그림이 없는 적에게 모두 입힌다. 종류는 색·크기로 구분.
-        var tangle = new[] { LoadTowerSprite("tangle_0.png", TangleDir), LoadTowerSprite("tangle_1.png", TangleDir) };
-        var artTints = new Dictionary<string, Color>
+        // 몬스터 그림(걷기 2장): 실뭉치 악몽·실밥 그림자·누더기 곰. 예전에 실뭉치 그림을 같이 쓰던 적도 자기 그림으로 바꾼다.
+        // (폴더, 파일 앞글자, 크기, 걷기 속도)
+        var enemyArt = new Dictionary<string, (string dir, string prefix, float scale, float fps)>
         {
-            { "EN_TOY", Color.white },
-            { "EN_RUSH", new Color(0.8f, 0.7f, 1f) },
-            { "EN_HEAVY", new Color(1f, 0.78f, 0.68f) },
+            { "EN_TOY", (TangleDir, "tangle", 0.6f, 5f) },
+            { "EN_RUSH", (ShadeDir, "shade", 0.62f, 8f) },
+            { "EN_HEAVY", (BearDir, "bear", 0.95f, 3.5f) },
         };
-        if (tangle[0] != null)
-            foreach (EnemyAsset enemy in enemies.Values)
+        Sprite tangleBase = LoadTowerSprite("tangle_0.png", TangleDir);
+        foreach (EnemyAsset enemy in enemies.Values)
+        {
+            if (!enemyArt.TryGetValue(enemy.id, out var art)) continue;
+            var frames = new[] { LoadTowerSprite(art.prefix + "_0.png", art.dir), LoadTowerSprite(art.prefix + "_1.png", art.dir) };
+            if (frames[0] == null) continue;
+            bool hasOwn = enemy.walkFrames != null && enemy.walkFrames.Length > 0 && enemy.walkFrames[0] != tangleBase;
+            if (hasOwn && enemy.walkFrames[0] != frames[0]) continue; // 사용자가 직접 바꾼 그림은 두기
+            enemy.walkFrames = frames[1] != null ? frames : new[] { frames[0] };
+            enemy.sprite = frames[0];
+            enemy.walkFps = art.fps;
+            enemy.scale = art.scale;
+            enemy.tint = Color.white;
+            EditorUtility.SetDirty(enemy);
+        }
+        // 이름이 바뀐 적(병정 → 실뭉치 악몽 등)은 이름도 맞춘다
+        foreach (var pair in enemies)
+            if (pair.Value.displayName != pair.Key.Name)
             {
-                if (enemy.walkFrames != null && enemy.walkFrames.Length > 0) continue;
-                enemy.walkFrames = tangle[1] != null ? tangle : new[] { tangle[0] };
-                enemy.sprite = tangle[0];
-                enemy.walkFps = enemy.id == "EN_RUSH" ? 8f : enemy.id == "EN_HEAVY" ? 3.5f : 5f;
-                enemy.tint = artTints.ContainsKey(enemy.id) ? artTints[enemy.id] : Color.white;
-                EditorUtility.SetDirty(enemy);
+                pair.Value.displayName = pair.Key.Name;
+                EditorUtility.SetDirty(pair.Value);
             }
 
         var towers = new List<TowerAsset>();

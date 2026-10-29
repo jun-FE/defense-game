@@ -86,6 +86,11 @@
 - 프롤로그는 글자 대본 `Assets/Resources/Stories/prologue.txt`를 `StoryScript.Parse`로 읽음(장면 카드·배경·색·초상화·표정 문법). 임시 대본, 사용자가 진짜 스토리·디자인을 나중에 줌. 아트리스트 안 씀.
 - StoryLine에 선택 칸 `sceneTitle/sceneSubtitle/background/portrait` 추가. StoryPlayer: 페이드 인·아웃, 장면 카드, 배경 겹쳐 바꾸기, 좌(이안)/우 초상화, 그림 없으면 자리 표시. Unity에서 확인 필요.
 
+### 2026-10-29: 도감(수선 기록부) + 악몽 3종 그림
+- Artlist 6장(750크레딧): 펼친 책, 도감 조각 시트(칸·책갈피·액자·막대·도장·아이콘 8개), 실밥 그림자·누더기 곰(기본+걷기). 남은 크레딧 약 7,225.
+- 적 이름 변경: 병정→실뭉치 악몽, 빠른 그림자→실밥 그림자, 무거운 봉제→누더기 곰. 빌더 22(적 그림·크기·이름 갱신).
+- 도감: `CodexPanel`(메인 도감 탭), 글은 `CodexData`, 기록은 `CodexProgress`(전투 이벤트로 만남·처치 기록). 미리보기 `Tools/Art/preview_codex.py`. Unity에서 확인 필요.
+
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
   - 전체 스크립트 컴파일 검사: `bash Tools/StubCompile/compile.sh` (Unity API 빈 껍데기 `UnityStubs.cs` 사용, 없는 API는 스텁에 추가)

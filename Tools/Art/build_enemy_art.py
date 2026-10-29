@@ -7,7 +7,7 @@ import sys
 import types
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ENEMIES = {'tangle': ('실뭉치', 'Tangle')}
+ENEMIES = {'tangle': ('실뭉치', 'Tangle'), 'shade': ('실밥그림자', 'Shade'), 'bear': ('누더기곰', 'Bear')}
 
 src = open(os.path.join(ROOT, 'Tools/Art/build_tower_art.py'), encoding='utf-8').read()
 lib = types.ModuleType('tower_art')

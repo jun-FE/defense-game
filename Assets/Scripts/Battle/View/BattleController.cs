@@ -49,6 +49,7 @@ public class BattleController : MonoBehaviour
         Debug.Log($"[전투] {Content.Stage.Id} 시작, 시드 {Seed}");
         Session.Ended += OnEnded;
         BattleSounds.Attach(Session);
+        CodexProgress.Attach(Session);
     }
 
     void Update()

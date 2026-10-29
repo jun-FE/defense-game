@@ -9,9 +9,9 @@ namespace Akmong.Battle
     /// </summary>
     public static class SampleContent
     {
-        public static EnemyDef Toy() => new EnemyDef { Id = "EN_TOY", Name = "병정", MaxHp = 100, Armor = 25, MoveSpeed = 1.5f, CoreDamage = 5, KillCoin = 3 };
-        public static EnemyDef Rush() => new EnemyDef { Id = "EN_RUSH", Name = "빠른 그림자", MaxHp = 60, Armor = 0, MoveSpeed = 2.5f, CoreDamage = 4, KillCoin = 3 };
-        public static EnemyDef Heavy() => new EnemyDef { Id = "EN_HEAVY", Name = "무거운 봉제", MaxHp = 260, Armor = 50, MoveSpeed = 0.8f, CoreDamage = 12, KillCoin = 8 };
+        public static EnemyDef Toy() => new EnemyDef { Id = "EN_TOY", Name = "실뭉치 악몽", MaxHp = 100, Armor = 25, MoveSpeed = 1.5f, CoreDamage = 5, KillCoin = 3 };
+        public static EnemyDef Rush() => new EnemyDef { Id = "EN_RUSH", Name = "실밥 그림자", MaxHp = 60, Armor = 0, MoveSpeed = 2.5f, CoreDamage = 4, KillCoin = 3 };
+        public static EnemyDef Heavy() => new EnemyDef { Id = "EN_HEAVY", Name = "누더기 곰", MaxHp = 260, Armor = 50, MoveSpeed = 0.8f, CoreDamage = 12, KillCoin = 8 };
 
         /// <summary>
         /// 스탠드 조명: 따뜻한 빛줄기로 멀리 있는 한 적을 꾸준히 지진다(원거리 단일, 기본 딜러).

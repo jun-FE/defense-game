@@ -57,6 +57,7 @@ public class SettingsPanel
             {
                 Progress.ResetAll();
                 QuestProgress.ResetAll();
+                CodexProgress.ResetAll();
             }
             confirmReset = !confirmReset;
         }

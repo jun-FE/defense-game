@@ -9,7 +9,7 @@ using UnityEngine;
 /// IMGUI, 1080p 기준 좌표. 오른쪽 요소는 화면 오른쪽 끝 기준으로 놓아 화면비가 달라도 붙어 있다.
 /// - 왼쪽 위: 로고, 해명도 게이지 / 오른쪽 위: 재화 바(결정·동전·열쇠), 설정
 /// - 오른쪽: 의뢰함(전체/진행 중/완료) / 가운데: 의뢰 상세(편지) → "의뢰 시작하기"
-/// - 왼쪽 아래: 도하 말풍선 / 아래: 탭(수선소·의뢰함·도감·가방·기술·지도)
+/// - 왼쪽 아래: 도하 말풍선 / 아래: 탭(수선소·의뢰함·도감·가방·기술·지도). 도감은 CodexPanel(펼친 책).
 /// </summary>
 public class MainUI : MonoBehaviour
 {
@@ -51,6 +51,9 @@ public class MainUI : MonoBehaviour
     /// <summary>의뢰함(목록+상세)이 열려 있는지. 의뢰함 탭을 다시 누르거나 수선소 탭을 누르면 닫힌다.</summary>
     bool questsOpen = true;
     readonly SettingsPanel settings = new SettingsPanel();
+    /// <summary>도감(수선 기록부). 도감 탭으로 열고 닫는다.</summary>
+    readonly CodexPanel codex = new CodexPanel();
+    bool codexOpen;
     string toast;
     float toastUntil;
 
@@ -85,16 +88,18 @@ public class MainUI : MonoBehaviour
         EnsureStyles();
         float w = UIKit.Width, h = UIKit.Height;
 
-        GUI.enabled = !settingsOpen;
+        GUI.enabled = !settingsOpen && !codexOpen;
         DrawLogo();
         DrawGauge(new Rect(48, 196, 420, 128));
         DrawResources(w);
-        if (questsOpen)
+        if (questsOpen && !codexOpen)
         {
             DrawQuestList(new Rect(w - 470, 112, 440, 800));
             if (selected != null) DrawDetail(new Rect(w - 960, 112, 470, 800));
         }
         DrawDohaBubble(new Rect(48, h - 262, 560, 112));
+        GUI.enabled = !settingsOpen;
+        if (codexOpen && !codex.Draw(w, h)) codexOpen = false;
         DrawNav(w, h);
         DrawToast(w, h);
         GUI.enabled = true;
@@ -104,7 +109,8 @@ public class MainUI : MonoBehaviour
 
         if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
         {
-            SetSettings(!settingsOpen);
+            if (codexOpen && !settingsOpen) codexOpen = false;
+            else SetSettings(!settingsOpen);
             e.Use();
         }
     }
@@ -297,8 +303,8 @@ public class MainUI : MonoBehaviour
         for (int i = 0; i < TabNames.Length; i++)
         {
             var r = new Rect(x + i * (bw + gap), y, bw, bh);
-            bool active = i == (questsOpen ? 1 : 0);
-            bool locked = i == 2 || i == 3 || i == 5;
+            bool active = i == (codexOpen ? 2 : questsOpen ? 1 : 0);
+            bool locked = i == 3 || i == 5;
             Color old = GUI.color;
             if (locked) GUI.color = new Color(1f, 1f, 1f, 0.55f);
             if (UIKit.ClickButton(r, GUIContent.none, GUIStyle.none)) OnTab(i);
@@ -332,8 +338,9 @@ public class MainUI : MonoBehaviour
     {
         switch (index)
         {
-            case 0: questsOpen = false; break;
-            case 1: questsOpen = !questsOpen; break;
+            case 0: questsOpen = false; codexOpen = false; break;
+            case 1: questsOpen = codexOpen || !questsOpen; codexOpen = false; break;
+            case 2: codexOpen = !codexOpen; break;
             case 4: ShowToast("기술(마스터리)은 준비 중이에요"); break;
             default: ShowToast("아직 열리지 않았어요"); break;
         }
