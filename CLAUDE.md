@@ -69,7 +69,7 @@
 - 그림: 재봉틀 L1·L3를 기준 그림으로 Artlist 2K 45장(1단계 5 → 2·3단계 10 → 대기·공격 30). 5,625크레딧, 실패한 10장 묶음은 차감 없이 다시 생성. 남은 크레딧 약 8,350.
 - 코어: `TowerLevelDef.HitCount`(여러 적), `ArmorShred`·`Vulnerability`·`MarkSec`(표식), `HitResult.HitIndex/HitTotal/Pinned/Tagged`. 검산 테스트 추가(가위 여러 적, 표식 걸림·풀림).
 - 밸런스(봇은 첫 두 타워만 씀): 스탠드 조명만 90%, 가위 섞기 53%. 표식·감속을 쓰는 봇은 아직 없음 → 사람 플레이로 조정 필요.
-- 이 세션 환경: 게임 저장소는 읽기 전용으로 받아짐(push 권한 추가가 거부됨). push가 안 되면 사용자에게 알린다.
+- 새 세션 컨테이너에는 게임 저장소가 없을 수 있다: `git clone https://github.com/jun-FE/defense-game /home/user/defense-game`(공개 저장소, push도 됨). 파이썬은 `python3.13`(PIL·numpy·scipy), C# 검사는 `apt-get install mono-mcs`.
 
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
