@@ -91,6 +91,10 @@
 - 적 이름 변경: 병정→실뭉치 악몽, 빠른 그림자→실밥 그림자, 무거운 봉제→누더기 곰. 빌더 22(적 그림·크기·이름 갱신).
 - 도감: `CodexPanel`(메인 도감 탭), 글은 `CodexData`, 기록은 `CodexProgress`(전투 이벤트로 만남·처치 기록). 미리보기 `Tools/Art/preview_codex.py`. Unity에서 확인 필요.
 
+### 2026-10-29: 기술(꿈 수틀) 거미줄 기술 나무
+- Artlist 2장(250크레딧): 나무 수틀, 매듭 조각 시트. 남은 크레딧 약 6,975.
+- `Mastery`(매듭 25개: 가운데 + 6줄 × 안쪽·가운데·바깥 + 살 사이 6, 실마리 = 3 + 클리어당 2), `MasteryPanel`(메인 기술 탭). 전투 시작 시 `Mastery.Apply`. Unity에서 확인 필요.
+
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
   - 전체 스크립트 컴파일 검사: `bash Tools/StubCompile/compile.sh` (Unity API 빈 껍데기 `UnityStubs.cs` 사용, 없는 API는 스텁에 추가)

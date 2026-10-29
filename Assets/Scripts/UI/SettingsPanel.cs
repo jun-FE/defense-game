@@ -58,6 +58,7 @@ public class SettingsPanel
                 Progress.ResetAll();
                 QuestProgress.ResetAll();
                 CodexProgress.ResetAll();
+                Mastery.ResetAll();
             }
             confirmReset = !confirmReset;
         }
