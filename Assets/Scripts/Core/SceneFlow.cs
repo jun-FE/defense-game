@@ -40,9 +40,32 @@ public static class SceneFlow
         }
     }
 
+    /// <summary>true면 스토리가 끝난 뒤 스테이지 대신 수선소(메인)로 간다(새로하기 프롤로그).</summary>
+    static bool storyGoesToMain;
+
+    /// <summary>새로하기: 프롤로그 대본(Resources/Stories/prologue.txt)을 보여 주고 수선소로. 대본이 없으면 바로 수선소.</summary>
+    public static void StartPrologue()
+    {
+        StoryData prologue = StoryScript.LoadPrologue();
+        if (prologue == null)
+        {
+            GoToMain();
+            return;
+        }
+        PendingStory = prologue;
+        storyGoesToMain = true;
+        Load(StoryScene);
+    }
+
     public static void FinishStory()
     {
         PendingStory = null;
+        if (storyGoesToMain)
+        {
+            storyGoesToMain = false;
+            GoToMain();
+            return;
+        }
         EnterStage();
     }
 

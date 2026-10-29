@@ -185,8 +185,8 @@ public class LobbyMenu : MonoBehaviour
         Progress.ResetAll();
         QuestProgress.ResetAll();
         SaveInfo.ResetAll();
-        // 프롤로그(이안의 꿈 → 도하 수선 → 첫 편지)는 4주차에 이 자리에서 재생한다.
-        SceneFlow.GoToMain();
+        // 프롤로그(이안의 꿈 → 도하 수선 → 첫 편지): Resources/Stories/prologue.txt
+        SceneFlow.StartPrologue();
     }
 
     bool IsEnabled(string item) => item != "menu_continue" || HasSave;

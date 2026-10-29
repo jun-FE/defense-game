@@ -9,6 +9,16 @@ public class StoryLine
     [TextArea(2, 5)]
     public string text;
 
+    [Header("선택(비워 두면 없음)")]
+    [Tooltip("이 대사 앞에 보여 줄 장면 제목 카드")]
+    public string sceneTitle;
+    [Tooltip("장면 제목 아래 작은 글씨")]
+    public string sceneSubtitle;
+    [Tooltip("배경 그림 이름(Resources/Stories/Backgrounds/이름). 한 번 정하면 다음에 바꿀 때까지 유지")]
+    public string background;
+    [Tooltip("초상화 이름(Resources/Stories/Portraits/이름). 비우면 말하는 사람 이름을 쓴다")]
+    public string portrait;
+
     public StoryLine() { }
 
     public StoryLine(string speaker, string text)

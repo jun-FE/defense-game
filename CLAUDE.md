@@ -81,6 +81,11 @@
 - 스탠드 조명 이중 연출(그림 속 고정 방향 빛 + 코드 빛줄기) → 그림 속 빛 제거. 길 위 소품·덤불·경계 띠 정리(소품은 꽃밭 안쪽만). 체력바 다듬기(맞기 전 숨김). 경로 표시는 준비 시간에만.
 - 이안을 픽셀 그림체 4방향×4장으로 다시 생성(125크레딧), 키 약 1칸, 0.26초 일정 속도로 이어 걷기. 남은 크레딧 약 7,975.
 
+### 2026-10-29: 새로하기 프롤로그 틀
+- 새로하기 → `SceneFlow.StartPrologue()` → Story 씬 → 끝나면 Main(`storyGoesToMain`). 스테이지 스토리는 그대로 끝나면 스테이지.
+- 프롤로그는 글자 대본 `Assets/Resources/Stories/prologue.txt`를 `StoryScript.Parse`로 읽음(장면 카드·배경·색·초상화·표정 문법). 임시 대본, 사용자가 진짜 스토리·디자인을 나중에 줌. 아트리스트 안 씀.
+- StoryLine에 선택 칸 `sceneTitle/sceneSubtitle/background/portrait` 추가. StoryPlayer: 페이드 인·아웃, 장면 카드, 배경 겹쳐 바꾸기, 좌(이안)/우 초상화, 그림 없으면 자리 표시. Unity에서 확인 필요.
+
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
   - 전체 스크립트 컴파일 검사: `bash Tools/StubCompile/compile.sh` (Unity API 빈 껍데기 `UnityStubs.cs` 사용, 없는 API는 스텁에 추가)
