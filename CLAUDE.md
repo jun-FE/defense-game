@@ -100,6 +100,12 @@
 - 새로하기 → 프롤로그 → `SceneFlow.StartTutorial`(Tutorial.Active, 스테이지 0 탐색) → `BattleTutorial.SetupStage`로 웨이브 교체(이길 수 없음) → `FinishTutorial` → `tutorial_end.txt` → 메인.
 - 스토리 대본에 `[안내]`·`[편지]` 추가. 컴파일 검사 수정: 에디터 설정이 mcs 내부 오류(8개 튜플)로 실제로는 검사되지 않고 "통과"로 나오던 것 → 튜플을 클래스로, compile.sh가 내부 오류도 실패로 봄. Unity에서 확인 필요.
 
+### 2026-11-02: 도구별 강화(속성 분기) · 도구 해금 · 도감 보상
+- 사용자 요청: 강화가 단조로움 → 도구마다 기본 손질(늘 적용) + 속성 분기 3개(각성→심화), 한 도구엔 고른 속성 하나만. 모든 도구에 불·독 넣지 말 것.
+- 전투 코어: TowerLevelDef에 Element·DotDps/DotSec·StunChance/StunSec·ChainCount/Range/Falloff·SplashRadius/Pct, 검산 "속성 강화".
+- 해금: 시작은 스탠드만, 클리어로 가위·재봉틀(1), 줄자·바늘꽂이(2), 수선표 활(3). 실마리 = 2 + 도감 기록 보상(도구 2·악몽 1). 해금 방식은 내가 정한 기본값 → 사용자 확인 필요.
+- 건설 고리 버튼 104→136, 실제 도구 그림. Unity에서 확인 필요.
+
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
   - 전체 스크립트 컴파일 검사: `bash Tools/StubCompile/compile.sh` (Unity API 빈 껍데기 `UnityStubs.cs` 사용, 없는 API는 스텁에 추가)

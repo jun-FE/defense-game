@@ -63,6 +63,7 @@ namespace Akmong.Battle
             run("스노우볼: 맞은 적 30% 감속(보스 15%), 2초 뒤 원래 속도", SlowCase);
             run("가위: 사거리 안 적 3명을 한 번에, 4번째는 안 맞음", MultiHitCase);
             run("바늘꽂이·수선표: 방어 감소·받는 피해 증가 표식이 다른 타워 피해를 늘리고 시간이 지나면 풀림", MarkCase);
+            run("속성 강화: 지속 피해가 시간 동안 들어가고 풀림, 기절한 적은 멈춤, 연쇄·폭발이 다른 적에게 튐", ElementCase);
             return cases;
         }
 
@@ -135,6 +136,44 @@ namespace Akmong.Battle
             bool tagEnded = target != null && !target.Tagged && target.Vulnerable == 0f;
             Check(cases, name, shred > plain && tagged > plain && marked && pinEnded && tagEnded,
                 $"방어 50 기준 피해 {plain} → 방어 -25 {shred}, 받는 피해 +15% {tagged}, 표식 걸림 {marked}(핀 {pinAt:0.00}초·꼬리표 {tagAt:0.00}초), 3초 뒤 방어 감소 풀림 {pinEnded}, 4초 뒤 피해 증가 풀림 {tagEnded}");
+        }
+
+        static void ElementCase(List<Case> cases, string name)
+        {
+            EnemyDef dummy = new EnemyDef { Id = "EN_DUMMY", Name = "허수아비", MaxHp = 100000, Armor = 0, MoveSpeed = 0.5f, CoreDamage = 1, KillCoin = 0 };
+            TowerDef lamp = SampleContent.Lamp();
+            TowerLevelDef l = lamp.Levels[0];
+            l.Range = 30f;
+            l.AttackSec = 6f;           // 한 번 치고 6초 쉼: 그사이 지속 피해·기절이 풀리는지 본다
+            l.CritChance = 0f;
+            l.DotDps = 10f; l.DotSec = 2f;
+            l.StunChance = 1f; l.StunSec = 1f;
+            l.ChainCount = 2; l.ChainRange = 5f;
+            l.SplashRadius = 5f; l.SplashPct = 0.5f;
+            BattleSession session = CrowdSession(dummy, 4, new[] { lamp });
+            int chained = 0, splashed = 0, dotTotal = 0;
+            EnemyState first = null;
+            session.TowerFired += h =>
+            {
+                if (h.Chained) chained++;
+                if (h.Splashed) splashed++;
+                if (h.HitIndex == 0 && first == null) first = h.Target;
+            };
+            session.DotTicked += (e, d) => dotTotal += d;
+            double dt = session.Rules.FixedDt;
+            // 4명이 다 나온 뒤 첫 공격이 오도록 조금 기다린다(첫 공격은 설치 후 6초)
+            while (first == null && session.CombatTime < 20) session.Tick(dt);
+            bool stunned = first != null && first.Stunned;
+            float traveledAtHit = first != null ? first.Traveled : 0f;
+            double hitAt = session.CombatTime;
+            session.Tick(dt);
+            bool stoppedWhileStunned = first != null && Math.Abs(first.Traveled - traveledAtHit) < 1e-4;
+            while (session.CombatTime < hitAt + 2.5) session.Tick(dt);
+            bool dotEnded = first != null && !first.Dotted && first.DotDps == 0f;
+            bool moving = first != null && first.Traveled > traveledAtHit;
+            // 첫 대상 1명 지속 피해 2초 × 10 = 20, 연쇄 2명·폭발 3명도 같은 지속 피해가 걸린다
+            Check(cases, name, stunned && stoppedWhileStunned && moving && chained == 2 && splashed == 3 && dotTotal >= 20 * 4 && dotEnded,
+                $"기절 {stunned}, 기절 중 멈춤 {stoppedWhileStunned}, 풀린 뒤 움직임 {moving}, 연쇄 {chained}(2), 폭발 {splashed}(3), 지속 피해 합 {dotTotal}, 2초 뒤 풀림 {dotEnded}");
         }
 
         static void DamageCases(List<Case> cases, string name)

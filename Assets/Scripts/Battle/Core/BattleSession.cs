@@ -38,6 +38,8 @@ namespace Akmong.Battle
 
         public event Action<EnemyState> EnemySpawned;
         public event Action<HitResult> TowerFired;
+        /// <summary>지속 피해(독·화상)가 들어갔다: 적, 이번에 들어간 피해.</summary>
+        public event Action<EnemyState, int> DotTicked;
         public event Action<EnemyState> EnemyKilled;
         public event Action<EnemyState, int> EnemyReachedCore;
         public event Action<TowerState> TowerBuilt;
@@ -172,6 +174,8 @@ namespace Akmong.Battle
             UpdateBlocking(dt);
             foreach (TowerState tower in towers) UpdateTower(tower, dt);
             foreach (EnemyState enemy in enemies)
+                if (enemy.Alive && enemy.Dotted) TickDot(enemy, dt);
+            foreach (EnemyState enemy in enemies)
                 if (enemy.Alive) Move(enemy, dt);
             RemoveFinished();
 
@@ -283,13 +287,68 @@ namespace Akmong.Battle
             for (int i = 0; i < targets.Count; i++) Hit(tower, level, targets[i], crit, i, targets.Count);
         }
 
+        /// <summary>연쇄·폭발로 덤으로 맞히는 적(한 번의 공격 안에서). 덤 공격은 다시 연쇄·폭발하지 않는다.</summary>
+        void Bonus(TowerState tower, TowerLevelDef level, EnemyState first, bool crit, int total)
+        {
+            int index = total;
+            if (level.ChainCount > 0)
+            {
+                var hitSet = new HashSet<EnemyState> { first };
+                EnemyState from = first;
+                float scale = 1f;
+                float rangeSq = level.ChainRange * level.ChainRange + (float)Epsilon;
+                for (int c = 0; c < level.ChainCount; c++)
+                {
+                    EnemyState next = null;
+                    float best = float.MaxValue;
+                    foreach (EnemyState enemy in enemies)
+                    {
+                        if (!enemy.Alive || hitSet.Contains(enemy)) continue;
+                        float sq = Vector2.DistanceSquared(from.Position, enemy.Position);
+                        if (sq <= rangeSq && sq < best) { best = sq; next = enemy; }
+                    }
+                    if (next == null) break;
+                    scale *= level.ChainFalloff;
+                    hitSet.Add(next);
+                    Hit(tower, level, next, crit, index++, total, scale, from, chained: true);
+                    from = next;
+                }
+            }
+            if (level.SplashRadius > 0f)
+            {
+                float rangeSq = level.SplashRadius * level.SplashRadius + (float)Epsilon;
+                splash.Clear();
+                foreach (EnemyState enemy in enemies)
+                    if (enemy.Alive && enemy != first && Vector2.DistanceSquared(first.Position, enemy.Position) <= rangeSq) splash.Add(enemy);
+                foreach (EnemyState enemy in splash) Hit(tower, level, enemy, false, index++, total, level.SplashPct, first, splashed: true);
+            }
+        }
+
+        readonly List<EnemyState> splash = new List<EnemyState>();
+
+        void TickDot(EnemyState enemy, double dt)
+        {
+            double step = Math.Min(dt, enemy.DotRemaining);
+            enemy.DotRemaining -= dt;
+            enemy.DotCarry += enemy.DotDps * step;
+            int damage = (int)Math.Floor(enemy.DotCarry);
+            if (enemy.DotRemaining <= 0) { enemy.DotRemaining = 0; enemy.DotDps = 0f; }
+            if (damage <= 0) return;
+            enemy.DotCarry -= damage;
+            enemy.Hp = Math.Max(0f, enemy.Hp - damage);
+            DotTicked?.Invoke(enemy, damage);
+            if (enemy.Hp <= 0f) Kill(enemy);
+        }
+
         readonly List<EnemyState> targets = new List<EnemyState>();
 
-        void Hit(TowerState tower, TowerLevelDef level, EnemyState target, bool crit, int index, int total)
+        void Hit(TowerState tower, TowerLevelDef level, EnemyState target, bool crit, int index, int total,
+            float scale = 1f, EnemyState source = null, bool chained = false, bool splashed = false)
         {
+            bool bonus = chained || splashed;
             int damage = BattleMath.ResolveDamage(new DamageInput
             {
-                BaseDamage = level.Damage,
+                BaseDamage = level.Damage * scale,
                 Armor = target.Def.Armor,
                 ArmorAdd = target.Pinned ? -target.ArmorDown : 0f,
                 Vulnerability = target.Tagged ? target.Vulnerable : 0f,
@@ -331,6 +390,19 @@ namespace Akmong.Battle
                 if (!target.Tagged || v >= target.Vulnerable) target.Vulnerable = v;
                 target.VulnerableRemaining = Math.Max(target.VulnerableRemaining, level.MarkSec);
             }
+            bool dotted = !killed && level.Dots;
+            if (dotted)
+            {
+                if (!target.Dotted || level.DotDps >= target.DotDps) { target.DotDps = level.DotDps; target.DotElement = level.Element; }
+                target.DotRemaining = Math.Max(target.DotRemaining, level.DotSec);
+            }
+            // 기절은 첫 공격(덤 공격 제외)에서만 굴린다. 보스는 절반 시간.
+            bool stunned = !killed && !splashed && level.StunChance > 0f && level.StunSec > 0f && random.NextDouble() < level.StunChance;
+            if (stunned)
+            {
+                double sec = target.Def.IsBoss ? level.StunSec * 0.5 : level.StunSec;
+                target.StunRemaining = Math.Max(target.StunRemaining, sec);
+            }
             TowerFired?.Invoke(new HitResult
             {
                 Tower = tower,
@@ -346,7 +418,14 @@ namespace Akmong.Battle
                 Tagged = tagged,
                 HitIndex = index,
                 HitTotal = total,
+                Chained = chained,
+                Splashed = splashed,
+                Source = source,
+                Dotted = dotted,
+                Stunned = stunned,
             });
+            // 첫 대상이 맞은 뒤 연쇄·폭발(죽어도 그 자리에서 튄다)
+            if (!bonus && index == 0 && (level.ChainCount > 0 || level.SplashRadius > 0f)) Bonus(tower, level, target, crit, total);
             if (killed) Kill(target);
         }
 
@@ -441,6 +520,11 @@ namespace Akmong.Battle
             {
                 enemy.VulnerableRemaining = Math.Max(0, enemy.VulnerableRemaining - dt);
                 if (enemy.VulnerableRemaining <= 0) enemy.Vulnerable = 0f;
+            }
+            if (enemy.StunRemaining > 0)
+            {
+                enemy.StunRemaining = Math.Max(0, enemy.StunRemaining - dt);
+                return; // 기절한 적은 멈춘다.
             }
             if (enemy.BlockedBy != null) return; // 저지당한 적은 제자리에 멈춘다.
             // 2주차: 침식 속도 배율, 가속·속박 효과

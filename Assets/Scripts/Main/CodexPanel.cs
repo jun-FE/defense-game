@@ -85,7 +85,7 @@ public class CodexPanel
 
         GUI.Label(new Rect(page.x, page.y + 4f, page.width, 50f), tools ? "수선 도구" : "악몽 기록", Style(34, Ink, TextAnchor.MiddleCenter, true));
         GUI.Label(new Rect(page.x, page.y + 52f, page.width, 28f),
-            tools ? $"공방에서 쓰는 도구  {known} / {entries.Count}" : $"만난 악몽  {known} / {entries.Count}",
+            (tools ? $"해금한 도구  {known} / {entries.Count}" : $"만난 악몽  {known} / {entries.Count}") + $"   ·   실마리 {Mastery.FreePoints}",
             Style(17, InkMuted, TextAnchor.MiddleCenter));
         Image(new Rect(page.center.x - 200f, page.y + 82f, 400f, 45f), "cx_divider");
 
@@ -99,6 +99,7 @@ public class CodexPanel
             var r = new Rect(page.x + gapX + (i % cols) * (slot + gapX), top + (i / cols) * (slot + 52f), slot, slot * 0.94f);
             Image(r, !known1 ? "cx_slot_lock" : i == selected ? "cx_slot_on" : "cx_slot");
             if (known1) Image(Inset(r, 0.16f), CodexData.ImagePath(e));
+            if (CodexRewards.CanClaim(e)) Image(new Rect(r.xMax - 40f, r.y - 10f, 46f, 48f), "cx_seal"); // 받을 보상 있음
             GUI.Label(new Rect(r.x - 10f, r.yMax + 2f, r.width + 20f, 30f), known1 ? e.name : "???",
                 Style(18, i == selected ? Brown : Ink, TextAnchor.MiddleCenter, i == selected));
             if (UIKit.ClickButton(r, GUIContent.none, GUIStyle.none) && i != selected)
@@ -108,7 +109,8 @@ public class CodexPanel
             }
         }
 
-        string hint = tools ? "칸을 누르면 오른쪽 쪽에 자세히 나와요."
+        string hint = CodexRewards.Pending > 0 ? "밀랍 도장이 붙은 칸에 기록 보상(실마리)이 있어요."
+            : tools ? "의뢰를 해결하면 새 도구가 열리고 기록돼요."
             : known < entries.Count ? "의뢰를 하며 악몽을 만나면 기록돼요." : "지금까지 나온 악몽을 모두 기록했어요.";
         GUI.Label(new Rect(page.x, page.yMax - 40f, page.width, 30f), hint, Style(16, InkMuted, TextAnchor.MiddleCenter));
     }
@@ -136,10 +138,13 @@ public class CodexPanel
 
         float tx = frame.xMax + 18f, tw = page.xMax - tx;
         GUI.Label(new Rect(tx, page.y + 10f, tw, 50f), known ? e.name : "???", Style(34, Ink, TextAnchor.MiddleLeft, true));
-        GUI.Label(new Rect(tx, page.y + 58f, tw, 28f), tool ? "수선 도구 · " + e.role : known ? "악몽 · " + e.role : "악몽 · 아직 만나지 못함",
+        GUI.Label(new Rect(tx, page.y + 58f, tw, 28f),
+            !known ? (tool ? "수선 도구 · 아직 해금되지 않음" : "악몽 · 아직 만나지 못함") : (tool ? "수선 도구 · " : "악몽 · ") + e.role,
             Style(17, InkMuted, TextAnchor.MiddleLeft));
 
-        if (tool)
+        if (known) DrawReward(new Rect(page.xMax - 150f, page.y + 96f, 150f, 120f), e);
+
+        if (tool && known)
         {
             GUI.Label(new Rect(tx, page.y + 98f, tw, 26f), $"짓기 {e.tower.BuildCost} 꿈실", Style(17, Brown, TextAnchor.MiddleLeft, true));
             for (int lv = 1; lv <= 3; lv++)
@@ -151,19 +156,16 @@ public class CodexPanel
             }
         }
         else if (known)
-        {
             GUI.Label(new Rect(tx, page.y + 98f, tw, 26f), $"처치한 수  {CodexProgress.Kills(e.id)}", Style(17, Brown, TextAnchor.MiddleLeft, true));
-            Image(new Rect(page.xMax - 92f, page.y + 120f, 84f, 86f), "cx_seal"); // 기록됨 도장
-            GUI.Label(new Rect(page.xMax - 150f, page.y + 206f, 200f, 22f), "기록됨", Style(14, Wine, TextAnchor.MiddleCenter, true));
-        }
 
         Image(new Rect(page.x, frame.yMax + 6f, page.width, 40f), "cx_divider");
         float y = frame.yMax + 54f;
 
         if (!known)
         {
-            GUI.Label(new Rect(page.x + 10f, y, page.width - 20f, 120f),
-                "아직 만나지 못한 악몽이에요.\n의뢰를 수행하다 이 악몽이 꿈에 나타나면 도하가 기록해 둘 거예요.",
+            GUI.Label(new Rect(page.x + 10f, y, page.width - 20f, 140f),
+                tool ? $"아직 공방에 없는 도구예요.\n{TowerUnlocks.UnlockHint(e.id)}. 해금하면 설명과 기록 보상(실마리 {CodexRewards.RewardOf(e)})이 생겨요."
+                     : $"아직 만나지 못한 악몽이에요.\n의뢰를 수행하다 이 악몽이 꿈에 나타나면 도하가 기록해 둘 거예요. 기록 보상은 실마리 {CodexRewards.RewardOf(e)}.",
                 Style(19, InkMuted, TextAnchor.UpperLeft, false, true));
             return;
         }
@@ -173,13 +175,42 @@ public class CodexPanel
         GUI.Label(new Rect(page.x + 10f, y, page.width - 20f, loreH), e.lore, body);
         y += loreH + 12f;
 
-        if (tool) y = ToolStats(page, y, e.tower.Levels[level - 1]);
+        if (tool)
+        {
+            y = ToolStats(page, y, e.tower.Levels[level - 1]);
+            // 속성 분기(기술 화면에서 배움)
+            Mastery.Tree tree = Mastery.TreeOf(e.id);
+            if (tree != null)
+            {
+                var names = new List<string>();
+                foreach (Mastery.Branch b in tree.branches) names.Add(b.name);
+                GUI.Label(new Rect(page.x + 10f, y, page.width - 20f, 26f), "속성 분기: " + string.Join(" · ", names), Style(16, InkMuted, TextAnchor.MiddleLeft));
+                y += 28f;
+            }
+        }
         else y = NightmareStats(page, y, e.enemy);
 
         GUIStyle memo = Style(17, Brown, TextAnchor.UpperLeft, false, true);
         string memoText = "도하의 메모 — " + e.memo;
         float memoH = memo.CalcHeight(new GUIContent(memoText), page.width - 20f);
         GUI.Label(new Rect(page.x + 10f, Mathf.Min(y + 6f, page.yMax - memoH), page.width - 20f, memoH), memoText, memo);
+    }
+
+    /// <summary>기록 보상: 받을 수 있으면 밀랍 도장 버튼, 받았으면 "기록됨" 도장.</summary>
+    void DrawReward(Rect r, CodexData.Entry e)
+    {
+        bool can = CodexRewards.CanClaim(e);
+        var seal = new Rect(r.center.x - 42f, r.y, 84f, 86f);
+        Color old = GUI.color;
+        if (!can) GUI.color = new Color(1f, 1f, 1f, 0.75f);
+        else GUI.color = new Color(1f, 1f, 1f, 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 4f));
+        Image(seal, "cx_seal");
+        GUI.color = old;
+        GUI.Label(seal, can ? "받기" : "기록", Style(15, Light, TextAnchor.MiddleCenter, true));
+        GUI.Label(new Rect(r.x - 20f, seal.yMax, r.width + 40f, 24f), can ? $"기록 보상 · 실마리 +{CodexRewards.RewardOf(e)}" : "보상 받음",
+            Style(14, can ? Wine : InkMuted, TextAnchor.MiddleCenter, true));
+        if (can && UIKit.ClickButton(seal, GUIContent.none, GUIStyle.none) && CodexRewards.Claim(e))
+            SoundFx.Play("upgrade", 0.8f);
     }
 
     float ToolStats(Rect page, float y, TowerLevelDef l)
@@ -229,7 +260,7 @@ public class CodexPanel
 
     // ───────── 도구 ─────────
 
-    static bool Known(CodexData.Entry e) => e.kind == CodexData.Kind.Tool || CodexProgress.Seen(e.id);
+    static bool Known(CodexData.Entry e) => CodexRewards.Known(e);
 
     static Rect Page(Rect book, Rect f) => new Rect(book.x + book.width * f.x, book.y + book.height * f.y, book.width * f.width, book.height * f.height);
 

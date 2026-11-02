@@ -44,8 +44,14 @@ public class BattleHUD : MonoBehaviour
         if (level.HitCount > 1) parts.Add($"한 번에 {level.HitCount}명");
         if (level.Marks && level.ArmorShred > 0f) parts.Add($"방어 -{level.ArmorShred:0} · {level.MarkSec:0.#}초");
         if (level.Marks && level.Vulnerability > 0f) parts.Add($"받는 피해 +{level.Vulnerability * 100f:0}% · {level.MarkSec:0.#}초");
+        if (level.Dots) parts.Add($"{DotName(level.Element)} 초당 {level.DotDps:0} · {level.DotSec:0.#}초");
+        if (level.StunChance > 0f) parts.Add($"멈춤 {level.StunChance * 100f:0}% · {level.StunSec:0.#}초");
+        if (level.ChainCount > 0) parts.Add($"연쇄 +{level.ChainCount}명");
+        if (level.SplashRadius > 0f) parts.Add($"폭발 {level.SplashRadius:0.#}칸");
         return string.Join(", ", parts);
     }
+
+    static string DotName(string element) => element == "fire" ? "화상" : element == "poison" ? "독" : element == "thorn" ? "가시" : "지속 피해";
 
     class Slot
     {
@@ -63,7 +69,7 @@ public class BattleHUD : MonoBehaviour
 
     const float PanelWidth = 380f;
     /// <summary>건설 고리: 버튼 지름, 고리 반지름(칸 중심에서 버튼 중심까지), 펼쳐지는 시간(초).</summary>
-    const float RingButton = 104f, RingRadius = 124f, RingOpenTime = 0.16f;
+    const float RingButton = 136f, RingRadius = 158f, RingOpenTime = 0.16f;
     /// <summary>미니맵이 들어갈 최대 크기(HUD 가상 좌표).</summary>
     const float MiniMaxW = 320f, MiniMaxH = 220f;
 
@@ -523,14 +529,20 @@ public class BattleHUD : MonoBehaviour
             else DrawSprite(r, circle, new Color(0.11f, 0.09f, 0.22f, 0.97f));
             GUI.color = old;
 
+            // 도구 그림(도감과 같은 실제 그림)을 단추에 꽉 차게. 잠긴 도구는 물음표.
+            bool locked = tower == null && !TowerUnlocks.IsUnlocked(slot.Id);
             GUI.color = !fits ? new Color(0.6f, 0.6f, 0.7f, 0.45f) : affordable ? Color.white : new Color(1f, 1f, 1f, 0.55f);
-            float icon = d * 0.6f;
-            skin.Icon(new Rect(c.x - icon / 2f, c.y - icon / 2f - d * 0.08f, icon, icon), slot.Icon);
+            float icon = d * 0.86f;
+            Texture2D art = locked ? SlotArt("Codex/cx_icon_unknown") : SlotArt($"Codex/Entries/{slot.Id}_1");
+            var iconRect = new Rect(c.x - icon / 2f, c.y - icon / 2f - d * 0.1f, icon, icon);
+            if (locked) iconRect = new Rect(c.x - icon * 0.25f, c.y - icon * 0.3f - d * 0.06f, icon * 0.5f, icon * 0.5f);
+            if (art != null) GUI.DrawTexture(iconRect, art, ScaleMode.ScaleToFit);
+            else skin.Icon(iconRect, slot.Icon);
             GUI.color = old;
 
             if (open > 0.6f)
             {
-                string cost = tower == null ? "준비 중" : fits ? tower.BuildCost.ToString() : "불가";
+                string cost = tower == null ? (locked ? "잠김" : "준비 중") : fits ? tower.BuildCost.ToString() : "불가";
                 Color costColor = !fits ? UISkin.Muted : affordable ? UISkin.Light : new Color(1f, 0.55f, 0.55f);
                 UIKit.ShadowLabel(new Rect(c.x - d / 2f, c.y + d * 0.2f, d, 30), cost, skin.Text(tower != null && fits ? 21 : 16, costColor, TextAnchor.MiddleCenter, true));
                 UIKit.ShadowLabel(new Rect(c.x - d * 0.42f - 13, c.y - d * 0.42f - 13, 26, 26), (i + 1).ToString(), skin.Text(16, UISkin.Gold, TextAnchor.MiddleCenter, true));
@@ -553,6 +565,13 @@ public class BattleHUD : MonoBehaviour
         skin.Frame(r, "ws_card");
         GUI.Label(new Rect(r.x + 24, r.y + 8, r.width - 48, 32), slot.Name, skin.Text(22, UISkin.Ink, TextAnchor.MiddleLeft, true));
         GUI.Label(new Rect(r.x + 24, r.y + 38, r.width - 48, 30), slot.Description, skin.Text(16, UISkin.InkMuted, TextAnchor.MiddleLeft, false, true));
+        bool lockedTip = tower == null && !TowerUnlocks.IsUnlocked(slot.Id);
+        if (lockedTip)
+        {
+            GUI.Label(new Rect(r.x + 24, r.y + 8, r.width - 48, 32), "??? · 잠긴 도구", skin.Text(22, UISkin.Ink, TextAnchor.MiddleLeft, true));
+            GUI.Label(new Rect(r.x + 24, r.y + 40, r.width - 48, 60), TowerUnlocks.UnlockHint(slot.Id), skin.Text(17, UISkin.Brown, TextAnchor.MiddleLeft, true, true));
+            return;
+        }
         string cost = tower == null ? "아직 만들어지지 않은 타워예요"
             : !fits ? "이 자리에는 지을 수 없어요"
             : $"설치 비용: 몽결정 {tower.BuildCost}";
@@ -563,11 +582,24 @@ public class BattleHUD : MonoBehaviour
     {
         Slot slot = Slots[index];
         TowerDef tower = slotTowers[index];
-        if (tower == null) { ShowMessage($"{slot.Name}는 아직 준비 중이에요"); return; }
+        if (tower == null) { ShowMessage(TowerUnlocks.IsUnlocked(slot.Id) ? $"{slot.Name}는 아직 준비 중이에요" : "아직 잠긴 도구예요 · " + TowerUnlocks.UnlockHint(slot.Id)); return; }
         TowerState built;
         CommandError error = Session.TryBuild(tower, ringTile.x, ringTile.y, out built);
         if (error != CommandError.None) { ShowMessage(BattleText.Error(error, tower.BuildCost)); return; }
         ringOpen = false;
+    }
+
+    readonly Dictionary<string, Texture2D> slotArt = new Dictionary<string, Texture2D>();
+
+    /// <summary>건설 고리 도구 그림(Resources/Codex/Entries). 없으면 null(임시 아이콘으로).</summary>
+    Texture2D SlotArt(string path)
+    {
+        if (!slotArt.TryGetValue(path, out Texture2D t))
+        {
+            t = Resources.Load<Texture2D>(path);
+            slotArt[path] = t;
+        }
+        return t;
     }
 
     /// <summary>스프라이트 한 장(아틀라스 영역 포함)을 IMGUI 사각형에 색을 곱해 그린다.</summary>
@@ -587,11 +619,20 @@ public class BattleHUD : MonoBehaviour
         float w = W;
         TowerLevelDef level = selectedTower.Level;
         bool blocks = selectedTower.Blocks;
-        Rect rect = Ui(new Rect(w - PanelWidth - 24, 160, PanelWidth, blocks || level.Slows ? 440 : 370));
+        string element = string.IsNullOrEmpty(level.Element) ? "" : Mastery.ElementName(selectedTower.Def.Id);
+        string extraLine = ExtraText(level);
+        float extraH = extraLine.Length > 34 ? 62f : 30f;
+        Rect rect = Ui(new Rect(w - PanelWidth - 24, 160, PanelWidth, (blocks || level.Slows ? 440 : 370) + (element.Length > 0 ? 34 : 0) + (extraH - 30f)));
         skin.Frame(rect, "ws_card_info");
         float x = rect.x + 32, y = rect.y + 26, width = PanelWidth - 64;
         GUI.Label(new Rect(x, y, width, 40), $"{selectedTower.Def.Name}  {selectedTower.LevelIndex + 1}단계", skin.Text(28, UISkin.Ink, TextAnchor.MiddleLeft, true));
         y += 50;
+        if (element.Length > 0)
+        {
+            Color ec = Color.Lerp(Mastery.ElementColor(level.Element), UISkin.Ink, 0.45f);
+            GUI.Label(new Rect(x, y - 6, width, 30), "속성 · " + element, skin.Text(18, ec, TextAnchor.MiddleLeft, true));
+            y += 30;
+        }
         GUI.Label(new Rect(x, y, width, 30), $"공격력 {level.Damage:0.#}   공격속도 {BattleMath.AttackInterval(level.AttackSec, Session.Rules):0.##}초", hudInk);
         y += 34;
         GUI.Label(new Rect(x, y, width, 30), $"사거리 {level.Range:0.#}   치명 {level.CritChance * 100:0}% ×{level.CritMult:0.##}", hudInk);
@@ -607,11 +648,10 @@ public class BattleHUD : MonoBehaviour
             GUI.Label(new Rect(x, y, width, 30), $"감속 {(1f - level.SlowMult) * 100f:0}% · {level.SlowSec:0.#}초", hudInk);
             y += 34;
         }
-        string extra = ExtraText(level);
-        if (extra.Length > 0)
+        if (extraLine.Length > 0)
         {
-            GUI.Label(new Rect(x, y, width, 30), extra, hudInk);
-            y += 34;
+            GUI.Label(new Rect(x, y, width, extraH), extraLine, new GUIStyle(hudInk) { wordWrap = true });
+            y += extraH + 4;
         }
         GUI.Label(new Rect(x, y, width, 30), $"투자 몽결정 {selectedTower.TotalSpent}", hudInk);
         y += 48;

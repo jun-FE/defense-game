@@ -33,6 +33,15 @@ namespace Akmong.Battle
         public float Vulnerable { get; internal set; }
         public double VulnerableRemaining { get; internal set; }
         public bool Pinned => ArmorDownRemaining > 0;
+        /// <summary>지속 피해(독·화상 등): 초당 피해, 남은 시간, 속성 이름(화면용).</summary>
+        public float DotDps { get; internal set; }
+        public double DotRemaining { get; internal set; }
+        public string DotElement { get; internal set; }
+        public bool Dotted => DotRemaining > 0;
+        internal double DotCarry;
+        /// <summary>기절 남은 시간(초). 기절한 적은 움직이지 않는다.</summary>
+        public double StunRemaining { get; internal set; }
+        public bool Stunned => StunRemaining > 0;
         public bool Tagged => VulnerableRemaining > 0;
         internal readonly System.Collections.Generic.Dictionary<int, double> BlockLeft = new System.Collections.Generic.Dictionary<int, double>();
 
@@ -100,5 +109,12 @@ namespace Akmong.Battle
         public int HitIndex;
         /// <summary>이번 공격에 맞은 적 수.</summary>
         public int HitTotal;
+        /// <summary>연쇄(Chain)·폭발(Splash)로 덤으로 맞은 적인지, 그 출발 적(연쇄는 직전 적, 폭발은 처음 맞은 적).</summary>
+        public bool Chained;
+        public bool Splashed;
+        public EnemyState Source;
+        /// <summary>이번 공격으로 지속 피해·기절이 걸렸는지.</summary>
+        public bool Dotted;
+        public bool Stunned;
     }
 }

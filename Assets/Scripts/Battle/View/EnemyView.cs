@@ -74,8 +74,18 @@ public class EnemyView : MonoBehaviour
 
         if (walk != null) AnimateWalk();
 
-        // 감속(줄자)에 걸린 동안 얼음빛으로 물든다.
-        if (!flashing) body.color = state.Slowed ? Color.Lerp(baseColor, IceTint, 0.6f) : baseColor;
+        // 상태 색: 기절(번쩍이는 노란빛) > 지속 피해(속성 색이 일렁임) > 감속(얼음빛)
+        if (!flashing)
+        {
+            Color c = state.Slowed ? Color.Lerp(baseColor, IceTint, 0.6f) : baseColor;
+            if (state.Dotted)
+                c = Color.Lerp(c, Mastery.ElementColor(state.DotElement), 0.35f + 0.2f * Mathf.Sin(Time.time * 9f + state.EntityId));
+            if (state.Stunned)
+                c = Color.Lerp(c, new Color(1f, 0.95f, 0.5f), 0.5f + 0.3f * Mathf.Sin(Time.time * 20f));
+            body.color = c;
+        }
+        // 기절한 동안 살짝 떨린다
+        if (state.Stunned && walk != null) body.transform.localPosition += new Vector3(Mathf.Sin(Time.time * 60f) * artHeight * 0.02f, 0f, 0f);
         pinMark.enabled = state.Pinned;
         tagMark.enabled = state.Tagged;
         if (state.Tagged) tagMark.transform.localScale = Vector3.one * (0.13f + 0.02f * Mathf.Sin(Time.time * 6f));

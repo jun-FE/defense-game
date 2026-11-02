@@ -39,7 +39,7 @@ public class TowerView : MonoBehaviour
     public BattleFx.Style FxStyle => new BattleFx.Style
     {
         needle = ProjectileSprite, spark = asset.fxSpark, ring = asset.fxRing, glow = asset.fxGlow, slash = asset.fxSlash,
-        color = asset.fxColor, level = State.LevelIndex,
+        color = string.IsNullOrEmpty(State.Level.Element) ? asset.fxColor : Mastery.ElementColor(State.Level.Element), level = State.LevelIndex,
         scale = asset.fxKind == TowerFxKind.Pins ? 0.55f : asset.fxKind == TowerFxKind.Tag ? 0.85f : 1f,
     };
 

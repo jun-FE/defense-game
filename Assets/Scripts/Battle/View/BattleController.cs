@@ -38,6 +38,7 @@ public class BattleController : MonoBehaviour
 
         Content = BattleContentBuilder.Build(stage, rules);
         if (DreamRun.Active) ApplyDream(Content);
+        LockTowers(Content);
         if (Tutorial.Active) BattleTutorial.SetupStage(Content); // 첫 수선 튜토리얼: 웨이브를 튜토리얼용으로
         else Mastery.Apply(Content.Stage); // 기술(꿈 수틀)에서 수놓은 효과
         if (!Content.IsValid)
@@ -94,6 +95,17 @@ public class BattleController : MonoBehaviour
         foreach (WaveDef wave in content.Stage.Waves)
             foreach (SpawnGroupDef group in wave.Groups) group.SpawnId = GridMap.SpawnId;
         content.Errors.AddRange(DefinitionValidator.Validate(content.Stage));
+    }
+
+    /// <summary>아직 해금하지 않은 도구(TowerUnlocks)는 지을 수 없게 목록에서 뺀다(자리는 null로 남겨 건설 고리에 자물쇠로 보임).</summary>
+    static void LockTowers(BattleContent content)
+    {
+        if (content.Stage == null) return;
+        for (int i = 0; i < content.Stage.Towers.Count; i++)
+        {
+            TowerDef t = content.Stage.Towers[i];
+            if (t != null && !TowerUnlocks.IsUnlocked(t.Id)) content.Stage.Towers[i] = null;
+        }
     }
 
     void OnEnded(BattleResult result, EndReason reason)

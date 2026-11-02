@@ -140,3 +140,61 @@ public static class CodexProgress
         PlayerPrefs.Save();
     }
 }
+
+/// <summary>
+/// 도감 기록 보상: 새로 기록된 항목(해금한 도구·만난 악몽)마다 한 번, 실마리(기술 재화)를 받는다.
+/// 도감 오른쪽 쪽의 "기록 보상 받기"로 받는다. 받은 실마리는 기술(꿈 수틀)에서 쓴다.
+/// </summary>
+public static class CodexRewards
+{
+    const string ClaimKey = "Codex.Claimed.";
+    public const int ToolReward = 2, NightmareReward = 1;
+
+    public static int RewardOf(CodexData.Entry e) => e.kind == CodexData.Kind.Tool ? ToolReward : NightmareReward;
+
+    public static bool Known(CodexData.Entry e) =>
+        e.kind == CodexData.Kind.Tool ? TowerUnlocks.IsUnlocked(e.id) : CodexProgress.Seen(e.id);
+
+    public static bool Claimed(CodexData.Entry e) => PlayerPrefs.GetInt(ClaimKey + e.id, 0) == 1;
+
+    public static bool CanClaim(CodexData.Entry e) => Known(e) && !Claimed(e);
+
+    public static bool Claim(CodexData.Entry e)
+    {
+        if (!CanClaim(e)) return false;
+        PlayerPrefs.SetInt(ClaimKey + e.id, 1);
+        PlayerPrefs.Save();
+        return true;
+    }
+
+    /// <summary>받은 실마리 합계.</summary>
+    public static int ClaimedPoints
+    {
+        get
+        {
+            int sum = 0;
+            foreach (CodexData.Entry e in CodexData.Tools) if (Claimed(e)) sum += RewardOf(e);
+            foreach (CodexData.Entry e in CodexData.Nightmares) if (Claimed(e)) sum += RewardOf(e);
+            return sum;
+        }
+    }
+
+    /// <summary>받을 수 있는데 아직 안 받은 보상 수.</summary>
+    public static int Pending
+    {
+        get
+        {
+            int n = 0;
+            foreach (CodexData.Entry e in CodexData.Tools) if (CanClaim(e)) n++;
+            foreach (CodexData.Entry e in CodexData.Nightmares) if (CanClaim(e)) n++;
+            return n;
+        }
+    }
+
+    public static void ResetAll()
+    {
+        foreach (CodexData.Entry e in CodexData.Tools) PlayerPrefs.DeleteKey(ClaimKey + e.id);
+        foreach (CodexData.Entry e in CodexData.Nightmares) PlayerPrefs.DeleteKey(ClaimKey + e.id);
+        PlayerPrefs.Save();
+    }
+}

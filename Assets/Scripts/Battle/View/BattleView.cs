@@ -103,6 +103,21 @@ public class BattleView : MonoBehaviour
         EnemyView target;
         enemyViews.TryGetValue(hit.Target, out target);
         Vector3 to = target != null ? target.transform.position : (Vector3)BattleContentBuilder.ToUnity(hit.Target.Position);
+        // 연쇄(번개·빛 갈래)·폭발: 앞의 적에서 다음 적으로 번지는 연출만(공격 동작은 첫 공격에서 이미 했다)
+        if (hit.Chained || hit.Splashed)
+        {
+            EnemyView from;
+            Vector3 src = hit.Source != null && enemyViews.TryGetValue(hit.Source, out from) && from != null
+                ? from.transform.position : (Vector3)BattleContentBuilder.ToUnity(hit.Source != null ? hit.Source.Position : hit.Target.Position);
+            if (towerView.Fancy)
+            {
+                BattleFx.Style s = towerView.FxStyle;
+                if (hit.Chained) BattleFx.Beam(transform, src, to, s, false);
+                else BattleFx.HitBurst(transform, to, s, false);
+            }
+            if (target != null) target.Flash(0.1f);
+            return;
+        }
         // 여러 적 동시 공격이면 공격 동작·발사 불꽃은 첫 적에서 한 번만
         bool first = hit.HitIndex == 0;
         if (first) towerView.PlayAttack(to);

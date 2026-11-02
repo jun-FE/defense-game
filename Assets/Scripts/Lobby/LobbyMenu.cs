@@ -185,6 +185,7 @@ public class LobbyMenu : MonoBehaviour
         Progress.ResetAll();
         QuestProgress.ResetAll();
         CodexProgress.ResetAll();
+        CodexRewards.ResetAll();
         Mastery.ResetAll();
         Tutorial.ResetAll();
         SaveInfo.ResetAll();

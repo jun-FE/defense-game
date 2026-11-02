@@ -117,6 +117,11 @@ namespace Akmong.Battle
                 if (level.ArmorShred < 0) errors.Add($"{levelWhere}: 방어 감소는 0 이상이어야 합니다.");
                 if (level.Vulnerability < 0 || level.Vulnerability > 1) errors.Add($"{levelWhere}: 받는 피해 증가는 0~1이어야 합니다.");
                 if ((level.ArmorShred > 0 || level.Vulnerability > 0) && level.MarkSec <= 0) errors.Add($"{levelWhere}: 표식을 거는 타워는 표식 시간이 0보다 커야 합니다.");
+                if (level.DotDps < 0 || level.DotSec < 0) errors.Add($"{levelWhere}: 지속 피해·시간은 0 이상이어야 합니다.");
+                if (level.StunChance < 0 || level.StunChance > 1) errors.Add($"{levelWhere}: 기절 확률은 0~1이어야 합니다.");
+                if (level.StunSec < 0) errors.Add($"{levelWhere}: 기절 시간은 0 이상이어야 합니다.");
+                if (level.ChainCount < 0 || (level.ChainCount > 0 && (level.ChainRange <= 0 || level.ChainFalloff <= 0))) errors.Add($"{levelWhere}: 연쇄 횟수·거리·감소율이 올바르지 않습니다.");
+                if (level.SplashRadius < 0 || (level.SplashRadius > 0 && level.SplashPct <= 0)) errors.Add($"{levelWhere}: 폭발 반경·비율이 올바르지 않습니다.");
             }
         }
 

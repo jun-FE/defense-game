@@ -72,6 +72,24 @@ namespace Akmong.Battle
         /// <summary>표식이 이어지는 시간(초).</summary>
         public float MarkSec;
         public bool Marks => (ArmorShred > 0f || Vulnerability > 0f) && MarkSec > 0f;
+
+        // 속성 강화(기술 화면의 속성 분기). 하나의 타워에는 고른 속성 하나만 들어간다.
+        /// <summary>속성 이름(화면 색·효과용, 규칙에는 쓰지 않음): fire, poison, lightning, frost, moon, thorn, blast 등. 비우면 기본.</summary>
+        public string Element;
+        /// <summary>지속 피해(초당, 방어 무시). 맞은 적에게 DotSec초 동안. 다시 맞으면 시간이 새로 이어지고 더 센 쪽을 유지.</summary>
+        public float DotDps;
+        public float DotSec;
+        public bool Dots => DotDps > 0f && DotSec > 0f;
+        /// <summary>맞을 때 기절할 확률(0~1)과 시간(초). 기절한 적은 멈춘다. 보스는 시간이 절반.</summary>
+        public float StunChance;
+        public float StunSec;
+        /// <summary>연쇄: 맞은 적에서 가까운 다른 적으로 ChainCount번 튄다(ChainRange칸 안, 한 번 튈 때마다 피해 × ChainFalloff).</summary>
+        public int ChainCount;
+        public float ChainRange = 2.5f;
+        public float ChainFalloff = 0.7f;
+        /// <summary>폭발: 맞은 적 둘레 SplashRadius칸 안의 다른 적에게 피해 × SplashPct.</summary>
+        public float SplashRadius;
+        public float SplashPct = 0.5f;
     }
 
     public sealed class TowerDef
