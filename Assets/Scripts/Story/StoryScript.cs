@@ -12,6 +12,8 @@ using UnityEngine;
 ///   이름: 대사           — 대사. 초상화는 Resources/Stories/Portraits/이름
 ///   이름(표정): 대사      — 표정 초상화 Resources/Stories/Portraits/이름_표정
 ///   : 나레이션           — 말하는 사람 없는 해설(앞의 콜론 생략 가능)
+///   [안내] 제목 | 내용     — 플레이 안내 카드(화면 가운데)
+///   [편지] 제목 | 내용     — 편지지에 쓴 글(답장·의뢰 편지)
 /// </summary>
 public static class StoryScript
 {
@@ -45,6 +47,21 @@ public static class StoryScript
                 continue;
             }
             if (Directive(row, "[배경]", out value)) { background = value; continue; }
+            string letter = null;
+            bool guide = Directive(row, "[안내]", out value);
+            if (guide || Directive(row, "[편지]", out letter))
+            {
+                string body = guide ? value : letter;
+                int bar = body.IndexOf('|');
+                var card = new StoryLine(bar >= 0 ? body.Substring(0, bar).Trim() : (guide ? "플레이 안내" : "편지"), bar >= 0 ? body.Substring(bar + 1).Trim() : body)
+                {
+                    style = guide ? "guide" : "letter",
+                    sceneTitle = title, sceneSubtitle = subtitle, background = background,
+                };
+                title = subtitle = background = null;
+                lines.Add(card);
+                continue;
+            }
             if (Directive(row, "[색]", out value))
             {
                 if (ColorUtility.TryParseHtmlString(value, out Color color)) story.background = color;

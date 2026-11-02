@@ -40,33 +40,56 @@ public static class SceneFlow
         }
     }
 
-    /// <summary>true면 스토리가 끝난 뒤 스테이지 대신 수선소(메인)로 간다(새로하기 프롤로그).</summary>
-    static bool storyGoesToMain;
+    /// <summary>스토리가 끝난 뒤 갈 곳: 스테이지(기본), 튜토리얼 한 판(새로하기 프롤로그), 수선소(튜토리얼 마무리).</summary>
+    enum AfterStory { Stage, Tutorial, Main }
+    static AfterStory afterStory;
 
-    /// <summary>새로하기: 프롤로그 대본(Resources/Stories/prologue.txt)을 보여 주고 수선소로. 대본이 없으면 바로 수선소.</summary>
+    /// <summary>새로하기: 프롤로그 대본(Resources/Stories/prologue.txt) → 첫 수선 튜토리얼 한 판. 대본이 없으면 바로 튜토리얼.</summary>
     public static void StartPrologue()
     {
         StoryData prologue = StoryScript.LoadPrologue();
         if (prologue == null)
         {
-            GoToMain();
+            StartTutorial();
             return;
         }
         PendingStory = prologue;
-        storyGoesToMain = true;
+        afterStory = AfterStory.Tutorial;
         Load(StoryScene);
     }
 
     public static void FinishStory()
     {
         PendingStory = null;
-        if (storyGoesToMain)
+        AfterStory next = afterStory;
+        afterStory = AfterStory.Stage;
+        if (next == AfterStory.Tutorial) StartTutorial();
+        else if (next == AfterStory.Main) GoToMain();
+        else EnterStage();
+    }
+
+    /// <summary>첫 수선 튜토리얼: 첫 스테이지(달빛정원)를 스테이지 스토리 없이 탐색부터 시작한다. 안내는 Tutorial 참고.</summary>
+    public static void StartTutorial()
+    {
+        Tutorial.Begin();
+        CurrentStageIndex = 0;
+        EnterStage();
+    }
+
+    /// <summary>튜토리얼 판이 끝났다(또는 건너뛰기): 마무리 스토리(Resources/Stories/tutorial_end.txt)를 보고 수선소로.</summary>
+    public static void FinishTutorial(bool showStory = true)
+    {
+        Tutorial.Complete();
+        DreamRun.Clear();
+        StoryData end = showStory ? StoryScript.Load(Tutorial.EndStoryPath) : null;
+        if (end == null)
         {
-            storyGoesToMain = false;
             GoToMain();
             return;
         }
-        EnterStage();
+        PendingStory = end;
+        afterStory = AfterStory.Main;
+        Load(StoryScene);
     }
 
     /// <summary>스테이지에 탐색 맵이 있으면 탐색부터, 없으면 바로 전투.</summary>
@@ -116,6 +139,7 @@ public static class SceneFlow
     /// <summary>로비(첫 화면: 이어하기·새로하기·설정·종료)로 간다.</summary>
     public static void GoToLobby()
     {
+        Tutorial.Stop();
         DreamRun.Clear();
         Load(LobbyScene);
     }
@@ -131,6 +155,7 @@ public static class SceneFlow
     /// <summary>메인(수선소)로 돌아간다.</summary>
     public static void GoToMain()
     {
+        Tutorial.Stop();
         DreamRun.Clear();
         Load(MainScene);
     }

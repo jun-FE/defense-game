@@ -38,7 +38,8 @@ public class BattleController : MonoBehaviour
 
         Content = BattleContentBuilder.Build(stage, rules);
         if (DreamRun.Active) ApplyDream(Content);
-        Mastery.Apply(Content.Stage); // 기술(꿈 수틀)에서 수놓은 효과
+        if (Tutorial.Active) BattleTutorial.SetupStage(Content); // 첫 수선 튜토리얼: 웨이브를 튜토리얼용으로
+        else Mastery.Apply(Content.Stage); // 기술(꿈 수틀)에서 수놓은 효과
         if (!Content.IsValid)
         {
             foreach (string error in Content.Errors) Debug.LogError("[전투 데이터] " + error);

@@ -50,13 +50,29 @@ public static class DemoSceneBuilder
     /// 수선소 물품 타워: id → (그림 폴더, 파일 앞이름, 발사 지점 px(256px 캔버스 가운데 기준, 오른쪽·위가 +), 그림이 왼쪽을 보는지, 연출 종류, 연출 색, 크기 배율(넓은 그림은 한 칸에 맞게 줄임)).
     /// 그림은 Tools/Art/build_tower_art.py가 만든다.
     /// </summary>
-    static readonly (string id, string dir, string prefix, Vector2 fire, bool facesLeft, TowerFxKind fx, Color color, float scale)[] CraftTowers =
+    sealed class CraftTower
     {
-        ("TW_LAMP", "Assets/Art/Towers/Lamp", "lamp", new Vector2(-30f, 30f), true, TowerFxKind.Beam, new Color(1f, 0.78f, 0.42f), 1f),
-        ("TW_SCISSORS", "Assets/Art/Towers/Scissors", "scissors", new Vector2(0f, 45f), false, TowerFxKind.Snip, new Color(0.78f, 0.62f, 1f), 1f),
-        ("TW_TAPE", "Assets/Art/Towers/Tape", "tape", new Vector2(10f, 15f), false, TowerFxKind.Whip, new Color(0.74f, 0.56f, 1f), 0.85f),
-        ("TW_PIN", "Assets/Art/Towers/Pin", "pin", new Vector2(0f, 35f), false, TowerFxKind.Pins, new Color(0.88f, 0.9f, 1f), 0.8f),
-        ("TW_TAGBOW", "Assets/Art/Towers/TagBow", "tagbow", new Vector2(-80f, -15f), true, TowerFxKind.Tag, new Color(1f, 0.84f, 0.45f), 0.9f),
+        public readonly string id, dir, prefix;
+        public readonly Vector2 fire;
+        public readonly bool facesLeft;
+        public readonly TowerFxKind fx;
+        public readonly Color color;
+        public readonly float scale;
+
+        public CraftTower(string id, string dir, string prefix, Vector2 fire, bool facesLeft, TowerFxKind fx, Color color, float scale)
+        {
+            this.id = id; this.dir = dir; this.prefix = prefix; this.fire = fire;
+            this.facesLeft = facesLeft; this.fx = fx; this.color = color; this.scale = scale;
+        }
+    }
+
+    static readonly CraftTower[] CraftTowers =
+    {
+        new CraftTower("TW_LAMP", "Assets/Art/Towers/Lamp", "lamp", new Vector2(-30f, 30f), true, TowerFxKind.Beam, new Color(1f, 0.78f, 0.42f), 1f),
+        new CraftTower("TW_SCISSORS", "Assets/Art/Towers/Scissors", "scissors", new Vector2(0f, 45f), false, TowerFxKind.Snip, new Color(0.78f, 0.62f, 1f), 1f),
+        new CraftTower("TW_TAPE", "Assets/Art/Towers/Tape", "tape", new Vector2(10f, 15f), false, TowerFxKind.Whip, new Color(0.74f, 0.56f, 1f), 0.85f),
+        new CraftTower("TW_PIN", "Assets/Art/Towers/Pin", "pin", new Vector2(0f, 35f), false, TowerFxKind.Pins, new Color(0.88f, 0.9f, 1f), 0.8f),
+        new CraftTower("TW_TAGBOW", "Assets/Art/Towers/TagBow", "tagbow", new Vector2(-80f, -15f), true, TowerFxKind.Tag, new Color(1f, 0.84f, 0.45f), 0.9f),
     };
     const string ResourcesDir = "Assets/Resources";
 

@@ -9,8 +9,13 @@ status=0
 for defs in "-d:UNITY_EDITOR -d:STEAMWORKS_NET -d:UNITY_STANDALONE_OSX" "-d:UNITY_STANDALONE_WIN"; do
   FILES=$(find "$ROOT/Assets" -name '*.cs' | grep -v "/Editor/")
   [ "$defs" != "-d:UNITY_STANDALONE_WIN" ] && FILES="$FILES $(find "$ROOT/Assets" -path '*/Editor/*' -name '*.cs')"
-  errors=$(mcs -langversion:7 -target:library -nowarn:0649,0414,0169 $defs -r:System.Core -r:System.Numerics \
-       -out:"$OUT/out.dll" "$STUBS" $FILES 2>&1 | grep -E "error" | grep -v "Location of" | sort -u)
+  log=$(mcs -langversion:7 -target:library -nowarn:0649,0414,0169 $defs -r:System.Core -r:System.Numerics \
+       -out:"$OUT/out.dll" "$STUBS" $FILES 2>&1)
+  errors=$(echo "$log" | grep -E "error" | grep -v "Location of" | sort -u)
+  # 컴파일러 자체가 멈춘 경우(예: mcs가 못 다루는 문법)도 실패로 본다. 예전엔 이걸 놓쳐 검사가 안 된 채 통과로 나왔다.
+  if [ -z "$errors" ] && echo "$log" | grep -q "FATAL\|InternalErrorException"; then
+    errors=$(echo "$log" | grep -E "InternalErrorException" | head -3)
+  fi
   if [ -n "$errors" ]; then echo "$errors"; echo "[$defs] 오류"; status=1; else echo "[$defs] 통과"; fi
 done
 exit $status

@@ -99,8 +99,13 @@ public class StoryPlayer : MonoBehaviour
         }
         else
         {
-            DrawPortraits(w, h);
-            DrawDialogue(w, h);
+            if (Line.style == "guide") DrawGuide(w, h);
+            else if (Line.style == "letter") DrawLetter(w, h);
+            else
+            {
+                DrawPortraits(w, h);
+                DrawDialogue(w, h);
+            }
         }
         DrawFill(new Rect(0f, 0f, w, h), new Color(0f, 0f, 0f, fade));
 
@@ -148,7 +153,7 @@ public class StoryPlayer : MonoBehaviour
             leftPortrait = rightPortrait = null; // 장면이 바뀌면 인물도 새로 등장
         }
 
-        if (string.IsNullOrEmpty(line.speaker))
+        if (string.IsNullOrEmpty(line.speaker) || !string.IsNullOrEmpty(line.style)) // 나레이션·안내·편지는 초상화 없음
         {
             activeSide = 0;
             return;
@@ -265,6 +270,47 @@ public class StoryPlayer : MonoBehaviour
             GUI.Label(new Rect(panel.xMax - 70f, panel.yMax - 55f, 40f, 40f), "▼", UIKit.Small);
 
         GUI.Label(new Rect(0f, h - 55f, w, 40f), "클릭 또는 Space: 다음 대사", UIKit.Small);
+    }
+
+    /// <summary>플레이 안내 카드: 화면 가운데 남색 판에 금색 제목.</summary>
+    void DrawGuide(float w, float h)
+    {
+        var panel = new Rect(w / 2f - 520f, h / 2f - 170f, 1040f, 300f);
+        DrawFill(new Rect(0f, 0f, w, h), new Color(0f, 0f, 0f, 0.35f));
+        UIKit.DrawPanel(panel);
+        DrawFill(new Rect(panel.x + 40f, panel.y + 86f, panel.width - 80f, 2f), new Color(0.95f, 0.82f, 0.5f, 0.6f));
+        GUI.Label(new Rect(panel.x, panel.y + 24f, panel.width, 56f), "플레이 안내 · " + Line.speaker, Style("guideTitle", UIKit.Speaker, 32, new Color(0.95f, 0.82f, 0.5f), TextAnchor.MiddleCenter));
+        string text = Line.text.Substring(0, Mathf.FloorToInt(shownChars));
+        GUI.Label(new Rect(panel.x + 60f, panel.y + 108f, panel.width - 120f, panel.height - 150f), text, Style("guideBody", UIKit.Dialogue, 30, Color.white, TextAnchor.UpperCenter));
+        if (LineComplete && Mathf.FloorToInt(Time.time * 2f) % 2 == 0)
+            GUI.Label(new Rect(panel.xMax - 70f, panel.yMax - 55f, 40f, 40f), "▼", UIKit.Small);
+        GUI.Label(new Rect(0f, h - 55f, w, 40f), "클릭 또는 Space: 다음", UIKit.Small);
+    }
+
+    /// <summary>편지: 양피지(도감 칸 그림 재사용) 위 잉크 글씨.</summary>
+    void DrawLetter(float w, float h)
+    {
+        var paper = new Rect(w / 2f - 460f, h / 2f - 300f, 920f, 560f);
+        DrawFill(new Rect(0f, 0f, w, h), new Color(0f, 0f, 0f, 0.45f));
+        Texture2D parchment = Load("Codex/cx_slot");
+        if (parchment != null) GUI.DrawTexture(paper, parchment, ScaleMode.StretchToFill);
+        else UIKit.DrawPanel(paper);
+        var ink = new Color(0.2f, 0.14f, 0.1f);
+        GUI.Label(new Rect(paper.x + 80f, paper.y + 60f, paper.width - 160f, 50f), Line.speaker, Style("letterTitle", UIKit.Speaker, 30, new Color(0.45f, 0.27f, 0.12f), TextAnchor.MiddleLeft));
+        string text = Line.text.Substring(0, Mathf.FloorToInt(shownChars));
+        GUI.Label(new Rect(paper.x + 80f, paper.y + 130f, paper.width - 160f, paper.height - 200f), text, Style("letterBody", UIKit.Dialogue, 28, ink, TextAnchor.UpperLeft));
+        GUI.Label(new Rect(0f, h - 55f, w, 40f), "클릭 또는 Space: 다음", UIKit.Small);
+    }
+
+    readonly Dictionary<string, GUIStyle> styles = new Dictionary<string, GUIStyle>();
+
+    GUIStyle Style(string key, GUIStyle from, int size, Color color, TextAnchor anchor)
+    {
+        if (styles.TryGetValue(key, out GUIStyle style)) return style;
+        style = new GUIStyle(from) { fontSize = size, alignment = anchor, wordWrap = true, richText = true };
+        style.normal.textColor = style.hover.textColor = style.active.textColor = color;
+        styles[key] = style;
+        return style;
     }
 
     void Placeholder(Rect rect, string text, float alpha)

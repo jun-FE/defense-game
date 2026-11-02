@@ -120,11 +120,15 @@ public static class CodexProgress
     {
         session.EnemySpawned += enemy =>
         {
-            if (!Seen(enemy.Def.Id)) PlayerPrefs.SetInt(SeenKey + enemy.Def.Id, 1);
+            string id = BaseId(enemy.Def);
+            if (!Seen(id)) PlayerPrefs.SetInt(SeenKey + id, 1);
         };
-        session.EnemyKilled += enemy => PlayerPrefs.SetInt(KillKey + enemy.Def.Id, Kills(enemy.Def.Id) + 1);
+        session.EnemyKilled += enemy => PlayerPrefs.SetInt(KillKey + BaseId(enemy.Def), Kills(BaseId(enemy.Def)) + 1);
         session.Ended += (result, reason) => PlayerPrefs.Save();
     }
+
+    /// <summary>튜토리얼용 단단한 복사본(EN_HEAVY_TUTORIAL 등)도 원래 악몽으로 기록한다.</summary>
+    static string BaseId(Akmong.Battle.EnemyDef def) => def.Id.EndsWith("_TUTORIAL") ? def.Id.Substring(0, def.Id.Length - 9) : def.Id;
 
     public static void ResetAll()
     {

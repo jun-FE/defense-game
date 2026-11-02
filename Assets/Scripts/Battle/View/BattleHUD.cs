@@ -96,6 +96,7 @@ public class BattleHUD : MonoBehaviour
         tilePreview = CreatePreview("TilePreview", square, 7);
         rangePreview = CreatePreview("RangePreview", circle, -5);
         skin = new UISkin(uiSprites, uiBorders);
+        if (Tutorial.Active) gameObject.AddComponent<BattleTutorial>().controller = controller; // 첫 수선 튜토리얼 안내
     }
 
     void Update()
@@ -140,7 +141,7 @@ public class BattleHUD : MonoBehaviour
 
         // 일시정지·결과 화면은 원래 크기로
         GUI.matrix = Matrix4x4.Scale(new Vector3(UIKit.Scale, UIKit.Scale, 1f));
-        if (Session.Phase == BattlePhase.Ended) DrawResult();
+        if (Session.Phase == BattlePhase.Ended) { if (!Tutorial.Active) DrawResult(); } // 튜토리얼은 BattleTutorial이 마무리 카드를 그림
         else if (pauseMenu) DrawPauseMenu();
 
         hoverOnMap = !overlay && !IsOverUI(virtualMouse);

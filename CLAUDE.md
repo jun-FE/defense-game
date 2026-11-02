@@ -95,6 +95,11 @@
 - Artlist 2장(250크레딧): 나무 수틀, 매듭 조각 시트. 남은 크레딧 약 6,975.
 - `Mastery`(매듭 25개: 가운데 + 6줄 × 안쪽·가운데·바깥 + 살 사이 6, 실마리 = 3 + 클리어당 2), `MasteryPanel`(메인 기술 탭). 전투 시작 시 `Mastery.Apply`. Unity에서 확인 필요.
 
+### 2026-11-02: 프롤로그(기획서) + 첫 수선 튜토리얼
+- 사용자 기획서 `ArtSource/Story/프롤로그_스토리.docx`(이안 과거·반복 꿈·해진/도윤/유나·달빛정원). 1~4장 → `prologue.txt`, 5장 → 튜토리얼 판. 이안은 현실에서 휠체어, 꿈에서는 걸음. 도하는 강의하지 않고 상황만 알림(조작은 화면 안내).
+- 새로하기 → 프롤로그 → `SceneFlow.StartTutorial`(Tutorial.Active, 스테이지 0 탐색) → `BattleTutorial.SetupStage`로 웨이브 교체(이길 수 없음) → `FinishTutorial` → `tutorial_end.txt` → 메인.
+- 스토리 대본에 `[안내]`·`[편지]` 추가. 컴파일 검사 수정: 에디터 설정이 mcs 내부 오류(8개 튜플)로 실제로는 검사되지 않고 "통과"로 나오던 것 → 튜플을 클래스로, compile.sh가 내부 오류도 실패로 봄. Unity에서 확인 필요.
+
 ## 작업 방식(검증)
 - Unity를 실행할 수 없으므로 아래로 검증하고, 사용자에게 "Unity에서 직접 확인 필요"를 분명히 말한다.
   - 전체 스크립트 컴파일 검사: `bash Tools/StubCompile/compile.sh` (Unity API 빈 껍데기 `UnityStubs.cs` 사용, 없는 API는 스텁에 추가)

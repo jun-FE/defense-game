@@ -186,6 +186,7 @@ public class LobbyMenu : MonoBehaviour
         QuestProgress.ResetAll();
         CodexProgress.ResetAll();
         Mastery.ResetAll();
+        Tutorial.ResetAll();
         SaveInfo.ResetAll();
         // 프롤로그(이안의 꿈 → 도하 수선 → 첫 편지): Resources/Stories/prologue.txt
         SceneFlow.StartPrologue();

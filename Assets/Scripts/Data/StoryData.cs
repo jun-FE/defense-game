@@ -18,6 +18,8 @@ public class StoryLine
     public string background;
     [Tooltip("초상화 이름(Resources/Stories/Portraits/이름). 비우면 말하는 사람 이름을 쓴다")]
     public string portrait;
+    [Tooltip("보여 주는 방식: 비우면 대화창, guide = 플레이 안내 카드, letter = 편지지")]
+    public string style;
 
     public StoryLine() { }
 

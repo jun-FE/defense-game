@@ -39,6 +39,11 @@ public class ExploreUI : MonoBehaviour
         const int WalkFrames = 4;
     const float WalkFps = 8f;   // 걷기 그림 4장 = 반 초(두 칸에 한 번 걸음 주기)
 
+    /// <summary>이번 탐색에서 밝힌 칸 수(튜토리얼 안내가 읽음).</summary>
+    public int Opened => opened;
+    /// <summary>출현 지점까지 길이 이어졌는지.</summary>
+    public bool Connected => connected;
+
     GridMap map;
     UISkin skin;
     Vector2Int player;
@@ -109,7 +114,8 @@ public class ExploreUI : MonoBehaviour
         prevPlayer = player;
         connected = map.ShortestPath() != null;
         FitView();
-        ShowToast("목표(파란 칸)에서 출발해요. 출현 지점(보라 칸)까지 암흑을 밝혀 길을 이어 주세요.", 5f);
+        if (Tutorial.Active) gameObject.AddComponent<ExploreTutorial>().explore = this; // 첫 수선 튜토리얼 안내
+        else ShowToast("목표(파란 칸)에서 출발해요. 출현 지점(보라 칸)까지 암흑을 밝혀 길을 이어 주세요.", 5f);
     }
 
     // ───────── 이동·개방 ─────────
