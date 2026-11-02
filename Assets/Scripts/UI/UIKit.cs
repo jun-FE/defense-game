@@ -18,8 +18,38 @@ public static class UIKit
 
     static Texture2D dimTexture;
 
+    // ───────── 글꼴 ─────────
+    // 고운바탕(Gowun Batang, SIL OFL): Assets/Resources/Fonts/. 기본 글꼴은 GUI.skin.font, 굵은 글자는 Bold 파일을 직접 쓴다
+    // (Unity가 가짜로 굵게 만들면 번져 보여서). 글꼴 파일이 없으면 Unity 기본 글꼴 + 가짜 굵게.
+    static Font regularFont, boldFont;
+    static bool fontsLoaded;
+
+    static void LoadFonts()
+    {
+        if (fontsLoaded) return;
+        fontsLoaded = true;
+        regularFont = Resources.Load<Font>("Fonts/GowunBatang-Regular");
+        boldFont = Resources.Load<Font>("Fonts/GowunBatang-Bold");
+    }
+
+    /// <summary>굵기에 맞는 글꼴(없으면 null = 기본 글꼴).</summary>
+    public static Font FontFor(bool bold)
+    {
+        LoadFonts();
+        return bold && boldFont != null ? boldFont : regularFont;
+    }
+
+    /// <summary>굵은 글꼴 파일이 있으면 가짜 굵게는 끈다.</summary>
+    public static FontStyle StyleFor(bool bold)
+    {
+        LoadFonts();
+        return bold && boldFont == null ? FontStyle.Bold : FontStyle.Normal;
+    }
+
     public static void Begin()
     {
+        LoadFonts();
+        if (regularFont != null && GUI.skin.font != regularFont) GUI.skin.font = regularFont;
         EnsureStyles();
         GUI.matrix = Matrix4x4.Scale(new Vector3(Scale, Scale, 1f));
     }
@@ -89,7 +119,8 @@ public static class UIKit
 
     static GUIStyle MakeLabel(int size, FontStyle fontStyle, TextAnchor anchor, Color color)
     {
-        var style = new GUIStyle(GUI.skin.label) { fontSize = size, fontStyle = fontStyle, alignment = anchor, richText = true };
+        bool bold = fontStyle == FontStyle.Bold;
+        var style = new GUIStyle(GUI.skin.label) { fontSize = size, font = FontFor(bold), fontStyle = StyleFor(bold), alignment = anchor, richText = true };
         // 글자는 클릭 대상이 아니므로 마우스를 올려도 색이 바뀌지 않게 모든 상태를 같은 색으로.
         style.normal.textColor = style.hover.textColor = style.active.textColor = style.focused.textColor = color;
         return style;
@@ -97,7 +128,7 @@ public static class UIKit
 
     static GUIStyle MakeButton(int size, Color normal, Color hover)
     {
-        var style = new GUIStyle(GUI.skin.button) { fontSize = size, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+        var style = new GUIStyle(GUI.skin.button) { fontSize = size, font = UIKit.FontFor(true), fontStyle = UIKit.StyleFor(true), alignment = TextAnchor.MiddleCenter };
         style.normal.background = MakeTexture(normal);
         style.hover.background = MakeTexture(hover);
         style.active.background = MakeTexture(normal * 0.8f);

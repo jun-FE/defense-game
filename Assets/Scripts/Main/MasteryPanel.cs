@@ -78,7 +78,7 @@ public class MasteryPanel
             GUI.color = old;
             var art = new Rect(card.x + 14f, card.y + 10f, rowH - 20f, rowH - 20f);
             if (unlocked) Image(art, $"Codex/Entries/{id}_1");
-            else Image(Grow(art, 0.6f), "Codex/cx_icon_unknown");
+            else Image(Grow(art, 0.6f), "Mastery/mi_lock");
             string name = unlocked ? ToolName(id) : "???";
             GUI.Label(new Rect(art.xMax + 10f, card.y + 14f, card.xMax - art.xMax - 20f, 30f), name, Style(19, Ink, TextAnchor.MiddleLeft, true));
             Mastery.Branch active = unlocked ? Mastery.ActiveBranch(id) : null;
@@ -185,25 +185,27 @@ public class MasteryPanel
         float innerScale;
         switch (n.kind)
         {
-            case Mastery.NodeKind.Center: inner = unlocked ? $"Codex/Entries/{n.towerId}_1" : "Codex/cx_icon_unknown"; innerScale = 0.62f; break;
+            case Mastery.NodeKind.Center: inner = unlocked ? $"Codex/Entries/{n.towerId}_1" : "Mastery/mi_lock"; innerScale = unlocked ? 0.66f : 0.4f; break;
             case Mastery.NodeKind.Base: inner = BaseIcon(n); innerScale = 0.5f; break;
-            case Mastery.NodeKind.Awaken: inner = $"Codex/Entries/{n.towerId}_2"; innerScale = 0.62f; break;
-            default: inner = $"Codex/Entries/{n.towerId}_3"; innerScale = 0.5f; break;
+            case Mastery.NodeKind.Awaken: inner = "Mastery/el_" + br.element; innerScale = 0.52f; break;
+            default: inner = "Mastery/el_" + br.element; innerScale = 0.46f; break;
         }
         if (!unlocked && n.kind != Mastery.NodeKind.Center) return;
-        Color tint = br != null ? Color.Lerp(Color.white, br.color, 0.5f) : Color.white;
-        if (!learned) tint = reachable ? tint * new Color(0.85f, 0.82f, 0.78f, 0.9f) : new Color(0.55f, 0.52f, 0.5f, 0.6f);
+        Color tint = Color.white;
+        if (!learned) tint = reachable ? new Color(0.9f, 0.88f, 0.85f, 0.95f) : new Color(0.55f, 0.52f, 0.5f, 0.65f);
         GUI.color = tint;
         Image(Grow(r, innerScale), inner);
         GUI.color = old;
     }
 
-    /// <summary>기본 손질 아이콘: 첫째 공격력, 둘째 속도, 셋째 사거리(도감 아이콘 재사용).</summary>
+    /// <summary>기본 손질 아이콘: 첫째 공격력(바늘), 둘째 속도(회중시계), 셋째 사거리(망원경). 바늘꽂이 셋째는 방어 깎기(방패), 수선표 활 셋째는 붉은 실.</summary>
     static string BaseIcon(Mastery.Node n)
     {
-        if (n.id.EndsWith("_B0")) return "Codex/cx_icon_damage";
-        if (n.id.EndsWith("_B1")) return "Codex/cx_icon_speed";
-        return "Codex/cx_icon_range";
+        if (n.id.EndsWith("_B0")) return "Mastery/mi_damage";
+        if (n.id.EndsWith("_B1")) return "Mastery/mi_speed";
+        if (n.towerId == "TW_PIN") return "Mastery/mi_armor";
+        if (n.towerId == "TW_TAGBOW") return "Mastery/el_thread";
+        return "Mastery/mi_range";
     }
 
     void Stitch(Vector2 a, Vector2 b, float padA, float padB, bool lit, float alpha, Color tint)
@@ -253,7 +255,7 @@ public class MasteryPanel
 
         GUI.Label(new Rect(x, y, wInner, 36f), "기술 · 꿈 수틀", Style(26, Ink, TextAnchor.MiddleLeft, true));
         y += 40f;
-        Image(new Rect(x, y, 30f, 44f), "Mastery/ms_point");
+        Image(new Rect(x, y, 30f, 44f), "Mastery/mi_point");
         GUI.Label(new Rect(x + 40f, y, wInner - 40f, 44f), $"실마리  {Mastery.FreePoints} / {Mastery.TotalPoints}", Style(22, Brown, TextAnchor.MiddleLeft, true));
         y += 44f;
         int pending = CodexRewards.Pending;
@@ -348,8 +350,8 @@ public class MasteryPanel
             var chip = new Rect(r.x + i * (bw + 8f), r.y + 30f, bw, 64f);
             Frame(chip, on ? "Codex/cx_slot_on" : "Codex/cx_slot", 30);
             Color old = GUI.color;
-            GUI.color = has ? b.color : new Color(0.6f, 0.58f, 0.55f, 0.5f);
-            Image(new Rect(chip.x + 8f, chip.center.y - 11f, 22f, 22f), "Mastery/ms_knot_on");
+            if (!has) GUI.color = new Color(0.6f, 0.58f, 0.55f, 0.55f);
+            Image(new Rect(chip.x + 6f, chip.center.y - 14f, 28f, 28f), "Mastery/el_" + b.element);
             GUI.color = old;
             GUI.Label(new Rect(chip.x + 32f, chip.y, chip.width - 36f, chip.height), b.name + (on ? "\n<size=12>사용 중</size>" : has ? "" : "\n<size=12>배우지 않음</size>"),
                 Style(14, has ? Ink : InkMuted, TextAnchor.MiddleLeft, on));
@@ -427,7 +429,7 @@ public class MasteryPanel
     {
         string key = $"{size}:{color}:{anchor}:{bold}:{wrap}";
         if (styles.TryGetValue(key, out GUIStyle style)) return style;
-        style = new GUIStyle(GUI.skin.label) { fontSize = size, alignment = anchor, wordWrap = wrap, richText = true, fontStyle = bold ? FontStyle.Bold : FontStyle.Normal };
+        style = new GUIStyle(GUI.skin.label) { fontSize = size, alignment = anchor, wordWrap = wrap, richText = true, font = UIKit.FontFor(bold), fontStyle = UIKit.StyleFor(bold) };
         style.normal.textColor = style.hover.textColor = style.active.textColor = style.focused.textColor = color;
         styles[key] = style;
         return style;

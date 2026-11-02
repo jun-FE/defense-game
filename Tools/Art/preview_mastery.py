@@ -8,7 +8,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RES = os.path.join(ROOT, 'Assets/Resources')
-FONT = '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'
+FONT = os.path.join(ROOT, 'Assets/Resources/Fonts/GowunBatang-Regular.ttf')
+FONT_BOLD = os.path.join(ROOT, 'Assets/Resources/Fonts/GowunBatang-Bold.ttf')
 W, H = 1920, 1080
 INK, MUTED, BROWN, LIGHT = (46, 33, 26), (107, 87, 69), (138, 85, 33), (243, 235, 222)
 TOWERS = [('TW_LAMP', '스탠드 조명', '불씨 등불'), ('TW_SCISSORS', None, None), ('TW_SEWING', None, None),
@@ -38,7 +39,7 @@ def box(c, p, x, y, w, h):
 
 
 def text(d, xy, s, size, color, anchor='lm', bold=False):
-    d.text(xy, s, font=ImageFont.truetype(FONT, size), fill=color, anchor=anchor, stroke_width=1 if bold else 0, stroke_fill=color)
+    d.text(xy, s, font=ImageFont.truetype(FONT_BOLD if bold else FONT, size), fill=color, anchor=anchor)
 
 
 def main():
@@ -62,13 +63,15 @@ def main():
     rowH = min(104, (lh - 50) / 6)
     for i, (tid, name, sub) in enumerate(TOWERS):
         y = ly + i * (rowH + 10)
-        box(c, 'Codex/cx_slot_on' if i == 0 else 'Codex/cx_slot' if name else 'Codex/cx_slot_lock', lx, y, listW, rowH)
+        box(c, 'Codex/cx_slot_on' if i == 0 else 'Codex/cx_slot', lx, y, listW, rowH)
+        if not name:
+            c.alpha_composite(Image.new('RGBA', (int(listW), int(rowH)), (0, 0, 0, 0)), (int(lx), int(y)))
         a = rowH - 20
         if name:
             fit(c, img(f'Codex/Entries/{tid}_1'), lx + 14 + a / 2, y + 10 + a / 2, a)
         else:
-            fit(c, img('Codex/cx_icon_unknown'), lx + 14 + a / 2, y + 10 + a / 2, a * 0.6)
-        text(d, (lx + 24 + a, y + 29), name or '???', 19, INK if name else LIGHT, bold=True)
+            fit(c, img('Mastery/mi_lock'), lx + 14 + a / 2, y + 10 + a / 2, a * 0.6)
+        text(d, (lx + 24 + a, y + 29), name or '???', 19, INK, bold=True)
         text(d, (lx + 24 + a, y + 57), sub or '잠김', 15, (150, 80, 30) if sub else (200, 195, 190))
 
     hoop = img('Mastery/ms_hoop').resize((int(hw), int(hw * aspect)), Image.LANCZOS)
@@ -105,7 +108,8 @@ def main():
         br = int(b_[1]) if b_[0] in 'AD' else None
         tint = tuple(int(255 * .3 + v * .7) for v in BRANCHES[br][1]) if lit and br is not None else None
         stitch(P(*nodes[a_]), P(*nodes[b_]), SIZE[a_[0]] / 2, SIZE[b_[0]] / 2, lit, 1 if (a_ in learned or b_ in learned) else .7, tint)
-    icons = ['Codex/cx_icon_damage', 'Codex/cx_icon_speed', 'Codex/cx_icon_range']
+    icons = ['Mastery/mi_damage', 'Mastery/mi_speed', 'Mastery/mi_range']
+    elements = ['fire', 'moon', 'prism']
     for k, (r, a) in nodes.items():
         x, y = P(r, a)
         kind = k[0]
@@ -117,15 +121,14 @@ def main():
             fit(c, img('Mastery/ms_knot_on'), x, y, size * 1.5, .5 if on else .18, col)
         if kind == 'C':
             fit(c, img('Mastery/ms_center'), x, y, size)
-            fit(c, img('Codex/Entries/TW_LAMP_1'), x, y, size * .62)
+            fit(c, img('Codex/Entries/TW_LAMP_1'), x, y, size * .66)
             continue
         if kind == 'D':
             fit(c, img('Mastery/ms_key_on' if on else 'Mastery/ms_key_locked'), x, y, size)
         else:
             fit(c, img('Mastery/' + ('ms_node_on' if on else 'ms_node_open' if reach else 'ms_node_locked')), x, y, size * (1.09 if on else 1.06 if reach else 1))
-        inner = icons[int(k[1])] if kind == 'B' else f"Codex/Entries/TW_LAMP_{2 if kind == 'A' else 3}"
-        tint = None if kind == 'B' else tuple(int(127 + v / 2) for v in BRANCHES[int(k[1])][1])
-        fit(c, img(inner), x, y, size * (.5 if kind in 'BD' else .62), 1 if on else .9 if reach else .6, tint)
+        inner = icons[int(k[1])] if kind == 'B' else 'Mastery/el_' + elements[int(k[1])]
+        fit(c, img(inner), x, y, size * (.5 if kind == 'B' else .52 if kind == 'A' else .46), 1 if on else .9 if reach else .6)
     for i, (name, col) in enumerate(BRANCHES):
         x, y = P(.86, -90 + i * 120)
         below = 60 if 0 < -90 + i * 120 < 180 else -92
@@ -135,7 +138,7 @@ def main():
     x, y = px + 36, py + 28
     text(d, (x, y + 18), '기술 · 꿈 수틀', 26, INK, bold=True)
     y += 40
-    fit(c, img('Mastery/ms_point'), x + 15, y + 22, 44)
+    fit(c, img('Mastery/mi_point'), x + 15, y + 22, 44)
     text(d, (x + 40, y + 22), '실마리  3 / 7', 22, BROWN, bold=True)
     y += 44
     text(d, (x, y + 11), '도감에 받을 기록 보상이 1개 있어요', 14, (128, 30, 46), bold=True)
@@ -144,7 +147,7 @@ def main():
     y += 46
     fit(c, img('Mastery/ms_knot_on'), x + 44, y + 44, 88 * 1.5, .55, BRANCHES[0][1])
     fit(c, img('Mastery/ms_node_on'), x + 44, y + 44, 88 * 1.09)
-    fit(c, img('Codex/Entries/TW_LAMP_2'), x + 44, y + 44, 54, tint=(255, 191, 146))
+    fit(c, img('Mastery/el_fire'), x + 44, y + 44, 46)
     text(d, (x + 102, y + 20), '불씨 옮기기', 24, INK, bold=True)
     text(d, (x + 102, y + 49), '속성 각성 · 불씨 등불', 15, (150, 80, 30), bold=True)
     text(d, (x + 102, y + 71), '실마리 2개', 15, BROWN, bold=True)
@@ -158,7 +161,7 @@ def main():
     for i, (name, col) in enumerate(BRANCHES):
         cxp = x + i * (bw + 8)
         box(c, 'Codex/cx_slot_on' if i == 0 else 'Codex/cx_slot', cxp, by + 30, bw, 64)
-        fit(c, img('Mastery/ms_knot_on'), cxp + 19, by + 62, 22, 1 if i == 0 else .5, col if i == 0 else (150, 148, 140))
+        fit(c, img('Mastery/el_' + ['fire', 'moon', 'prism'][i]), cxp + 20, by + 62, 28, 1 if i == 0 else .55)
         text(d, (cxp + 32, by + 52), name, 14, INK if i == 0 else MUTED, bold=i == 0)
         text(d, (cxp + 32, by + 72), '사용 중' if i == 0 else '배우지 않음', 12, MUTED)
     text(d, (px + panelW - 36, py + ph - 18), '이 도구 모두 풀기', 14, BROWN, 'rm', True)

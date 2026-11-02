@@ -74,7 +74,7 @@ public class UISkin
         if (styles.TryGetValue(key, out style)) return style;
         bool denim = tex.ContainsKey("ws_button");
         style = new GUIStyle(denim ? FrameStyle("ws_button", "ws_button_hover") : FrameStyle("button_primary", "button_primary_hover"))
-            { fontSize = fontSize, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            { fontSize = fontSize, alignment = TextAnchor.MiddleCenter, font = UIKit.FontFor(true), fontStyle = UIKit.StyleFor(true) };
         if (denim) style.padding = new RectOffset(48, 48, 0, 6); // 양끝 리본 꼬리를 피해 가운데에
         style.normal.textColor = style.hover.textColor = style.active.textColor = Light;
         styles[key] = style;
@@ -86,7 +86,7 @@ public class UISkin
         string key = $"text:{size}:{color}:{anchor}:{bold}:{wrap}";
         GUIStyle style;
         if (styles.TryGetValue(key, out style)) return style;
-        style = new GUIStyle(GUI.skin.label) { fontSize = size, alignment = anchor, wordWrap = wrap, richText = true, fontStyle = bold ? FontStyle.Bold : FontStyle.Normal };
+        style = new GUIStyle(GUI.skin.label) { fontSize = size, alignment = anchor, wordWrap = wrap, richText = true, font = UIKit.FontFor(bold), fontStyle = UIKit.StyleFor(bold) };
         // 글자는 클릭 대상이 아니므로 마우스를 올려도 색이 바뀌지 않게 모든 상태를 같은 색으로.
         style.normal.textColor = style.hover.textColor = style.active.textColor = style.focused.textColor = color;
         styles[key] = style;
@@ -107,7 +107,7 @@ public class UISkin
         string key = "tab:" + on + ":" + fontSize;
         GUIStyle style;
         if (styles.TryGetValue(key, out style)) return style;
-        style = new GUIStyle(FrameStyle(on ? "ws_tab_on" : "ws_tab_off", on ? null : "ws_tab_on")) { fontSize = fontSize, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+        style = new GUIStyle(FrameStyle(on ? "ws_tab_on" : "ws_tab_off", on ? null : "ws_tab_on")) { fontSize = fontSize, alignment = TextAnchor.MiddleCenter, font = UIKit.FontFor(true), fontStyle = UIKit.StyleFor(true) };
         style.normal.textColor = on ? Light : Ink;
         style.hover.textColor = style.active.textColor = Light;
         styles[key] = style;

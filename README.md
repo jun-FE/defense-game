@@ -302,6 +302,8 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
 - **잠긴 도구**는 목록에 ???로 보이고 수놓을 수 없습니다(아래 "도구 해금").
 - **전투 적용**: 전투 시작 때 `Mastery.Apply`(기본 손질 + 고른 속성). 튜토리얼 판에는 넣지 않습니다. 고치기: `Assets/Scripts/Main/Mastery.cs`(분기 이름·설명·수치), 화면 `MasteryPanel.cs`. 미리보기 `python3 Tools/Art/preview_mastery.py out.png`.
 
+- **그림**: 매듭 틀(호두나무+황동, 가운데 메달은 안이 빈 리넨)과 아이콘 25개(바늘·회중시계·망원경·방패·주머니·하트 등불·장화·물음표 천, 속성 14종: 등잔불·독병·번개 실패·눈꽃·달·프리즘·금가위·은바늘·쌍바늘·가시덩굴·용수철·자석·폭죽·과녁, 실마리 술·자물쇠·별)은 메인 화면 아이콘 시트를 참고 그림으로 Artlist에서 만들었습니다. 원본 `ArtSource/Mastery/{nodes,icons}.png` → `python3 Tools/Art/build_mastery_ui.py` → `Assets/Resources/Mastery/{ms_*,mi_*,el_*}.png`. 도감의 수치 아이콘도 같은 아이콘을 씁니다.
+
 ### 속성 효과(전투 코어)
 - **지속 피해**(화상·독·가시): 초당 피해, 방어 무시, 다시 맞으면 시간 갱신(더 센 쪽 유지). 맞은 악몽이 속성 색으로 일렁입니다.
 - **멈춤**(빙결·감전·자석): 확률로 몇 초 멈춤, 큰 악몽은 절반. 노랗게 번쩍이며 떨립니다.
@@ -362,6 +364,9 @@ Git, Git LFS, Unity Hub, Unity 6.3 LTS + Windows IL2CPP 모듈, Visual Studio 20
     (같은 구조의 SVG라면 다른 타워에도 그대로 씁니다. `rsvg-convert` 필요)
 - `Assets/Art/Towers/` 아래 PNG는 자동으로 스프라이트로 가져옵니다(타워 150 PPU, 병정인형 230 PPU, 투사체 220 PPU).
 - 애니메이션 속도는 `Assets/Prefabs/Towers/TW_LAMP` 프리팹의 `Visual` 오브젝트 → `TowerVisual`에서 조정합니다.
+
+## 글꼴
+모든 화면 글자는 **고운바탕**(Gowun Batang, SIL Open Font License — 게임에 넣어 팔아도 됨, 라이선스 `Assets/Resources/Fonts/OFL.txt`)입니다. `Assets/Resources/Fonts/GowunBatang-{Regular,Bold}.ttf`를 `UIKit`이 불러와 기본 글꼴로 쓰고, 굵은 글자는 Bold 파일을 씁니다(Unity가 가짜로 굵게 만들면 번져 보여서). 글꼴을 바꾸려면 같은 폴더에 파일을 넣고 `UIKit.LoadFonts`의 이름만 바꾸면 됩니다.
 
 ## 3. 프로젝트 구조
 

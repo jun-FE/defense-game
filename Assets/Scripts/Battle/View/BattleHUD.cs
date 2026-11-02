@@ -533,7 +533,7 @@ public class BattleHUD : MonoBehaviour
             bool locked = tower == null && !TowerUnlocks.IsUnlocked(slot.Id);
             GUI.color = !fits ? new Color(0.6f, 0.6f, 0.7f, 0.45f) : affordable ? Color.white : new Color(1f, 1f, 1f, 0.55f);
             float icon = d * 0.86f;
-            Texture2D art = locked ? SlotArt("Codex/cx_icon_unknown") : SlotArt($"Codex/Entries/{slot.Id}_1");
+            Texture2D art = locked ? SlotArt("Mastery/mi_lock") : SlotArt($"Codex/Entries/{slot.Id}_1");
             var iconRect = new Rect(c.x - icon / 2f, c.y - icon / 2f - d * 0.1f, icon, icon);
             if (locked) iconRect = new Rect(c.x - icon * 0.25f, c.y - icon * 0.3f - d * 0.06f, icon * 0.5f, icon * 0.5f);
             if (art != null) GUI.DrawTexture(iconRect, art, ScaleMode.ScaleToFit);

@@ -133,7 +133,7 @@ public class CodexPanel
             GUI.color = new Color(0.12f, 0.09f, 0.14f, 0.85f); // 실루엣
             Image(art, CodexData.ImagePath(e));
             GUI.color = old;
-            Image(Inset(art, 0.25f), "cx_icon_unknown");
+            Image(Inset(art, 0.25f), "Mastery/mi_unknown");
         }
 
         float tx = frame.xMax + 18f, tw = page.xMax - tx;
@@ -216,9 +216,9 @@ public class CodexPanel
     float ToolStats(Rect page, float y, TowerLevelDef l)
     {
         string hits = l.HitCount > 1 ? $"  × {l.HitCount}명" : "";
-        y = StatRow(page, y, "cx_icon_damage", "공격력", $"{l.Damage:0}{hits}", l.Damage * Mathf.Max(1, l.HitCount) / 130f);
-        y = StatRow(page, y, "cx_icon_speed", "공격 간격", $"{l.AttackSec:0.##}초", 0.4f / Mathf.Max(0.2f, l.AttackSec));
-        y = StatRow(page, y, "cx_icon_range", "사거리", $"{l.Range:0.#}칸", l.Range / 6f);
+        y = StatRow(page, y, "Mastery/mi_damage", "공격력", $"{l.Damage:0}{hits}", l.Damage * Mathf.Max(1, l.HitCount) / 130f);
+        y = StatRow(page, y, "Mastery/mi_speed", "공격 간격", $"{l.AttackSec:0.##}초", 0.4f / Mathf.Max(0.2f, l.AttackSec));
+        y = StatRow(page, y, "Mastery/mi_range", "사거리", $"{l.Range:0.#}칸", l.Range / 6f);
 
         var extra = new List<string>();
         if (l.CritChance > 0f) extra.Add($"치명타 {l.CritChance * 100f:0}% (×{l.CritMult:0.#})");
@@ -228,7 +228,7 @@ public class CodexPanel
         if (l.UpgradeCost > 0) extra.Add($"다음 단계 {l.UpgradeCost} 꿈실");
         if (extra.Count > 0)
         {
-            Image(new Rect(page.x + 10f, y + 4f, 26f, 26f), "cx_icon_reward");
+            Image(new Rect(page.x + 10f, y + 4f, 26f, 26f), "Mastery/mi_reward");
             GUI.Label(new Rect(page.x + 46f, y, page.width - 56f, 34f), string.Join("   ", extra), Style(16, InkMuted, TextAnchor.MiddleLeft, false, true));
             y += 38f;
         }
@@ -237,10 +237,10 @@ public class CodexPanel
 
     float NightmareStats(Rect page, float y, EnemyDef d)
     {
-        y = StatRow(page, y, "cx_icon_core", "체력", d.MaxHp.ToString(), d.MaxHp / 260f);
-        y = StatRow(page, y, "cx_icon_armor", "실 껍질(방어)", $"{d.Armor:0}", d.Armor / 60f);
-        y = StatRow(page, y, "cx_icon_move", "이동 속도", $"{d.MoveSpeed:0.#}", d.MoveSpeed / 2.6f);
-        y = StatRow(page, y, "cx_icon_damage", "중심 피해", d.CoreDamage.ToString(), d.CoreDamage / 12f);
+        y = StatRow(page, y, "Mastery/mi_core", "체력", d.MaxHp.ToString(), d.MaxHp / 260f);
+        y = StatRow(page, y, "Mastery/mi_armor", "실 껍질(방어)", $"{d.Armor:0}", d.Armor / 60f);
+        y = StatRow(page, y, "Mastery/mi_move", "이동 속도", $"{d.MoveSpeed:0.#}", d.MoveSpeed / 2.6f);
+        y = StatRow(page, y, "Mastery/mi_damage", "중심 피해", d.CoreDamage.ToString(), d.CoreDamage / 12f);
         GUI.Label(new Rect(page.x + 10f, y, page.width - 20f, 26f), $"처치 보상 {d.KillCoin} 꿈실   (의뢰마다 체력이 더 높을 수 있어요)",
             Style(15, InkMuted, TextAnchor.MiddleLeft));
         return y + 30f;
@@ -268,7 +268,7 @@ public class CodexPanel
 
     Texture2D Tex(string name)
     {
-        string path = name.StartsWith("Codex/") ? name : "Codex/" + name;
+        string path = name.Contains("/") ? name : "Codex/" + name;
         if (!tex.TryGetValue(path, out Texture2D t))
         {
             t = Resources.Load<Texture2D>(path);
@@ -301,7 +301,7 @@ public class CodexPanel
     {
         string key = $"{size}:{color}:{anchor}:{bold}:{wrap}";
         if (styles.TryGetValue(key, out GUIStyle style)) return style;
-        style = new GUIStyle(GUI.skin.label) { fontSize = size, alignment = anchor, wordWrap = wrap, fontStyle = bold ? FontStyle.Bold : FontStyle.Normal };
+        style = new GUIStyle(GUI.skin.label) { fontSize = size, alignment = anchor, wordWrap = wrap, font = UIKit.FontFor(bold), fontStyle = UIKit.StyleFor(bold) };
         style.normal.textColor = style.hover.textColor = style.active.textColor = style.focused.textColor = color;
         styles[key] = style;
         return style;
