@@ -40,6 +40,18 @@ public class MapTheme
     static readonly string[] GardenNames = { "garden_lantern_post", "garden_hydrangea", "garden_spools", "garden_urn", "garden_lilies", "garden_lantern", "garden_pillar", "garden_button", "garden_chest" };
     static readonly float[] GardenWidths = { 0.55f, 0.95f, 0.85f, 0.75f, 0.85f, 0.55f, 0.6f, 0.8f, 0.85f };
 
+    /// <summary>맵 뒤에 까는 한 장 그림(꿈속 방 테마). 없으면 바깥은 꽃밭을 반복해 깐다.</summary>
+    public Texture2D Backdrop;
+    /// <summary>배경 그림 안에서 맵 칸들이 차지하는 자리(그림 크기에 대한 비율). 방 그림의 바닥 부분.</summary>
+    public static readonly Rect BackdropMapArea = new Rect(0.08f, 0.10f, 0.84f, 0.83f);
+
+    /// <summary>배경 그림을 놓을 자리(칸 단위, 맵 왼쪽 위 = (0, 0), 아래쪽이 +y). 맵이 BackdropMapArea에 꼭 맞게.</summary>
+    public static Rect BackdropCells(int mapWidth, int mapHeight)
+    {
+        float w = mapWidth / BackdropMapArea.width, h = mapHeight / BackdropMapArea.height;
+        return new Rect(-BackdropMapArea.x * w, -BackdropMapArea.y * h, w, h);
+    }
+
     public bool Valid => Stone != null && Grass != null && Flower != null;
 
     public static MapTheme Load(string name = "MoonGarden")
@@ -60,6 +72,7 @@ public class MapTheme
             BuildMark = Resources.Load<Sprite>(dir + "build_mark"),
             FxGlow = Resources.Load<Sprite>(dir + "fx_glow"),
             FxSpark = Resources.Load<Sprite>(dir + "fx_spark"),
+            Backdrop = Resources.Load<Texture2D>(dir + "backdrop"),
         };
         theme.Tufts = LoadAll(dir, "flower_tuft_", 4);
         theme.Borders = LoadAll(dir, "border_", 4);

@@ -1,15 +1,16 @@
 using UnityEngine;
 
 /// <summary>
-/// 첫 수선 튜토리얼(새로하기 → 프롤로그 스토리 → 튜토리얼 한 판 → 마무리 스토리 → 수선소).
-/// 기획: ArtSource/Story/프롤로그_스토리.docx 5장 "첫 수선 튜토리얼".
-/// 달빛정원(첫 스테이지) 탐색 → 전투를 그대로 쓰되, 화면마다 안내(ExploreTutorial·BattleTutorial)를 띄우고
-/// 전투 웨이브를 튜토리얼용으로 바꾼다(첫 웨이브는 쉽고, 마지막에 이길 수 없는 악몽 무리가 온다).
+/// 프롤로그 튜토리얼(새로하기). 기획: ArtSource/Prologue/프롤로그_화면구성.xlsx.
+/// 꿈속 방(MapId) 탐색 → 전투(스탠드 조명만, 이길 수 있는 쉬운 두 웨이브, "전투 시작"을 눌러야 시작) →
+/// 같은 방으로 돌아와 몽쇄 걸린 문 → 깨어나는 장면(EndStoryPath) → 수선소.
+/// 화면마다 안내는 ExploreTutorial·BattleTutorial, 대사창·툴팁 모양은 DreamUI.
 /// </summary>
 public static class Tutorial
 {
     const string DoneKey = "Tutorial.Done";
-    public const string EndStoryPath = "Stories/tutorial_end";
+    public const string EndStoryPath = "Stories/prologue_wake";
+    public const string MapId = "MAP_DREAM_ROOM";
 
     /// <summary>지금 튜토리얼 판을 하고 있는지.</summary>
     public static bool Active { get; private set; }

@@ -15,12 +15,20 @@ public static class DreamRun
     public static int Collected { get; set; }
     /// <summary>맵 에디터의 "테스트 플레이"로 들어왔는지(끝나면 에디터로 돌아갈 수 있게).</summary>
     public static bool TestMode { get; private set; }
+    /// <summary>프롤로그(새로하기 튜토리얼)의 꿈속 방 판인지: 방 테마(Themes/DreamRoom)와 어린 이안 그림을 쓴다.</summary>
+    public static bool Prologue { get; private set; }
+    /// <summary>프롤로그 전투를 이긴 뒤 다시 들어온 탐색: 몬스터 입구 대신 몽쇄 걸린 문으로 걸어가면 깨어나는 장면으로.</summary>
+    public static bool DoorMode { get; set; }
+    /// <summary>탐색·전투 화면이 쓸 맵 테마 이름(Resources/Themes/이름).</summary>
+    public static string ThemeName => Prologue ? "DreamRoom" : "MoonGarden";
 
     public static bool Active => Map != null;
 
     /// <summary>새 판 시작. original은 건드리지 않고 복사해서 쓴다.</summary>
-    public static void Begin(GridMap original, bool testMode)
+    public static void Begin(GridMap original, bool testMode, bool prologue = false)
     {
+        Prologue = prologue;
+        DoorMode = false;
         Original = original.Clone();
         Map = original.Clone();
         Collected = 0;
@@ -41,5 +49,7 @@ public static class DreamRun
         Original = null;
         Collected = 0;
         TestMode = false;
+        Prologue = false;
+        DoorMode = false;
     }
 }

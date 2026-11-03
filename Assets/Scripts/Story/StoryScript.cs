@@ -14,14 +14,11 @@ using UnityEngine;
 ///   : 나레이션           — 말하는 사람 없는 해설(앞의 콜론 생략 가능)
 ///   [안내] 제목 | 내용     — 플레이 안내 카드(화면 가운데)
 ///   [편지] 제목 | 내용     — 편지지에 쓴 글(답장·의뢰 편지)
+///   [효과] 눈뜨기, 흔들림  — 다음 대사의 연출(눈뜨기 = 반쯤 뜬 눈 시점, 흔들림, 암전 = 검은 화면, 초상화없음)
+///   [소리] 이름          — 다음 대사가 나올 때 효과음 Resources/Sfx/이름
 /// </summary>
 public static class StoryScript
 {
-    public const string ProloguePath = "Stories/prologue";
-
-    /// <summary>새로하기 프롤로그. 대본이 없거나 비어 있으면 null.</summary>
-    public static StoryData LoadPrologue() => Load(ProloguePath);
-
     public static StoryData Load(string resourcePath)
     {
         var asset = Resources.Load<TextAsset>(resourcePath);
@@ -32,7 +29,7 @@ public static class StoryScript
     {
         var lines = new List<StoryLine>();
         var story = ScriptableObject.CreateInstance<StoryData>();
-        string title = null, subtitle = null, background = null;
+        string title = null, subtitle = null, background = null, effect = null, sound = null;
 
         foreach (string raw in script.Replace("\r", "").Split('\n'))
         {
@@ -47,6 +44,8 @@ public static class StoryScript
                 continue;
             }
             if (Directive(row, "[배경]", out value)) { background = value; continue; }
+            if (Directive(row, "[효과]", out value)) { effect = value; continue; }
+            if (Directive(row, "[소리]", out value)) { sound = value; continue; }
             string letter = null;
             bool guide = Directive(row, "[안내]", out value);
             if (guide || Directive(row, "[편지]", out letter))
@@ -56,9 +55,9 @@ public static class StoryScript
                 var card = new StoryLine(bar >= 0 ? body.Substring(0, bar).Trim() : (guide ? "플레이 안내" : "편지"), bar >= 0 ? body.Substring(bar + 1).Trim() : body)
                 {
                     style = guide ? "guide" : "letter",
-                    sceneTitle = title, sceneSubtitle = subtitle, background = background,
+                    sceneTitle = title, sceneSubtitle = subtitle, background = background, effect = effect, sound = sound,
                 };
-                title = subtitle = background = null;
+                title = subtitle = background = effect = sound = null;
                 lines.Add(card);
                 continue;
             }
@@ -72,7 +71,9 @@ public static class StoryScript
             line.sceneTitle = title;
             line.sceneSubtitle = subtitle;
             line.background = background;
-            title = subtitle = background = null;
+            line.effect = effect;
+            line.sound = sound;
+            title = subtitle = background = effect = sound = null;
             lines.Add(line);
         }
 

@@ -127,4 +127,13 @@ save('defeat', mix(*[(i * 0.22, bell(f, 0.9, 3.5, ((1, 1), (2.0, 0.3)))) for i, 
 # UI
 save('ui_click', mix((0, lowpass(highpass(noise(0.03), 800), 4000) * env(int(SR * 0.03), 0.0005, 120)), (0, bell(1800, 0.06, 60) * 0.5)), 0.5)
 save('ui_open', lowpass(highpass(noise(0.25), 700), 5000) * env(int(SR * 0.25), 0.03, 12) * np.sin(np.linspace(0, np.pi, int(SR * 0.25))), 0.5)
+# 프롤로그: 몽쇄(쇠사슬 자물쇠) 당기기 — 쇠 고리 부딪힘 여러 번 + 묵직한 철컥
+links = [(i * 0.055 + rng.random() * 0.02, mix((0, bell(2200 + rng.random() * 1800, 0.18, 26, ((1, 1), (2.3, 0.5), (4.1, 0.3)))),
+                                               (0, highpass(noise(0.02), 2500) * env(int(SR * 0.02), 0.0005, 160) * 0.8)) * (1 - i / 12))
+         for i in range(10)]
+save('chain', mix(*links, (0.58, lowpass(noise(0.18), 900) * env(int(SR * 0.18), 0.002, 22)), (0.58, bell(330, 0.5, 9, ((1, 1), (2.7, 0.4))) * 0.7)), 0.75)
+# 프롤로그: 이불 부스럭 — 부드러운 저역 잡음을 천천히 두세 번 쓸어 넘김
+rustle = lowpass(highpass(noise(1.3), 250), 2200)
+shape = np.clip(np.sin(np.linspace(0, np.pi * 3, len(rustle))) * 0.7 + 0.3, 0, 1) ** 2 * np.sin(np.linspace(0, np.pi, len(rustle)))
+save('blanket', rustle * shape, 0.45)
 print('완료 ->', OUT)

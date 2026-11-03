@@ -20,6 +20,12 @@ public class StoryLine
     public string portrait;
     [Tooltip("보여 주는 방식: 비우면 대화창, guide = 플레이 안내 카드, letter = 편지지")]
     public string style;
+    [Tooltip("연출(쉼표로 여러 개): 눈뜨기(눈꺼풀·흐림·햇살), 흔들림, 암전(검은 화면에 대사), 초상화없음")]
+    public string effect;
+    [Tooltip("이 대사가 나올 때 한 번 틀 효과음(Resources/Sfx/이름)")]
+    public string sound;
+
+    public bool Has(string fx) => !string.IsNullOrEmpty(effect) && System.Array.IndexOf(effect.Replace(" ", "").Split(','), fx) >= 0;
 
     public StoryLine() { }
 

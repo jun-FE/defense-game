@@ -21,8 +21,6 @@ public class MapView : MonoBehaviour
 
     public Color ground = new Color(0.12f, 0.12f, 0.22f);
     public Color lane = new Color(0.32f, 0.27f, 0.42f);
-    public Color buildTile = new Color(0.25f, 0.42f, 0.45f, 0.35f);
-    public Color buildTileOnArt = new Color(0.75f, 1f, 0.85f, 0.22f);
     public Color core = new Color(1f, 0.78f, 0.4f);
     public Color coreOnArt = new Color(0.75f, 0.55f, 1f, 0.55f);
     public Color spawn = new Color(0.65f, 0.4f, 0.95f);
@@ -30,6 +28,8 @@ public class MapView : MonoBehaviour
     public Transform CoreTransform { get; private set; }
 
     readonly List<SpriteRenderer> buildMarkers = new List<SpriteRenderer>();
+    readonly List<Vector2Int> buildTiles = new List<Vector2Int>();
+    static readonly Color BuildFill = new Color(0.25f, 0.85f, 0.85f, 0.22f), BuildLine = new Color(0.45f, 1f, 0.95f, 0.55f);
     bool hasArt;
     bool grid;
     SpriteRenderer coreGlow;
@@ -58,7 +58,7 @@ public class MapView : MonoBehaviour
         map = controller.Content.Stage.Map;
         MapAsset asset = controller.Content.StageAsset != null ? controller.Content.StageAsset.map : null;
         grid = DreamRun.Active;
-        if (grid) theme = MapTheme.Load();
+        if (grid) theme = MapTheme.Load(DreamRun.ThemeName);
         hasArt = !grid && asset != null && asset.background != null;
         FitCamera();
 
@@ -79,14 +79,16 @@ public class MapView : MonoBehaviour
             Create("Ground", square, ground, center, size, -20);
         }
 
+        // 설치 가능 구역(프롤로그 화면 구성 기획 ⑥): 청록색 반투명 칸 + 칸별 외곽선. 도구 슬롯을 고른 동안만 보인다.
         foreach (Vector2Int tile in BuildableTiles(map))
         {
-            SpriteRenderer marker = Themed
-                ? Create("BuildTile", theme.BuildMark, new Color(1f, 0.84f, 0.5f, 0.8f), new Vector2(tile.x, tile.y), Vector2.one * 0.94f, -11).GetComponent<SpriteRenderer>()
-                : Create("BuildTile", square, hasArt ? buildTileOnArt : buildTile, new Vector2(tile.x, tile.y), Vector2.one * (hasArt ? 0.8f : 0.9f), -15)
-                    .GetComponent<SpriteRenderer>();
-            marker.enabled = !hasArt && !grid;
-            buildMarkers.Add(marker);
+            SpriteRenderer outline = Create("BuildTileLine", square, BuildLine, new Vector2(tile.x, tile.y), Vector2.one * 0.96f, -12).GetComponent<SpriteRenderer>();
+            SpriteRenderer fill = Create("BuildTile", square, BuildFill, new Vector2(tile.x, tile.y), Vector2.one * 0.84f, -11).GetComponent<SpriteRenderer>();
+            outline.enabled = fill.enabled = false;
+            buildMarkers.Add(outline);
+            buildMarkers.Add(fill);
+            buildTiles.Add(tile);
+            buildTiles.Add(tile);
         }
 
         if (Themed)
@@ -154,6 +156,15 @@ public class MapView : MonoBehaviour
         var backdropRenderer = backdrop.GetComponent<SpriteRenderer>();
         backdropRenderer.drawMode = SpriteDrawMode.Tiled;
         backdropRenderer.size = new Vector2(g.Width + margin * 2, g.Height + margin * 2);
+        if (theme.Backdrop != null)
+        {
+            // 꿈속 방: 방 그림 한 장을 맵이 그림의 바닥 자리(MapTheme.BackdropMapArea)에 맞게 깐다
+            Texture2D room = theme.Backdrop;
+            Rect b = MapTheme.BackdropCells(g.Width, g.Height);
+            var roomSprite = Sprite.Create(room, new Rect(0, 0, room.width, room.height), new Vector2(0.5f, 0.5f), room.width);
+            Create("RoomBackdrop", roomSprite, Color.white, new Vector2(b.center.x - 0.5f, g.Height - 0.5f - b.center.y),
+                new Vector2(b.width, b.height * room.width / room.height), -22);
+        }
 
         // 1) 바닥: 돌길(밝힌 칸)·잔디(안 연 칸)·꽃밭(막힌 암흑)
         for (int y = 0; y < g.Height; y++)
@@ -327,11 +338,11 @@ public class MapView : MonoBehaviour
         }
     }
 
-    /// <summary>타워를 고르는 동안 지을 수 있는 칸을 보여 준다(그림 맵 전용, 임시 도형 맵은 항상 보임).</summary>
-    public void ShowBuildTiles(bool show)
+    /// <summary>도구 슬롯을 고른 동안 지을 수 있는 칸을 보여 준다. available이 false인 칸(이미 타워가 있는 칸)은 숨긴다.</summary>
+    public void ShowBuildTiles(bool show, System.Func<Vector2Int, bool> available = null)
     {
-        if (!hasArt && !grid) return;
-        foreach (SpriteRenderer marker in buildMarkers) marker.enabled = show;
+        for (int i = 0; i < buildMarkers.Count; i++)
+            buildMarkers[i].enabled = show && (available == null || available(buildTiles[i]));
     }
 
     /// <summary>칸 맵 그리기. 월드 좌표: 칸 (x, y) → (x, Height - 1 - y).</summary>

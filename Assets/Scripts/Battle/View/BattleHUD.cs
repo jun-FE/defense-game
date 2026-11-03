@@ -7,8 +7,8 @@ using UnityEngine;
 /// - 왼쪽 위: 스테이지 이름, 웨이브, (준비 중) 바로 시작 / 가운데 위: 악몽 침식도
 /// - 오른쪽 위: 꿈의 불빛 HP, 몽결정(전투 재화), 일시정지, 배속
 /// - 왼쪽 아래: 미니맵(클릭·드래그로 그 자리로 화면 이동) / 오른쪽 아래: 도하(스킬 자리)
-/// - 건설: 지을 수 있는 칸을 클릭하면 그 칸 둘레에 타워 5종(병정인형·재봉틀·스탠드·오르골·스노우볼)이
-///   동그란 버튼으로 펼쳐진다(건설 고리). 버튼을 누르거나 1~6으로 짓는다. 다른 곳 클릭·우클릭·Esc로 닫는다.
+/// - 건설(프롤로그 화면 구성 기획 04): 왼쪽 아래 도구 슬롯에서 도구를 고르면(클릭·1~6) 지을 수 있는 칸이 청록색으로 보이고,
+///   마우스를 올린 칸에 녹색 미리보기가 뜬다. 칸을 누르면 짓는다. 우클릭·Esc·같은 슬롯 다시 누르기로 선택을 푼다.
 /// 아이콘은 시안에서 잘라 낸 임시 그림(Assets/Art/Battle/UI/mock_*)이다. 정식 UI 아트가 오면 교체한다.
 /// 입력은 명령으로만 전달한다: 건설 / 강화 / 웨이브 시작 / 속도 / 일시정지 / 귀환.
 /// 조작: 타워 클릭 → 정보·강화. Space 웨이브 바로 시작. Esc 일시정지.
@@ -68,20 +68,24 @@ public class BattleHUD : MonoBehaviour
     float H => UIKit.Height / HudScale;
 
     const float PanelWidth = 380f;
-    /// <summary>건설 고리: 버튼 지름, 고리 반지름(칸 중심에서 버튼 중심까지), 펼쳐지는 시간(초).</summary>
-    const float RingButton = 136f, RingRadius = 158f, RingOpenTime = 0.16f;
+    /// <summary>도구 슬롯 한 칸 크기(HUD 가상 좌표)와 간격.</summary>
+    const float SlotSize = 128f, SlotGap = 12f;
     /// <summary>미니맵이 들어갈 최대 크기(HUD 가상 좌표).</summary>
     const float MiniMaxW = 320f, MiniMaxH = 220f;
 
     BattleSession Session => controller.Session;
 
+    /// <summary>true면 준비 시간 카운트다운 대신 오른쪽 아래 "전투 시작" 버튼으로 웨이브를 부른다(프롤로그 튜토리얼).</summary>
+    public bool ManualStart { get; set; }
+    /// <summary>지금 고른 도구 슬롯(-1 = 없음). 튜토리얼 안내가 읽는다.</summary>
+    public int SelectedSlot => selectedSlot;
+
     UISkin skin;
     TowerDef[] slotTowers;
     TowerState selectedTower;
-    bool ringOpen;
-    Vector2Int ringTile;
-    float ringOpenedAt;
-    int ringHover = -1;
+    /// <summary>고른 도구 슬롯(-1 = 없음).</summary>
+    int selectedSlot = -1;
+    int slotHover = -1;
     Rect miniRect;
     bool miniDragging;
     Texture2D miniGrid;
@@ -136,12 +140,13 @@ public class BattleHUD : MonoBehaviour
         DrawStagePlate();
         DrawErosion();
         DrawStatus();
-        if (ringOpen && (overlay || !RingStillValid())) ringOpen = false;
+        if (overlay) selectedSlot = -1;
         DrawMinimap();
         DrawDoha();
         if (selectedTower != null) DrawTowerPanel();
-        if (ringOpen) DrawBuildRing(virtualMouse);
-        else ringHover = -1;
+        DrawSlotBar(virtualMouse);
+        if (ManualStart && Session.Phase == BattlePhase.Prepare) DrawStartButton();
+        if (selectedSlot >= 0 && hoverOnMap) DrawPlacementPreview();
         DrawMessage();
         GUI.enabled = true;
 
@@ -191,7 +196,7 @@ public class BattleHUD : MonoBehaviour
         string remaining = Session.Phase == BattlePhase.Combat ? $"   ·   남은 적 {Session.AliveCount + Session.RemainingSpawns}" : "";
         GUI.Label(wave, $"웨이브 {Session.WaveIndex + 1} / {Session.Stage.Waves.Count}{remaining}", skin.Text(22, UISkin.Light, TextAnchor.MiddleCenter));
 
-        if (Session.Phase == BattlePhase.Prepare)
+        if (Session.Phase == BattlePhase.Prepare && !ManualStart)
         {
             Rect start = Ui(new Rect(60, 148, 300, 56));
             if (UIKit.ClickButton(start, $"바로 시작 [Space] · {Mathf.CeilToInt((float)Session.PrepareRemaining)}초", skin.Button(22))) Session.StartWaveNow();
@@ -292,7 +297,8 @@ public class BattleHUD : MonoBehaviour
         float mw = MiniMaxW, mh = mw / aspect;
         if (mh > MiniMaxH) { mh = MiniMaxH; mw = mh * aspect; }
         const float pad = 18f;
-        Rect back = Ui(new Rect(20, H - 20 - mh - pad * 2, mw + pad * 2, mh + pad * 2));
+        // 왼쪽 아래 도구 슬롯 줄 바로 위
+        Rect back = Ui(new Rect(20, H - 24 - SlotSize - 16 - mh - pad * 2, mw + pad * 2, mh + pad * 2));
         skin.Frame(back, "ws_card_info"); // 황동 모서리 양피지 틀
         miniRect = new Rect(back.x + pad, back.y + pad, mw, mh);
 
@@ -444,149 +450,123 @@ public class BattleHUD : MonoBehaviour
         return false;
     }
 
-    bool RingStillValid() => Session.Phase != BattlePhase.Ended && IsBuildSpot(ringTile.x, ringTile.y);
-
-    void OpenRing(Vector2Int tile)
-    {
-        ringOpen = true;
-        SoundFx.Play("ui_open", 0.6f);
-        ringTile = tile;
-        ringOpenedAt = Time.unscaledTime;
-        selectedTower = null;
-    }
-
     Vector2 WorldToHud(Vector3 world)
     {
-        Vector3 s = worldCamera.WorldToScreenPoint(world);
-        return new Vector2(s.x, Screen.height - s.y) / (UIKit.Scale * HudScale);
+        Vector3 sc = worldCamera.WorldToScreenPoint(world);
+        return new Vector2(sc.x, Screen.height - sc.y) / (UIKit.Scale * HudScale);
     }
 
-    /// <summary>고리 중심(칸 위치, 화면 밖으로 버튼이 나가지 않게 안쪽으로 당김)과 i번째 버튼 중심.</summary>
-    Vector2 RingCenter()
-    {
-        Vector2 c = WorldToHud(new Vector3(ringTile.x, ringTile.y, 0f));
-        float m = RingRadius + RingButton / 2f + 8f;
-        return new Vector2(Mathf.Clamp(c.x, m, W - m), Mathf.Clamp(c.y, m, H - m));
-    }
+    /// <summary>i번째 도구 슬롯 자리(왼쪽 아래 한 줄).</summary>
+    Rect SlotRect(int i) => new Rect(24 + i * (SlotSize + SlotGap), H - 24 - SlotSize, SlotSize, SlotSize);
 
-    Vector2 RingSlotCenter(Vector2 center, int i, float open)
+    /// <summary>왼쪽 아래 도구 슬롯 줄: 도구 그림, 비용, 단축키 번호. 고른 슬롯은 금색 테두리, 잠긴 도구는 자물쇠.</summary>
+    void DrawSlotBar(Vector2 virtualMouse)
     {
-        float angle = (-90f + i * 360f / Slots.Length) * Mathf.Deg2Rad; // 12시부터 시계 방향
-        return center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (RingRadius * open);
-    }
-
-    float RingOpen(int i)
-    {
-        // 버튼마다 살짝 늦게, 끝에서 조금 튕기듯(동글동글 팝업)
-        float t = Mathf.Clamp01((Time.unscaledTime - ringOpenedAt - i * 0.025f) / RingOpenTime);
-        float back = 1.70158f;
-        return 1f + (back + 1f) * Mathf.Pow(t - 1f, 3f) + back * Mathf.Pow(t - 1f, 2f); // easeOutBack
-    }
-
-    int RingButtonAt(Vector2 virtualMouse)
-    {
-        if (!ringOpen) return -1;
-        Vector2 center = RingCenter();
-        for (int i = 0; i < Slots.Length; i++)
-            if ((virtualMouse - RingSlotCenter(center, i, 1f)).sqrMagnitude <= RingButton * RingButton / 4f) return i;
-        return -1;
-    }
-
-    void DrawBuildRing(Vector2 virtualMouse)
-    {
-        Vector2 center = RingCenter();
-        float full = RingRadius * 2f + RingButton;
-        Ui(new Rect(center.x - full / 2f, center.y - full / 2f, full, full));
-        ringHover = RingButtonAt(virtualMouse);
-
+        slotHover = -1;
         Color old = GUI.color;
-        // 고리 바탕(옅은 원)과 가운데 칸 표시
-        float baseOpen = Mathf.Clamp01(RingOpen(0));
-        float ringSize = (RingRadius * 2f + RingButton * 0.55f) * baseOpen;
-        DrawSprite(new Rect(center.x - ringSize / 2f, center.y - ringSize / 2f, ringSize, ringSize), circle, new Color(0.12f, 0.08f, 0.05f, 0.45f));
-
         for (int i = 0; i < Slots.Length; i++)
         {
             Slot slot = Slots[i];
             TowerDef tower = slotTowers[i];
-            bool fits = SpotFits(tower, ringTile.x, ringTile.y);
-            bool affordable = fits && Session.Coin >= tower.BuildCost;
-            bool hover = ringHover == i;
+            Rect r = Ui(SlotRect(i));
+            bool locked = tower == null;
+            bool affordable = !locked && Session.Coin >= tower.BuildCost;
+            bool on = selectedSlot == i;
+            if (r.Contains(virtualMouse)) slotHover = i;
 
-            float open = RingOpen(i);
-            float d = RingButton * Mathf.Max(0f, open) * (hover && fits ? 1.08f : 1f);
-            Vector2 c = RingSlotCenter(center, i, open);
-            var r = new Rect(c.x - d / 2f, c.y - d / 2f, d, d);
-
-            // 황동 테두리 나무 단추(ws_slot) 위에 타워 아이콘. 못 지으면 어둡게, 재화가 모자라면 붉게.
-            if (hover && fits)
+            if (on)
             {
-                float glow = d * 1.35f;
-                DrawSprite(new Rect(c.x - glow / 2f, c.y - glow / 2f, glow, glow), circle, new Color(1f, 0.75f, 0.4f, 0.3f));
+                // 고른 슬롯: 은은한 금빛 후광
+                float g = r.width * 1.25f;
+                DrawSprite(new Rect(r.center.x - g / 2f, r.center.y - g / 2f, g, g), circle, new Color(1f, 0.8f, 0.4f, 0.35f));
             }
-            GUI.color = !fits ? new Color(0.45f, 0.42f, 0.42f, 0.95f) : affordable ? Color.white : new Color(1f, 0.7f, 0.65f, 1f);
-            if (skin.Has("ws_slot")) skin.Icon(r, "ws_slot");
-            else DrawSprite(r, circle, new Color(0.11f, 0.09f, 0.22f, 0.97f));
+            GUI.color = locked ? new Color(0.55f, 0.52f, 0.5f, 1f) : Color.white;
+            skin.Frame(r, on ? "ws_card_on" : "ws_card");
+            GUI.color = locked ? new Color(1f, 1f, 1f, 0.8f) : affordable ? Color.white : new Color(1f, 0.7f, 0.65f, 0.85f);
+            Texture2D art = SlotArt(locked && !TowerUnlocks.IsUnlocked(slot.Id) ? "Mastery/mi_lock" : $"Codex/Entries/{slot.Id}_1");
+            Rect icon = locked ? new Rect(r.center.x - 28, r.y + 20, 56, 56) : new Rect(r.x + 10, r.y + 4, r.width - 20, r.height - 36);
+            if (art != null) GUI.DrawTexture(icon, art, ScaleMode.ScaleToFit);
+            else skin.Icon(icon, slot.Icon);
             GUI.color = old;
 
-            // 도구 그림(도감과 같은 실제 그림)을 단추에 꽉 차게. 잠긴 도구는 물음표.
-            bool locked = tower == null && !TowerUnlocks.IsUnlocked(slot.Id);
-            GUI.color = !fits ? new Color(0.6f, 0.6f, 0.7f, 0.45f) : affordable ? Color.white : new Color(1f, 1f, 1f, 0.55f);
-            float icon = d * 0.86f;
-            Texture2D art = locked ? SlotArt("Mastery/mi_lock") : SlotArt($"Codex/Entries/{slot.Id}_1");
-            var iconRect = new Rect(c.x - icon / 2f, c.y - icon / 2f - d * 0.1f, icon, icon);
-            if (locked) iconRect = new Rect(c.x - icon * 0.25f, c.y - icon * 0.3f - d * 0.06f, icon * 0.5f, icon * 0.5f);
-            if (art != null) GUI.DrawTexture(iconRect, art, ScaleMode.ScaleToFit);
-            else skin.Icon(iconRect, slot.Icon);
-            GUI.color = old;
+            string cost = locked ? "잠김" : tower.BuildCost.ToString();
+            Color costColor = locked ? UISkin.InkMuted : affordable ? UISkin.Ink : new Color(0.75f, 0.2f, 0.2f);
+            GUI.Label(new Rect(r.x, r.yMax - 34, r.width, 28), cost, skin.Text(20, costColor, TextAnchor.MiddleCenter, true));
+            GUI.Label(new Rect(r.x + 8, r.y + 6, 24, 24), (i + 1).ToString(), skin.Text(15, UISkin.Brown, TextAnchor.MiddleCenter, true));
 
-            if (open > 0.6f)
-            {
-                string cost = tower == null ? (locked ? "잠김" : "준비 중") : fits ? tower.BuildCost.ToString() : "불가";
-                Color costColor = !fits ? UISkin.Muted : affordable ? UISkin.Light : new Color(1f, 0.55f, 0.55f);
-                UIKit.ShadowLabel(new Rect(c.x - d / 2f, c.y + d * 0.2f, d, 30), cost, skin.Text(tower != null && fits ? 21 : 16, costColor, TextAnchor.MiddleCenter, true));
-                UIKit.ShadowLabel(new Rect(c.x - d * 0.42f - 13, c.y - d * 0.42f - 13, 26, 26), (i + 1).ToString(), skin.Text(16, UISkin.Gold, TextAnchor.MiddleCenter, true));
-            }
+            if (UIKit.ClickButton(r, GUIContent.none, GUIStyle.none)) SelectSlot(i);
         }
         GUI.color = old;
-
-        if (ringHover >= 0) DrawRingTooltip(ringHover, center);
+        if (slotHover >= 0) DrawSlotTooltip(slotHover);
     }
 
-    void DrawRingTooltip(int index, Vector2 center)
+    void SelectSlot(int i)
+    {
+        if (selectedSlot == i) { selectedSlot = -1; return; }
+        TowerDef tower = slotTowers[i];
+        if (tower == null)
+        {
+            ShowMessage(TowerUnlocks.IsUnlocked(Slots[i].Id) ? $"{Slots[i].Name}는 아직 준비 중이에요" : "아직 잠긴 도구예요 · " + TowerUnlocks.UnlockHint(Slots[i].Id));
+            return;
+        }
+        selectedSlot = i;
+        selectedTower = null;
+        SoundFx.Play("ui_open", 0.6f);
+    }
+
+    /// <summary>슬롯 위 설명(이름·설명·비용). 슬롯 줄 바로 위에 띄운다.</summary>
+    void DrawSlotTooltip(int index)
     {
         Slot slot = Slots[index];
         TowerDef tower = slotTowers[index];
-        bool fits = SpotFits(tower, ringTile.x, ringTile.y);
-        // 고리 위쪽에 띄우되, 화면 위로 넘치면 아래쪽에
-        float top = center.y - RingRadius - RingButton / 2f - 118f;
-        if (top < 90f) top = center.y + RingRadius + RingButton / 2f + 12f;
-        var r = new Rect(Mathf.Clamp(center.x - 200f, 12f, W - 412f), top, 400, 106);
+        Rect s = SlotRect(index);
+        var r = new Rect(Mathf.Clamp(s.x, 12f, W - 412f), s.y - 118f, 400, 106);
         skin.Frame(r, "ws_card");
-        GUI.Label(new Rect(r.x + 24, r.y + 8, r.width - 48, 32), slot.Name, skin.Text(22, UISkin.Ink, TextAnchor.MiddleLeft, true));
-        GUI.Label(new Rect(r.x + 24, r.y + 38, r.width - 48, 30), slot.Description, skin.Text(16, UISkin.InkMuted, TextAnchor.MiddleLeft, false, true));
-        bool lockedTip = tower == null && !TowerUnlocks.IsUnlocked(slot.Id);
-        if (lockedTip)
+        if (tower == null && !TowerUnlocks.IsUnlocked(slot.Id))
         {
             GUI.Label(new Rect(r.x + 24, r.y + 8, r.width - 48, 32), "??? · 잠긴 도구", skin.Text(22, UISkin.Ink, TextAnchor.MiddleLeft, true));
             GUI.Label(new Rect(r.x + 24, r.y + 40, r.width - 48, 60), TowerUnlocks.UnlockHint(slot.Id), skin.Text(17, UISkin.Brown, TextAnchor.MiddleLeft, true, true));
             return;
         }
-        string cost = tower == null ? "아직 만들어지지 않은 타워예요"
-            : !fits ? "이 자리에는 지을 수 없어요"
-            : $"설치 비용: 몽결정 {tower.BuildCost}";
+        GUI.Label(new Rect(r.x + 24, r.y + 8, r.width - 48, 32), slot.Name, skin.Text(22, UISkin.Ink, TextAnchor.MiddleLeft, true));
+        GUI.Label(new Rect(r.x + 24, r.y + 38, r.width - 48, 30), slot.Description, skin.Text(16, UISkin.InkMuted, TextAnchor.MiddleLeft, false, true));
+        string cost = tower == null ? "아직 만들어지지 않은 타워예요" : $"설치 비용: 몽결정 {tower.BuildCost}";
         GUI.Label(new Rect(r.x + 24, r.y + 70, r.width - 48, 30), cost, skin.Text(17, UISkin.Brown, TextAnchor.MiddleLeft, true));
     }
 
-    void BuildFromRing(int index)
+    /// <summary>고른 도구를 마우스를 올린 칸에 녹색으로 미리 보여 준다(지을 수 없는 칸은 붉게).</summary>
+    void DrawPlacementPreview()
     {
-        Slot slot = Slots[index];
-        TowerDef tower = slotTowers[index];
-        if (tower == null) { ShowMessage(TowerUnlocks.IsUnlocked(slot.Id) ? $"{slot.Name}는 아직 준비 중이에요" : "아직 잠긴 도구예요 · " + TowerUnlocks.UnlockHint(slot.Id)); return; }
+        TowerDef tower = slotTowers[selectedSlot];
+        if (tower == null) return;
+        Texture2D art = SlotArt($"Codex/Entries/{Slots[selectedSlot].Id}_1");
+        if (art == null) return;
+        Vector2 a = WorldToHud(new Vector3(hoverTile.x - 0.5f, hoverTile.y + 0.5f, 0f));
+        Vector2 b = WorldToHud(new Vector3(hoverTile.x + 0.5f, hoverTile.y - 0.5f, 0f));
+        float size = Mathf.Abs(b.x - a.x);
+        var r = new Rect(a.x - size * 0.1f, a.y - size * 0.45f, size * 1.2f, size * 1.45f);
+        bool ok = SpotFits(tower, hoverTile.x, hoverTile.y);
+        Color old = GUI.color;
+        GUI.color = ok ? new Color(0.55f, 1f, 0.6f, 0.75f) : new Color(1f, 0.45f, 0.45f, 0.5f);
+        GUI.DrawTexture(r, art, ScaleMode.ScaleToFit);
+        GUI.color = old;
+    }
+
+    /// <summary>고른 도구를 그 칸에 짓는다. 못 지으면 사유를 띄운다. 도구 선택은 유지(연달아 짓기).</summary>
+    void BuildAt(Vector2Int tile)
+    {
+        TowerDef tower = slotTowers[selectedSlot];
+        if (tower == null) return;
         TowerState built;
-        CommandError error = Session.TryBuild(tower, ringTile.x, ringTile.y, out built);
-        if (error != CommandError.None) { ShowMessage(BattleText.Error(error, tower.BuildCost)); return; }
-        ringOpen = false;
+        CommandError error = Session.TryBuild(tower, tile.x, tile.y, out built);
+        if (error != CommandError.None) ShowMessage(BattleText.Error(error, tower.BuildCost));
+    }
+
+    /// <summary>오른쪽 아래 "전투 시작"(ManualStart): 누르기 전에는 웨이브를 진행하지 않는다.</summary>
+    void DrawStartButton()
+    {
+        Rect r = Ui(new Rect(W - 330, H - 250, 300, 84));
+        if (UIKit.ClickButton(r, "전투 시작", skin.Button(28))) Session.StartWaveNow();
     }
 
     readonly Dictionary<string, Texture2D> slotArt = new Dictionary<string, Texture2D>();
@@ -742,7 +722,7 @@ public class BattleHUD : MonoBehaviour
             if (e.keyCode == KeyCode.Escape)
             {
                 if (Session.Phase == BattlePhase.Ended) return;
-                if (ringOpen || selectedTower != null) ClearSelection();
+                if (selectedSlot >= 0 || selectedTower != null) ClearSelection();
                 else SetPauseMenu(!pauseMenu);
                 e.Use();
                 return;
@@ -751,10 +731,9 @@ public class BattleHUD : MonoBehaviour
             if (e.keyCode == KeyCode.Space) { Session.StartWaveNow(); e.Use(); }
             else if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha9)
             {
-                // 숫자 키: 건설 고리가 열려 있으면 그 칸에 바로 짓는다.
+                // 숫자 키: 그 도구 슬롯을 고른다(다시 누르면 풀림).
                 int index = e.keyCode - KeyCode.Alpha1;
-                if (ringOpen && index < Slots.Length) BuildFromRing(index);
-                else if (!ringOpen) ShowMessage("지을 칸을 먼저 클릭하세요");
+                if (index < Slots.Length) SelectSlot(index);
                 e.Use();
             }
             else if (Debug.isDebugBuild && e.keyCode == KeyCode.F1) { Session.DebugAddCoin(100); e.Use(); }
@@ -765,19 +744,6 @@ public class BattleHUD : MonoBehaviour
         // 클릭은 버튼을 뗄 때 처리한다. 누른 채 끌었으면 화면 이동(CameraZoom)이라 클릭으로 보지 않는다.
         if (overlay || e.type != EventType.MouseUp || CameraZoom.LastClickWasDrag) return;
 
-        if (ringOpen)
-        {
-            int button = RingButtonAt(virtualMouse);
-            if (e.button == 0 && button >= 0)
-            {
-                BuildFromRing(button);
-                e.Use();
-                return;
-            }
-            // 버튼 말고 다른 곳을 누르면 닫는다. 맵 위 왼쪽 클릭이면 그 자리 클릭(다른 칸·타워 선택)으로 이어서 처리.
-            ringOpen = false;
-            if (e.button == 1 || !hoverOnMap) { e.Use(); return; }
-        }
         if (!hoverOnMap) return;
 
         if (e.button == 1)
@@ -789,15 +755,15 @@ public class BattleHUD : MonoBehaviour
         if (e.button != 0) return;
 
         TowerState tower = Session.TowerAt(hoverTile.x, hoverTile.y);
-        if (tower != null) selectedTower = tower == selectedTower ? null : tower;
-        else if (IsBuildSpot(hoverTile.x, hoverTile.y)) OpenRing(hoverTile);
+        if (tower != null) { selectedTower = tower == selectedTower ? null : tower; selectedSlot = -1; }
+        else if (selectedSlot >= 0) BuildAt(hoverTile);
         else selectedTower = null;
         e.Use();
     }
 
     void ClearSelection()
     {
-        ringOpen = false;
+        selectedSlot = -1;
         selectedTower = null;
     }
 
@@ -833,25 +799,26 @@ public class BattleHUD : MonoBehaviour
         hoverTile = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
 
         bool active = Session.Phase != BattlePhase.Ended;
-        if (view != null && view.mapView != null) view.mapView.ShowBuildTiles(active && ringOpen);
+        bool placing = active && selectedSlot >= 0 && slotTowers != null && slotTowers[selectedSlot] != null;
+        // 설치 가능 구역(청록): 도구를 고른 동안, 이미 타워가 있는 칸은 빼고
+        if (view != null && view.mapView != null) view.mapView.ShowBuildTiles(placing, t => Session.TowerAt(t.x, t.y) == null);
 
-        // 건설 고리가 열린 칸은 초록, 고리가 닫혀 있을 때 지을 수 있는 칸에 마우스를 올리면 옅게 표시
-        bool hoverSpot = active && !ringOpen && hoverOnMap && IsBuildSpot(hoverTile.x, hoverTile.y);
-        tilePreview.enabled = active && (ringOpen || hoverSpot);
+        // 마우스를 올린 칸: 지을 수 있으면 녹색, 아니면 붉게(도구를 고른 동안만)
+        tilePreview.enabled = placing && hoverOnMap;
+        bool fits = placing && SpotFits(slotTowers[selectedSlot], hoverTile.x, hoverTile.y);
         if (tilePreview.enabled)
         {
-            Vector2Int tile = ringOpen ? ringTile : hoverTile;
-            tilePreview.transform.position = new Vector3(tile.x, tile.y, 0f);
+            tilePreview.transform.position = new Vector3(hoverTile.x, hoverTile.y, 0f);
             tilePreview.transform.localScale = Vector3.one * 0.95f;
-            tilePreview.color = ringOpen ? new Color(0.4f, 1f, 0.6f, 0.45f) : new Color(1f, 1f, 1f, 0.22f);
+            tilePreview.color = fits ? new Color(0.4f, 1f, 0.5f, 0.45f) : new Color(1f, 0.35f, 0.35f, 0.3f);
         }
 
         float range = 0f;
         Vector3 center = Vector3.zero;
-        if (ringOpen && ringHover >= 0 && slotTowers[ringHover] != null)
+        if (placing && hoverOnMap && fits)
         {
-            range = slotTowers[ringHover].Levels[0].Range;
-            center = new Vector3(ringTile.x, ringTile.y, 0f);
+            range = slotTowers[selectedSlot].Levels[0].Range;
+            center = new Vector3(hoverTile.x, hoverTile.y, 0f);
         }
         else if (selectedTower != null)
         {

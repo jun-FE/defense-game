@@ -12,6 +12,8 @@ using UnityEngine;
 /// - 초상화: Resources/Stories/Portraits/이름(없으면 "_표정" 뗀 이름). 이안은 왼쪽, 나머지는 오른쪽.
 ///   말하는 쪽은 밝게, 듣는 쪽은 어둡게. 그림이 없으면 자리 표시.
 /// - 시작·끝에 검은 화면으로 서서히 들어오고 나간다.
+/// - 연출([효과]): 눈뜨기 = 반쯤 뜬 눈 시점(위아래 눈꺼풀이 천천히 열렸다 깜빡, 흐릿함·햇살이 걷힘),
+///   흔들림 = 배경이 잠깐 흔들림, 암전 = 배경 대신 검은 화면, 초상화없음 = 화면 밖 목소리·삽화 장면. [소리]는 대사가 나올 때 한 번.
 /// </summary>
 public class StoryPlayer : MonoBehaviour
 {
@@ -41,6 +43,9 @@ public class StoryPlayer : MonoBehaviour
 
     readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>();
     Texture2D white;
+
+    float lineTime;             // 지금 대사가 나온 뒤 흐른 시간(연출용)
+    Texture2D eyelid;
 
     StoryLine Line => story.lines[index];
     bool LineComplete => shownChars >= Line.text.Length;
@@ -72,6 +77,7 @@ public class StoryPlayer : MonoBehaviour
         }
 
         backgroundBlend = Mathf.Min(1f, backgroundBlend + dt * 2f);
+        lineTime += dt;
         if (ShowingCard)
         {
             cardTime += dt;
@@ -91,8 +97,13 @@ public class StoryPlayer : MonoBehaviour
         float w = UIKit.Width;
         float h = UIKit.Height;
 
-        DrawBackground(previousBackground, 1f, w, h);
-        DrawBackground(background, backgroundBlend, w, h);
+        bool showLine = !ShowingCard;
+        Vector2 shake = showLine && Line.Has("흔들림") && lineTime < 0.6f
+            ? new Vector2(Mathf.Sin(lineTime * 90f), Mathf.Cos(lineTime * 70f)) * 14f * (1f - lineTime / 0.6f) : Vector2.zero;
+        DrawBackground(previousBackground, 1f, w, h, shake);
+        DrawBackground(background, backgroundBlend, w, h, shake);
+        if (showLine && Line.Has("눈뜨기")) DrawEyes(w, h);
+        if (showLine && Line.Has("암전")) DrawFill(new Rect(0f, 0f, w, h), Color.black);
         if (ShowingCard)
         {
             DrawCard(w, h);
@@ -103,7 +114,7 @@ public class StoryPlayer : MonoBehaviour
             else if (Line.style == "letter") DrawLetter(w, h);
             else
             {
-                DrawPortraits(w, h);
+                if (!Line.Has("초상화없음")) DrawPortraits(w, h);
                 DrawDialogue(w, h);
             }
         }
@@ -139,7 +150,9 @@ public class StoryPlayer : MonoBehaviour
     {
         index = i;
         shownChars = 0f;
+        lineTime = 0f;
         StoryLine line = Line;
+        if (!string.IsNullOrEmpty(line.sound)) SoundFx.Play(line.sound, 0.9f, 0f, 0f);
 
         if (!string.IsNullOrEmpty(line.background) && line.background != background)
         {
@@ -189,10 +202,11 @@ public class StoryPlayer : MonoBehaviour
 
     // ───────── 그리기 ─────────
 
-    void DrawBackground(string name, float alpha, float w, float h)
+    void DrawBackground(string name, float alpha, float w, float h, Vector2 shake)
     {
         if (string.IsNullOrEmpty(name) || alpha <= 0f) return;
-        var full = new Rect(0f, 0f, w, h);
+        // 흔들릴 때 가장자리가 비지 않게 살짝 크게
+        var full = shake == Vector2.zero ? new Rect(0f, 0f, w, h) : new Rect(-20f + shake.x, -20f + shake.y, w + 40f, h + 40f);
         Texture2D tex = Load(BackgroundDir + name);
         if (tex != null)
         {
@@ -204,6 +218,63 @@ public class StoryPlayer : MonoBehaviour
         Color c = story.background;
         DrawFill(full, new Color(c.r, c.g, c.b, alpha));
         if (showPlaceholders) Placeholder(new Rect(40f, 30f, 520f, 60f), $"배경: {name}", alpha);
+    }
+
+    /// <summary>
+    /// 반쯤 뜬 눈 시점(프롤로그 화면 구성 07): 배경을 몇 번 어긋나게 겹쳐 흐릿하게 하고 햇살을 덮은 뒤, 위아래 눈꺼풀(둥근 어둠)을 그린다.
+    /// 눈꺼풀은 천천히 열리다 한 번 깜빡이고 반쯤 뜬 채 머문다. 흐림·햇살은 눈이 뜨일수록 걷힌다.
+    /// </summary>
+    void DrawEyes(float w, float h)
+    {
+        float t = lineTime;
+        float open = t < 1.4f ? Mathf.SmoothStep(0f, 0.55f, t / 1.4f)
+                   : t < 1.75f ? Mathf.Lerp(0.55f, 0.12f, (t - 1.4f) / 0.35f)
+                   : Mathf.SmoothStep(0.12f, 0.72f, Mathf.Min(1f, (t - 1.75f) / 1.6f));
+        Texture2D bg = string.IsNullOrEmpty(background) ? null : Load(BackgroundDir + background);
+        float blur = 1f - open;
+        if (bg != null && blur > 0.05f)
+        {
+            float r = 18f * blur;
+            for (int k = 0; k < 6; k++)
+            {
+                float a = k * Mathf.PI / 3f;
+                GUI.color = new Color(1f, 1f, 1f, 0.22f * blur);
+                GUI.DrawTexture(new Rect(Mathf.Cos(a) * r, Mathf.Sin(a) * r, w, h), bg, ScaleMode.ScaleAndCrop);
+            }
+            GUI.color = Color.white;
+        }
+        DrawFill(new Rect(0f, 0f, w, h), new Color(1f, 0.86f, 0.62f, 0.28f * blur + 0.06f));
+        if (eyelid == null) eyelid = MakeEyelid();
+        // 눈꺼풀: 화면 높이의 반씩, 열린 만큼 위·아래로 물러난다. 가장자리는 둥글고 부드럽게.
+        float lid = h * 0.62f;
+        float gap = h * 0.5f * open;
+        Color dark = new Color(0.05f, 0.03f, 0.03f, 1f);
+        GUI.color = dark;
+        GUI.DrawTexture(new Rect(-w * 0.1f, h * 0.5f - gap - lid, w * 1.2f, lid), eyelid);
+        GUI.DrawTextureWithTexCoords(new Rect(-w * 0.1f, h * 0.5f + gap, w * 1.2f, lid), eyelid, new Rect(0f, 1f, 1f, -1f));
+        GUI.color = Color.white;
+        DrawFill(new Rect(0f, 0f, w, Mathf.Max(0f, h * 0.5f - gap - lid + 2f)), dark);
+        DrawFill(new Rect(0f, Mathf.Min(h, h * 0.5f + gap + lid - 2f), w, h), dark);
+    }
+
+    /// <summary>위 눈꺼풀 그림: 아래쪽 가장자리가 가운데로 볼록한 둥근 어둠(부드러운 가장자리). 아래 눈꺼풀은 뒤집어 쓴다.</summary>
+    static Texture2D MakeEyelid()
+    {
+        const int tw = 256, th = 128;
+        var t = new Texture2D(tw, th, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var px = new Color[tw * th];
+        for (int y = 0; y < th; y++)
+            for (int x = 0; x < tw; x++)
+            {
+                float u = x / (tw - 1f) * 2f - 1f;          // -1~1
+                float edge = 0.08f + 0.5f * u * u;          // 가장자리 높이(아래에서): 가운데가 가장 아래로 내려옴
+                float v = y / (th - 1f);                    // 0 = 텍스처 아래(Unity 텍스처 좌표)
+                float a = Mathf.Clamp01((v - edge) / 0.18f + 0.5f);
+                px[y * tw + x] = new Color(1f, 1f, 1f, a * a * (3f - 2f * a));
+            }
+        t.SetPixels(px);
+        t.Apply();
+        return t;
     }
 
     void DrawCard(float w, float h)
@@ -226,7 +297,7 @@ public class StoryPlayer : MonoBehaviour
     void DrawPortraits(float w, float h)
     {
         const float pw = 460f, ph = 620f;
-        float bottom = h - 330f;
+        float bottom = DreamUI.DialogRect(w, h).y + 40f; // 대사창 바로 위(아랫부분은 대사창 뒤로)
         DrawPortrait(leftPortrait, new Rect(150f, bottom - ph, pw, ph), activeSide < 0);
         DrawPortrait(rightPortrait, new Rect(w - 150f - pw, bottom - ph, pw, ph), activeSide > 0);
     }
@@ -253,23 +324,11 @@ public class StoryPlayer : MonoBehaviour
         }
     }
 
+    /// <summary>대사창(프롤로그 화면 구성 기획): 둥근 남색 패널에 크림색 "화자 | 대사" 왼쪽 정렬.</summary>
     void DrawDialogue(float w, float h)
     {
-        var panel = new Rect(80f, h - 360f, w - 160f, 290f);
-        UIKit.DrawPanel(panel);
-
-        if (!string.IsNullOrEmpty(Line.speaker))
-            GUI.Label(new Rect(panel.x + 30f, panel.y - 40f, 340f, 70f), Line.speaker, UIKit.Speaker);
-
         string text = Line.text.Substring(0, Mathf.FloorToInt(shownChars));
-        if (string.IsNullOrEmpty(Line.speaker)) text = $"<i>{text}</i>";
-        GUI.Label(new Rect(panel.x + 60f, panel.y + 60f, panel.width - 120f, panel.height - 100f), text, UIKit.Dialogue);
-
-        GUI.Label(new Rect(panel.xMax - 200f, panel.yMax - 50f, 120f, 40f), $"{index + 1} / {story.lines.Length}", UIKit.Small);
-        if (LineComplete && Mathf.FloorToInt(Time.time * 2f) % 2 == 0)
-            GUI.Label(new Rect(panel.xMax - 70f, panel.yMax - 55f, 40f, 40f), "▼", UIKit.Small);
-
-        GUI.Label(new Rect(0f, h - 55f, w, 40f), "클릭 또는 Space: 다음 대사", UIKit.Small);
+        DreamUI.Dialog(w, h, Line.speaker, text, LineComplete);
     }
 
     /// <summary>플레이 안내 카드: 화면 가운데 남색 판에 금색 제목.</summary>

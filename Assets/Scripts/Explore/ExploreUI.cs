@@ -11,6 +11,8 @@ using UnityEngine;
 /// 연출: 이안(랜턴을 든 전신 캐릭터, 4방향·걷기 2장)이 칸 사이를 통통 미끄러지듯 걷고, 랜턴 빛이 둘레 어둠을 밝힌다.
 ///       암흑을 밝히면 어둠이 먼지처럼 흩어져 사라지고, 은은한 빛과 꿈실 고리가 번지며 빛 알갱이가 떠오른다(화면 흔들림 없음).
 ///       결정이면 보라 폭발과 +값 글자. 막힌 암흑에 부딪히면 이안이 살짝 튕기고 가시 먼지가 튄다.
+/// 프롤로그(DreamRun.Prologue): 꿈속 방 테마(Themes/DreamRoom, 방 그림 위에 칸), 어린 이안 그림, 아래 띠·알림 글 대신 ExploreTutorial 안내.
+///   문 모드(DreamRun.DoorMode): 전투를 이긴 뒤. 출현 지점(몽쇄 걸린 문 아래 칸)에 소용돌이 대신 문 표시, 거기 닿으면 ReachedDoor.
 /// 조작: WASD·방향키 이동(한 번 누르면 한 칸, 누르고 있으면 잠깐 뒤부터 천천히 반복), 인접 칸 클릭,
 ///       휠 확대/축소, 마우스 드래그로 화면 이동, F 전체 보기, Esc 메뉴.
 /// </summary>
@@ -43,6 +45,12 @@ public class ExploreUI : MonoBehaviour
     public int Opened => opened;
     /// <summary>출현 지점까지 길이 이어졌는지.</summary>
     public bool Connected => connected;
+    /// <summary>이번 탐색에서 몽결정을 얻은 횟수(튜토리얼 "몽결정 획득" 알림이 읽음).</summary>
+    public int CrystalPickups { get; private set; }
+    /// <summary>true면 이동·메뉴 입력을 받지 않는다(튜토리얼 대사·연출 중).</summary>
+    public bool Locked { get; set; }
+    /// <summary>문 모드에서 이안이 문 칸에 닿았는지.</summary>
+    public bool ReachedDoor => DreamRun.DoorMode && map != null && map.IsSpawn(player.x, player.y) && moveT >= 1f;
 
     GridMap map;
     UISkin skin;
@@ -93,7 +101,7 @@ public class ExploreUI : MonoBehaviour
         string[] dirs = { "down", "up", "left", "right" };
         for (int d = 0; d < 4; d++)
             for (int f = 0; f < WalkFrames; f++)
-                ian[d * WalkFrames + f] = Resources.Load<Sprite>($"Characters/Ian/ian_{dirs[d]}_{f}");
+                ian[d * WalkFrames + f] = Resources.Load<Sprite>($"Characters/{(DreamRun.Prologue ? "IanChild" : "Ian")}/ian_{dirs[d]}_{f}");
         if (ian[0] == null) ian = null;
     }
 
@@ -114,6 +122,7 @@ public class ExploreUI : MonoBehaviour
         prevPlayer = player;
         connected = map.ShortestPath() != null;
         FitView();
+        if (DreamRun.DoorMode) player = new Vector2Int(map.GoalX, map.GoalY);
         if (Tutorial.Active) gameObject.AddComponent<ExploreTutorial>().explore = this; // 첫 수선 튜토리얼 안내
         else ShowToast("목표(파란 칸)에서 출발해요. 출현 지점(보라 칸)까지 암흑을 밝혀 길을 이어 주세요.", 5f);
     }
@@ -123,7 +132,7 @@ public class ExploreUI : MonoBehaviour
     void Update()
     {
         UpdateEffects(Time.unscaledDeltaTime);
-        if (map == null || menuOpen) return;
+        if (map == null || menuOpen || Locked) return;
         // 걷는 중(MoveSec 동안)에는 새 입력을 기억해 두었다가, 한 칸을 다 걸으면 이어서 간다(칸 사이에서 순간이동하거나 멈칫하지 않게).
         Vector2Int pressed = Vector2Int.zero;
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) pressed = new Vector2Int(0, -1);
@@ -176,6 +185,7 @@ public class ExploreUI : MonoBehaviour
             Reveal(x, y, before, value);
             if (value > 0)
             {
+                CrystalPickups++;
                 DreamRun.Collected += value;
                 ShowToast((before == CellType.CrystalLarge ? "큰 몽결정" : "몽결정") + $" +{value}", 1.4f);
             }
@@ -189,6 +199,27 @@ public class ExploreUI : MonoBehaviour
         moveT = 0f;
         SoundFx.Play("step", 0.6f, 0.12f, 0.08f);
         KeepPlayerInView();
+        if (DreamRun.Prologue) CollectNearby();
+    }
+
+    /// <summary>프롤로그(화면 구성 03 "몽결정에 가까이 가면 자동으로 수집"): 이안 바로 옆(상하좌우) 결정 칸은 걸어 들어가지 않아도 밝혀 얻는다.</summary>
+    void CollectNearby()
+    {
+        int[] dx = { 0, 1, 0, -1 }, dy = { -1, 0, 1, 0 };
+        for (int d = 0; d < 4; d++)
+        {
+            int x = player.x + dx[d], y = player.y + dy[d];
+            if (!map.InBounds(x, y)) continue;
+            CellType type = map.Get(x, y);
+            if (type != CellType.CrystalSmall && type != CellType.CrystalLarge) continue;
+            int value = map.OpenCell(x, y);
+            if (value <= 0) continue;
+            opened++;
+            CrystalPickups++;
+            DreamRun.Collected += value;
+            Reveal(x, y, type, value);
+        }
+        connected = map.ShortestPath() != null;
     }
 
     void OnDestroy()
@@ -376,7 +407,7 @@ public class ExploreUI : MonoBehaviour
 
     void StartBattle()
     {
-        if (!connected) return;
+        if (!connected || DreamRun.DoorMode) return;
         SceneFlow.FinishExploration();
     }
 
@@ -418,7 +449,7 @@ public class ExploreUI : MonoBehaviour
         Vector2 mouse = e.mousePosition / UIKit.Scale;
         UIKit.Begin();
         Fill(new Rect(0, 0, UIKit.Width, UIKit.Height), ColBack);
-        if (!menuOpen) HandleMouse(e, mouse);
+        if (!menuOpen && !Locked) HandleMouse(e, mouse);
         if (e.type == EventType.Repaint)
         {
             DrawMap();
@@ -426,7 +457,7 @@ public class ExploreUI : MonoBehaviour
         }
         DrawHud();
         if (menuOpen) DrawMenu();
-        HandleKeys(e);
+        if (!Locked) HandleKeys(e);
         UIKit.End();
     }
 
@@ -494,7 +525,18 @@ public class ExploreUI : MonoBehaviour
     void DrawThemedCells(Vector2 shift, Rect area)
     {
         Color old = GUI.color;
+        // 꿈속 방: 방 그림 한 장을 맵 둘레에 깔고 옅은 어둠만 덮는다
+        if (theme.Backdrop != null)
+        {
+            Rect b = MapTheme.BackdropCells(map.Width, map.Height);
+            Vector2 o0 = origin + shift;
+            GUI.color = Color.white;
+            GUI.DrawTexture(new Rect(o0.x + b.x * cell, o0.y + b.y * cell, b.width * cell, b.height * cell), theme.Backdrop);
+            GUI.color = new Color(MapTheme.FogColor.r, MapTheme.FogColor.g, MapTheme.FogColor.b, 0.45f);
+            GUI.DrawTexture(new Rect(0, 0, area.width, area.height), Texture2D.whiteTexture);
+        }
         // 맵 바깥(화면 전체)에 어두운 꽃밭. 칸 좌표와 이어지게 텍스처 좌표를 맞춘다(꽃밭 한 장 = 8칸).
+        else
         {
             Vector2 o0 = origin + shift;
             float cx0 = -o0.x / cell, cx1 = (area.width - o0.x) / cell;
@@ -614,7 +656,13 @@ public class ExploreUI : MonoBehaviour
                 }
                 else if (type == CellType.CrystalSmall) DrawProp(r, theme.CrystalSmall, 0.6f, cell * 0.04f * Mathf.Sin(t * 2f + x + y));
                 else if (type == CellType.CrystalLarge) DrawProp(r, theme.CrystalLarge, 0.85f, cell * 0.04f * Mathf.Sin(t * 2f + x + y));
-                if (map.IsSpawn(x, y)) DrawProp(r, theme.SpawnRift, 1.1f);
+                if (map.IsSpawn(x, y) && DreamRun.DoorMode)
+                {
+                    // 문 모드: 소용돌이 대신 문 앞을 가리키는 보랏빛(몽쇄 빛)
+                    float pulse = 0.75f + 0.25f * Mathf.Sin(t * 3f);
+                    if (theme.FxGlow != null) DrawSprite(Shrink(r, -0.5f), theme.FxGlow, new Color(0.8f, 0.55f, 1f, 0.55f * pulse));
+                }
+                else if (map.IsSpawn(x, y)) DrawProp(r, theme.SpawnRift, 1.1f);
                 if (map.IsGoal(x, y)) DrawProp(r, theme.CoreFlower, 0.85f);
             }
     }
@@ -625,7 +673,7 @@ public class ExploreUI : MonoBehaviour
         GUI.BeginClip(area);
         Vector2 shift = -area.position;
         float px = 1f / Mathf.Max(0.01f, UIKit.Scale);
-        if (theme == null) theme = MapTheme.Load();
+        if (theme == null) theme = MapTheme.Load(DreamRun.ThemeName);
         bool themed = theme.Valid;
         if (themed) DrawThemedCells(shift, area);
 
@@ -675,16 +723,21 @@ public class ExploreUI : MonoBehaviour
     {
         float w = UIKit.Width, h = UIKit.Height;
         // 위·아래 얇은 띠만 쓰고 나머지는 전부 맵(화면을 최대한 안 가리게)
-        var top = new Rect(8, 8, 520, 60);
-        skin.Frame(top, "panel_indigo");
-        string title = string.IsNullOrEmpty(map.Name) ? map.Id : map.Name;
-        GUI.Label(new Rect(top.x + 18, top.y, top.width - 30, top.height), "꿈 탐색 · " + title + (DreamRun.TestMode ? "  <size=14>(테스트)</size>" : ""), skin.Text(22, UISkin.Light, TextAnchor.MiddleLeft, true));
+        if (!DreamRun.Prologue)
+        {
+            var top = new Rect(8, 8, 520, 60);
+            skin.Frame(top, "panel_indigo");
+            string title = string.IsNullOrEmpty(map.Name) ? map.Id : map.Name;
+            GUI.Label(new Rect(top.x + 18, top.y, top.width - 30, top.height), "꿈 탐색 · " + title + (DreamRun.TestMode ? "  <size=14>(테스트)</size>" : ""), skin.Text(22, UISkin.Light, TextAnchor.MiddleLeft, true));
+        }
 
-        var coin = new Rect(w - 268, 8, 260, 60);
+        var coin = DreamRun.Prologue ? new Rect(24, 24, 200, 60) : new Rect(w - 268, 8, 260, 60);
         skin.Frame(coin, "panel_indigo");
         skin.Icon(new Rect(coin.x + 12, coin.y + 10, 32, 40), "mock_icon_crystal");
         GUI.Label(new Rect(coin.x + 50, coin.y, 110, coin.height), DreamRun.Collected.ToString(), skin.Text(28, UISkin.Gold, TextAnchor.MiddleLeft, true));
-        GUI.Label(new Rect(coin.x + 120, coin.y, 128, coin.height), $"밝힌 칸 {opened}", skin.Text(15, UISkin.Muted, TextAnchor.MiddleRight));
+        if (!DreamRun.Prologue) GUI.Label(new Rect(coin.x + 120, coin.y, 128, coin.height), $"밝힌 칸 {opened}", skin.Text(15, UISkin.Muted, TextAnchor.MiddleRight));
+
+        if (DreamRun.Prologue) return; // 프롤로그는 위 몽결정만, 안내는 ExploreTutorial 툴팁
 
         var bottom = new Rect(w / 2f - 480f, h - 62, 960, 54);
         skin.Frame(bottom, "panel_indigo");
@@ -774,6 +827,7 @@ public class ExploreUI : MonoBehaviour
 
     void ShowToast(string text, float seconds)
     {
+        if (DreamRun.Prologue) return; // 프롤로그 알림은 ExploreTutorial이 그린다
         toast = text;
         toastUntil = Time.unscaledTime + seconds;
     }

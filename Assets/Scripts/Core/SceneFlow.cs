@@ -44,19 +44,11 @@ public static class SceneFlow
     enum AfterStory { Stage, Tutorial, Main }
     static AfterStory afterStory;
 
-    /// <summary>새로하기: 프롤로그 대본(Resources/Stories/prologue.txt) → 첫 수선 튜토리얼 한 판. 대본이 없으면 바로 튜토리얼.</summary>
-    public static void StartPrologue()
-    {
-        StoryData prologue = StoryScript.LoadPrologue();
-        if (prologue == null)
-        {
-            StartTutorial();
-            return;
-        }
-        PendingStory = prologue;
-        afterStory = AfterStory.Tutorial;
-        Load(StoryScene);
-    }
+    /// <summary>
+    /// 새로하기 = 프롤로그(ArtSource/Prologue/프롤로그_화면구성.xlsx): 꿈속 방 탐색(검은 화면 "또 이 꿈인가"부터) → 전투 →
+    /// 다시 방(문 모드) → 몽쇄 걸린 문 → 깨어나는 장면(Stories/prologue_wake) → 수선소. 대사·안내는 ExploreTutorial·BattleTutorial.
+    /// </summary>
+    public static void StartPrologue() => StartTutorial();
 
     public static void FinishStory()
     {
@@ -68,15 +60,30 @@ public static class SceneFlow
         else EnterStage();
     }
 
-    /// <summary>첫 수선 튜토리얼: 첫 스테이지(달빛정원)를 스테이지 스토리 없이 탐색부터 시작한다. 안내는 Tutorial 참고.</summary>
+    /// <summary>프롤로그 튜토리얼: 꿈속 방 맵(Tutorial.MapId)을 첫 스테이지 전투 데이터로 탐색부터. 맵이 없으면 첫 스테이지를 그대로.</summary>
     public static void StartTutorial()
     {
         Tutorial.Begin();
         CurrentStageIndex = 0;
-        EnterStage();
+        Akmong.Battle.GridMap room = MapStorage.Load(Tutorial.MapId);
+        if (room == null)
+        {
+            Debug.LogError($"[프롤로그] 맵 '{Tutorial.MapId}'을 찾지 못해 첫 스테이지로 시작합니다.");
+            EnterStage();
+            return;
+        }
+        DreamRun.Begin(room, testMode: false, prologue: true);
+        Load(ExploreScene);
     }
 
-    /// <summary>튜토리얼 판이 끝났다(또는 건너뛰기): 마무리 스토리(Resources/Stories/tutorial_end.txt)를 보고 수선소로.</summary>
+    /// <summary>프롤로그 전투를 이겼다: 같은 방(밝힌 칸 그대로)으로 돌아가 문으로 걸어간다.</summary>
+    public static void ReturnToDreamDoor()
+    {
+        DreamRun.DoorMode = true;
+        Load(ExploreScene);
+    }
+
+    /// <summary>튜토리얼이 끝났다(문 장면 또는 건너뛰기): 깨어나는 장면(Resources/Stories/prologue_wake.txt)을 보고 수선소로.</summary>
     public static void FinishTutorial(bool showStory = true)
     {
         Tutorial.Complete();

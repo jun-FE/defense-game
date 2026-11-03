@@ -189,7 +189,7 @@ public class LobbyMenu : MonoBehaviour
         Mastery.ResetAll();
         Tutorial.ResetAll();
         SaveInfo.ResetAll();
-        // 프롤로그(이안의 꿈 → 도하 수선 → 첫 편지): Resources/Stories/prologue.txt
+        // 프롤로그(프롤로그_화면구성.xlsx): 꿈속 방 탐색 → 전투 → 몽쇄 걸린 문 → 깨어남(Stories/prologue_wake.txt) → 수선소
         SceneFlow.StartPrologue();
     }
 

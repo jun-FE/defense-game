@@ -124,7 +124,7 @@ namespace UnityEditor { public class CustomPropertyDrawer : System.Attribute { p
 namespace UnityEngine { public enum ScaleMode { ScaleToFit, ScaleAndCrop, StretchToFill }
   public class TextAsset : Object { public string text; }
   public static class JsonUtility { public static string ToJson(object o,bool p)=>""; public static T FromJson<T>(string j)=>default(T); }
-  public static class ColorUtility { public static bool TryParseHtmlString(string s, out Color c){ c=default(Color); return true; } } }
+  public static class ColorUtility { public static bool TryParseHtmlString(string s, out Color c){ c=default(Color); return true; } public static string ToHtmlStringRGB(Color c)=>""; } }
 
 namespace UnityEngine { public class RectOffset { public int left,right,top,bottom; public RectOffset(){} public RectOffset(int a,int b,int c,int d){left=a;right=b;top=c;bottom=d;} } }
 namespace UnityEngine { public class Material : Object { public Material(Shader s){} } }

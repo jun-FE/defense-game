@@ -120,3 +120,14 @@
 - 타워 프레임 변환: `python3 Tools/Art/import_tower_frames.py "ArtSource/Towers/<폴더>" <영문이름> --ui-icon=mock_tower_<이름>` (구조 `level_N/방향/frame_XX.png`).
 - 씬·데이터는 `Assets/Scripts/Editor/DemoSceneBuilder.cs`가 만든다. 씬 구성을 바꾸면 `BuildVersion`을 올린다.
 - 커밋: `git -c user.name="jun-FE" -c user.email="craftttime@gmail.com" commit`, `main`에 바로 push(실패 시 재시도).
+
+### 2026-11-03: 프롤로그 다시 만들기(프롤로그_화면구성.xlsx) + 모든 전투 도구 슬롯
+- 기획 `ArtSource/Prologue/프롤로그_화면구성.xlsx`(참고 그림 `reference/01~08`) 기준. docx 1~4장 대본(prologue.txt)·tutorial_end.txt·이길 수 없는 판은 없앰.
+- 새로하기 → `SceneFlow.StartTutorial`: `MAP_DREAM_ROOM`을 `DreamRun.Begin(prologue: true)`(테마 `DreamRoom`, 어린 이안 `Characters/IanChild`) → Explore(ExploreTutorial: 검은 화면 대사 → WASD → 몽결정(옆 칸 자동 수집) → 길 잇기) → Battle(BattleTutorial: 스탠드만, `BattleHUD.ManualStart` "전투 시작", 쉬운 2웨이브) → `ReturnToDreamDoor`(DoorMode, 출현 칸 = 문) → 문에 닿으면 `FinishTutorial` → `Stories/prologue_wake.txt`(06~08) → 메인.
+- `DreamUI`: 대사창(둥근 남색, "화자 | 대사")·조작 툴팁(키캡)·알림. 코드로 만든 둥근 9-slice. `TutorialSteps`: Say/Guide, 툴팁은 다음 단계까지 유지, 오른쪽 위 건너뛰기.
+- 스토리 대본 `[효과] 눈뜨기/흔들림/암전/초상화없음`, `[소리] 이름`. StoryLine.effect/sound.
+- BattleHUD 건설 고리 → 왼쪽 아래 도구 슬롯 + 청록 설치 구역(`MapView.ShowBuildTiles`) + 녹색 미리보기, 미니맵은 슬롯 위로. 모든 전투.
+- `MapTheme.Backdrop`(테마 폴더 `backdrop`) + `BackdropMapArea`: 방 그림 한 장 위에 칸. Explore·MapView 둘 다.
+- Artlist 9장(1,125크레딧): 방 배경, 바닥·결정·소용돌이·수면등 시트, 문·깨어남 POV·앉은 장면, 어린 이안 픽셀 시트, 초상화 이안·도하·어린 이안. 빌더 `build_prologue_art.py`, `build_ian_sprites.py child`. 남은 크레딧 약 5,600.
+- 효과음 chain·blanket 합성 추가. Unity에서 확인 필요.
+
