@@ -135,3 +135,10 @@
 - "타워 목록에 빈 항목" 오류: `LockTowers`(빈 자리 만들기)가 `BattleTutorial.SetupStage`(검사 다시 돌림)보다 먼저라 새 게임(스탠드만 해금)에서 5개 오류 → SetupStage를 먼저, 잠금은 맨 뒤. 프롤로그 옆 칸 자동 수집은 뺌(기존 규칙).
 - 탐색: 걷기 0.4초/칸, 화면은 pendingPan으로 부드럽게 따라감. 채굴: 어둠 2·작은 결정 3·큰 결정 4번 두드려 깸(금 3단계 텍스처 코드 생성, 빛 새기, 파편, 히트스톱 0.045초, 결정 조각이 몽결정 숫자로 날아감). 효과음 dig·dig_crystal·gem_in 합성. 화면 전체 흔들림은 여전히 없음. Unity에서 확인 필요.
 
+### 2026-11-06: Unity CLI 연결(Mac)
+- 사용자 Mac에 Unity CLI(Homebrew `unity-cli`) + `com.unity.pipeline` 0.10.0-exp.1 패키지 + `unity skill install claude-code`. Unity 6000.3.25f1.
+- **Mac에서 도는 Claude Code만** 에디터를 조종할 수 있다(파이프라인 서버는 localhost 전용). 클라우드 세션은 여전히 StubCompile·CoreTests로만 확인.
+- Mac 세션에서 할 수 있는 확인: `unity status`(연결), `unity command`/`unity eval`(에디터 조종: 콘솔 오류, 플레이 모드, 스크린샷), `unity logs`, `unity doctor`. MCP(`unity mcp configure`)는 쓰지 않음(문서 권장: 셸 명령이 더 빠름).
+- AI Assistant 패키지(`com.unity.ai.assistant`)는 안 씀. 넣게 되면 2.13 이상이어야 CLI와 충돌 없음. 그 패키지 안 MCP 서버는 Unity가 지원 종료.
+- Unity 6.8부터 CoreCLR(Mono 제거): 정적 변수가 플레이 모드 재시작 때 초기화되지 않음(Tutorial.Active·DreamRun·SceneFlow·각종 캐시). 올릴 때 Project Auditor로 검사하고 `[AutoStaticsCleanup]` 등으로 초기화. 지금(6.3)은 할 일 없음.
+
