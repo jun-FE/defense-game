@@ -36,11 +36,8 @@ public class BattleTutorial : MonoBehaviour
         if (stage == null || stage.Waves.Count == 0) return;
 
         TowerDef lamp = null;
-        for (int i = 0; i < stage.Towers.Count; i++)
-        {
-            if (stage.Towers[i] != null && stage.Towers[i].Id == LampId) lamp = stage.Towers[i];
-            else stage.Towers[i] = null;   // 다른 도구는 자물쇠로
-        }
+        foreach (TowerDef t in stage.Towers)
+            if (t != null && t.Id == LampId) lamp = t;
         if (lamp != null) stage.StartCoin = Mathf.Max(stage.StartCoin, lamp.BuildCost * 2 + 20);
 
         string spawnId = null;
@@ -66,6 +63,10 @@ public class BattleTutorial : MonoBehaviour
         stage.EnemyHpScale = 1f;
         content.Errors.Clear();
         content.Errors.AddRange(DefinitionValidator.Validate(stage));
+
+        // 다른 도구는 자물쇠로(빈 자리). 검사기는 빈 자리를 오류로 보므로 BattleController.LockTowers처럼 검사 뒤에 비운다.
+        for (int i = 0; i < stage.Towers.Count; i++)
+            if (stage.Towers[i] != null && stage.Towers[i].Id != LampId) stage.Towers[i] = null;
     }
 
     static EnemyDef Find(Dictionary<string, EnemyDef> byId, string id) => byId.TryGetValue(id, out EnemyDef e) ? e : null;

@@ -199,27 +199,6 @@ public class ExploreUI : MonoBehaviour
         moveT = 0f;
         SoundFx.Play("step", 0.6f, 0.12f, 0.08f);
         KeepPlayerInView();
-        if (DreamRun.Prologue) CollectNearby();
-    }
-
-    /// <summary>프롤로그(화면 구성 03 "몽결정에 가까이 가면 자동으로 수집"): 이안 바로 옆(상하좌우) 결정 칸은 걸어 들어가지 않아도 밝혀 얻는다.</summary>
-    void CollectNearby()
-    {
-        int[] dx = { 0, 1, 0, -1 }, dy = { -1, 0, 1, 0 };
-        for (int d = 0; d < 4; d++)
-        {
-            int x = player.x + dx[d], y = player.y + dy[d];
-            if (!map.InBounds(x, y)) continue;
-            CellType type = map.Get(x, y);
-            if (type != CellType.CrystalSmall && type != CellType.CrystalLarge) continue;
-            int value = map.OpenCell(x, y);
-            if (value <= 0) continue;
-            opened++;
-            CrystalPickups++;
-            DreamRun.Collected += value;
-            Reveal(x, y, type, value);
-        }
-        connected = map.ShortestPath() != null;
     }
 
     void OnDestroy()

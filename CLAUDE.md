@@ -123,7 +123,7 @@
 
 ### 2026-11-03: 프롤로그 다시 만들기(프롤로그_화면구성.xlsx) + 모든 전투 도구 슬롯
 - 기획 `ArtSource/Prologue/프롤로그_화면구성.xlsx`(참고 그림 `reference/01~08`) 기준. docx 1~4장 대본(prologue.txt)·tutorial_end.txt·이길 수 없는 판은 없앰.
-- 새로하기 → `SceneFlow.StartTutorial`: `MAP_DREAM_ROOM`을 `DreamRun.Begin(prologue: true)`(테마 `DreamRoom`, 어린 이안 `Characters/IanChild`) → Explore(ExploreTutorial: 검은 화면 대사 → WASD → 몽결정(옆 칸 자동 수집) → 길 잇기) → Battle(BattleTutorial: 스탠드만, `BattleHUD.ManualStart` "전투 시작", 쉬운 2웨이브) → `ReturnToDreamDoor`(DoorMode, 출현 칸 = 문) → 문에 닿으면 `FinishTutorial` → `Stories/prologue_wake.txt`(06~08) → 메인.
+- 새로하기 → `SceneFlow.StartTutorial`: `MAP_DREAM_ROOM`을 `DreamRun.Begin(prologue: true)`(테마 `DreamRoom`, 어린 이안 `Characters/IanChild`) → Explore(ExploreTutorial: 검은 화면 대사 → WASD → 몽결정(기존 탐색 규칙) → 길 잇기) → Battle(BattleTutorial: 스탠드만, `BattleHUD.ManualStart` "전투 시작", 쉬운 2웨이브) → `ReturnToDreamDoor`(DoorMode, 출현 칸 = 문) → 문에 닿으면 `FinishTutorial` → `Stories/prologue_wake.txt`(06~08) → 메인.
 - `DreamUI`: 대사창(둥근 남색, "화자 | 대사")·조작 툴팁(키캡)·알림. 코드로 만든 둥근 9-slice. `TutorialSteps`: Say/Guide, 툴팁은 다음 단계까지 유지, 오른쪽 위 건너뛰기.
 - 스토리 대본 `[효과] 눈뜨기/흔들림/암전/초상화없음`, `[소리] 이름`. StoryLine.effect/sound.
 - BattleHUD 건설 고리 → 왼쪽 아래 도구 슬롯 + 청록 설치 구역(`MapView.ShowBuildTiles`) + 녹색 미리보기, 미니맵은 슬롯 위로. 모든 전투.
