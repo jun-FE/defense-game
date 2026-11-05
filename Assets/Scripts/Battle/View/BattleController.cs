@@ -38,9 +38,10 @@ public class BattleController : MonoBehaviour
 
         Content = BattleContentBuilder.Build(stage, rules);
         if (DreamRun.Active) ApplyDream(Content);
-        LockTowers(Content);
-        if (Tutorial.Active) BattleTutorial.SetupStage(Content); // 첫 수선 튜토리얼: 웨이브를 튜토리얼용으로
+        // 튜토리얼 설정은 데이터 검사를 다시 돌리므로 잠금(빈 자리 만들기)보다 먼저. 검사기는 빈 자리를 오류로 본다.
+        if (Tutorial.Active) BattleTutorial.SetupStage(Content); // 프롤로그: 스탠드만, 이길 수 있는 웨이브
         else Mastery.Apply(Content.Stage); // 기술(꿈 수틀)에서 수놓은 효과
+        LockTowers(Content);
         if (!Content.IsValid)
         {
             foreach (string error in Content.Errors) Debug.LogError("[전투 데이터] " + error);

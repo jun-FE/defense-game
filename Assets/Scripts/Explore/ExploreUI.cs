@@ -13,6 +13,9 @@ using UnityEngine;
 ///       결정이면 보라 폭발과 +값 글자. 막힌 암흑에 부딪히면 이안이 살짝 튕기고 가시 먼지가 튄다.
 /// 프롤로그(DreamRun.Prologue): 꿈속 방 테마(Themes/DreamRoom, 방 그림 위에 칸), 어린 이안 그림, 아래 띠·알림 글 대신 ExploreTutorial 안내.
 ///   문 모드(DreamRun.DoorMode): 전투를 이긴 뒤. 출현 지점(몽쇄 걸린 문 아래 칸)에 소용돌이 대신 문 표시, 거기 닿으면 ReachedDoor.
+/// 채굴(타격감): 어둠 칸은 한 번에 열리지 않고 두드려 깬다(어둠 2번, 작은 결정 3번, 큰 결정 4번 — DigHits).
+///   칠 때마다 이안이 앞으로 휘두르고, 칸이 흔들리며 금이 커지고 그 틈으로 빛(결정은 보랏빛)이 새고, 파편이 튀고, 아주 짧게 멈칫한다.
+///   깨지면 원래의 개방 연출 + 결정 조각이 위 몽결정 숫자로 날아가 꽂히며 숫자가 통 튄다. 키를 누르고 있으면 계속 두드린다.
 /// 조작: WASD·방향키 이동(한 번 누르면 한 칸, 누르고 있으면 잠깐 뒤부터 천천히 반복), 인접 칸 클릭,
 ///       휠 확대/축소, 마우스 드래그로 화면 이동, F 전체 보기, Esc 메뉴.
 /// </summary>
@@ -37,7 +40,11 @@ public class ExploreUI : MonoBehaviour
 
     /// <summary>키를 누르면 바로 한 칸. 계속 누르고 있으면 이만큼 기다린 뒤부터 반복(실수로 두 칸 가지 않게).</summary>
     /// <summary>한 칸을 걸어가는 시간(초). 키를 누르고 있으면 멈추지 않고 이어서 걷는다.</summary>
-    const float MoveSec = 0.26f;
+    const float MoveSec = 0.4f;
+    /// <summary>두드리기 사이 간격(초). 누르고 있으면 이 간격으로 계속 친다.</summary>
+    const float DigInterval = 0.17f;
+    /// <summary>타격 순간 아주 짧게 멈칫(초).</summary>
+    const float HitStopSec = 0.045f;
         const int WalkFrames = 4;
     const float WalkFps = 8f;   // 걷기 그림 4장 = 반 초(두 칸에 한 번 걸음 주기)
 
@@ -61,6 +68,13 @@ public class ExploreUI : MonoBehaviour
     string toast;
     float toastUntil;
     float holdTimer;
+    // 채굴 상태
+    Vector2Int digCell = new Vector2Int(-1, -1);
+    int digHits, digNeed;
+    float digCooldown, digShakeT, digFlashT, hitStop, coinPunch;
+    bool lastStepDug;
+    Texture2D[] cracks;
+    Vector2 pendingPan;   // 화면이 이안을 따라갈 남은 거리(부드럽게 따라감)
     Vector2Int queuedDir;
     Vector2Int heldDir;
 
@@ -77,8 +91,9 @@ public class ExploreUI : MonoBehaviour
         public Vector2 pos, vel;      // 칸 단위(칸 (x, y)의 가운데 = x + 0.5, y + 0.5)
         public float age, life, size0, size1, spin, angle;
         public Color color;
-        public int kind;              // 0 빛 점, 1 불티, 2 고리, 3 글자, 4 어둠 먼지, 5 떠오르는 빛 알갱이(좌우로 흔들림)
+        public int kind;              // 0 빛 점, 1 불티, 2 고리, 3 글자, 4 어둠 먼지, 5 떠오르는 빛 알갱이(좌우로 흔들림), 6 몽결정 숫자로 날아가는 결정 조각
         public string text;
+        public Vector2 start, target; // kind 6: 출발 칸 위치 → 몽결정 숫자 자리(칸 단위)
     }
 
     readonly List<Fx> effects = new List<Fx>();
@@ -144,7 +159,7 @@ public class ExploreUI : MonoBehaviour
             heldDir = pressed;
             queuedDir = pressed;
         }
-        if (moveT < 1f) return;
+        if (moveT < 1f || digCooldown > 0f) return;
 
         if (queuedDir != Vector2Int.zero)
         {
@@ -163,7 +178,7 @@ public class ExploreUI : MonoBehaviour
         holdTimer -= Time.unscaledDeltaTime;
         if (holdTimer > 0f) return;
         Step(player.x + heldDir.x, player.y + heldDir.y);
-        if (moveT >= 1f) holdTimer = 0.35f;   // 못 갔으면(벽) 0.35초 뒤 다시
+        if (moveT >= 1f && !lastStepDug) holdTimer = 0.35f;   // 못 갔으면(벽) 0.35초 뒤 다시(두드리는 중이면 DigInterval마다 계속)
     }
 
     /// <summary>옆 칸으로 한 걸음. 암흑·결정이면 밝히고 들어간다. 막힌 암흑·맵 밖은 못 간다.</summary>
@@ -171,9 +186,26 @@ public class ExploreUI : MonoBehaviour
     {
         if (Mathf.Abs(x - player.x) + Mathf.Abs(y - player.y) != 1) return;
         if (!map.InBounds(x, y)) return;
+        lastStepDug = false;
         if (!map.IsOpen(x, y))
         {
             CellType before = map.Get(x, y);
+            // 채굴: 정해진 횟수만큼 두드려야 열린다(막힌 암흑은 바로 튕김)
+            if (map.IsOpenable(x, y))
+            {
+                var target = new Vector2Int(x, y);
+                if (digCell != target)
+                {
+                    digCell = target;
+                    digHits = 0;
+                    digNeed = DigHits(before);
+                }
+                digHits++;
+                lastStepDug = true;
+                DigHit(x, y, before, digHits >= digNeed);
+                if (digHits < digNeed) return;
+                digCell = new Vector2Int(-1, -1);
+            }
             int value = map.OpenCell(x, y);
             if (value < 0)
             {
@@ -187,6 +219,7 @@ public class ExploreUI : MonoBehaviour
             {
                 CrystalPickups++;
                 DreamRun.Collected += value;
+                SendGems(x, y, before == CellType.CrystalLarge ? 7 : 4);
                 ShowToast((before == CellType.CrystalLarge ? "큰 몽결정" : "몽결정") + $" +{value}", 1.4f);
             }
             bool wasConnected = connected;
@@ -197,12 +230,150 @@ public class ExploreUI : MonoBehaviour
         prevPlayer = player;
         player = new Vector2Int(x, y);
         moveT = 0f;
+        digCell = new Vector2Int(-1, -1);
         SoundFx.Play("step", 0.6f, 0.12f, 0.08f);
         KeepPlayerInView();
     }
 
+    /// <summary>깨는 데 필요한 타격 수: 어둠 2, 작은 결정 3, 큰 결정 4.</summary>
+    static int DigHits(CellType type) => type == CellType.CrystalLarge ? 4 : type == CellType.CrystalSmall ? 3 : 2;
+
+    /// <summary>
+    /// 한 번 두드림: 이안이 칸 쪽으로 휘두르고(살짝 튕김 재사용), 칸이 흔들리며 금이 커지고, 파편·불티가 이안 쪽으로 튄다.
+    /// 결정 칸은 보랏빛·하늘빛 조각과 맑은 소리. 마지막 타격(깨짐)은 Reveal이 이어 받는다.
+    /// </summary>
+    void DigHit(int x, int y, CellType type, bool breaking)
+    {
+        bool crystal = type == CellType.CrystalSmall || type == CellType.CrystalLarge;
+        facing = new Vector2Int(x - player.x, y - player.y);
+        bumpDir = new Vector2(facing.x, facing.y);
+        bumpT = 1f;
+        digShakeT = 1f;
+        digFlashT = 1f;
+        hitStop = breaking ? HitStopSec * 2f : HitStopSec;
+        digCooldown = DigInterval;
+        SoundFx.Play(crystal ? "dig_crystal" : "dig", breaking ? 1f : 0.8f, 0.1f, 0.02f);
+
+        var c = new Vector2(x + 0.5f, y + 0.5f);
+        Vector2 face = c - bumpDir * 0.45f;             // 이안 쪽 칸 면
+        int n = breaking ? 6 : 9;
+        for (int i = 0; i < n; i++)
+        {
+            Vector2 dir = (-bumpDir + Random.insideUnitCircle * 0.9f).normalized;
+            Color chip = crystal ? (i % 2 == 0 ? new Color(0.78f, 0.62f, 1f) : new Color(0.6f, 0.92f, 1f))
+                                 : new Color(0.16f, 0.12f, 0.3f, 0.95f);
+            AddFx(1, face + Random.insideUnitCircle * 0.2f, dir * Random.Range(1.6f, 3.2f) + new Vector2(0f, -0.6f),
+                Random.Range(0.25f, 0.45f), crystal ? 0.22f : 0.26f, 0.05f, chip, Random.Range(-600f, 600f));
+        }
+        // 금 사이로 새는 빛
+        for (int i = 0; i < 3; i++)
+            AddFx(1, face, (-bumpDir + Random.insideUnitCircle * 0.6f) * Random.Range(1.2f, 2.2f), 0.3f, 0.16f, 0.03f,
+                crystal ? new Color(0.95f, 0.85f, 1f) : new Color(1f, 0.9f, 0.6f), Random.Range(-400f, 400f));
+        AddFx(4, face, -bumpDir * 0.5f, 0.45f, 0.25f, 0.6f, new Color(0.08f, 0.06f, 0.16f, 0.7f));
+    }
+
+    /// <summary>깨진 결정에서 조각들이 튀어나와 화면 위 몽결정 숫자로 날아가 꽂힌다(꽂힐 때 숫자가 통 튐).</summary>
+    void SendGems(int x, int y, int count)
+    {
+        Rect coin = CoinRect();
+        Vector2 target = (new Vector2(coin.x + 28f, coin.center.y) - origin) / cell;
+        var c = new Vector2(x + 0.5f, y + 0.5f);
+        for (int i = 0; i < count; i++)
+        {
+            Vector2 s0 = c + Random.insideUnitCircle * 0.3f;
+            effects.Add(new Fx
+            {
+                kind = 6, pos = s0, start = s0, target = target, vel = Random.insideUnitCircle.normalized * Random.Range(1.5f, 2.5f),
+                life = 0.65f + i * 0.06f, size0 = 0.3f, size1 = 0.22f,
+                color = i % 2 == 0 ? new Color(0.8f, 0.65f, 1f) : new Color(0.6f, 0.92f, 1f), angle = Random.value * 360f,
+            });
+        }
+    }
+
+    /// <summary>금 그림 3단계(코드로 만듦): 가운데서 뻗는 갈라진 선, 단계가 클수록 길고 많다. 흰색이라 그릴 때 색을 입힌다.</summary>
+    static Texture2D[] MakeCracks()
+    {
+        var result = new Texture2D[3];
+        var rng = new System.Random(11);
+        const int n = 128;
+        var lines = new System.Collections.Generic.List<Vector2[]>();
+        for (int stage = 0; stage < 3; stage++)
+        {
+            // 단계마다 줄기를 더한다(앞 단계의 금은 그대로 남음)
+            int add = stage == 0 ? 3 : stage == 1 ? 3 : 4;
+            for (int k = 0; k < add; k++)
+            {
+                float a = (float)(rng.NextDouble() * Mathf.PI * 2f);
+                var pts = new System.Collections.Generic.List<Vector2> { new Vector2(64f, 64f) + new Vector2((float)rng.NextDouble() * 10f - 5f, (float)rng.NextDouble() * 10f - 5f) };
+                int segs = 4 + stage * 2;
+                for (int sgm = 0; sgm < segs; sgm++)
+                {
+                    a += (float)(rng.NextDouble() - 0.5) * 1.1f;
+                    pts.Add(pts[pts.Count - 1] + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (6f + (float)rng.NextDouble() * 6f));
+                }
+                lines.Add(pts.ToArray());
+            }
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var px = new Color[n * n];
+            foreach (Vector2[] line in lines)
+                for (int i = 1; i < line.Length; i++)
+                {
+                    float width = Mathf.Lerp(2.6f, 0.9f, i / (float)line.Length);
+                    Vector2 p0 = line[i - 1], p1 = line[i];
+                    int steps = Mathf.CeilToInt(Vector2.Distance(p0, p1) * 2f);
+                    for (int st = 0; st <= steps; st++)
+                    {
+                        Vector2 p = Vector2.Lerp(p0, p1, st / (float)steps);
+                        int r = Mathf.CeilToInt(width + 1f);
+                        for (int dy = -r; dy <= r; dy++)
+                            for (int dx = -r; dx <= r; dx++)
+                            {
+                                int xx = Mathf.RoundToInt(p.x) + dx, yy = Mathf.RoundToInt(p.y) + dy;
+                                if (xx < 0 || yy < 0 || xx >= n || yy >= n) continue;
+                                float d = Vector2.Distance(new Vector2(xx, yy), p);
+                                float alpha = Mathf.Clamp01(width + 0.5f - d);
+                                Color old = px[yy * n + xx];
+                                if (alpha > old.a) px[yy * n + xx] = new Color(1f, 1f, 1f, alpha);
+                            }
+                    }
+                }
+            t.SetPixels(px);
+            t.Apply();
+            result[stage] = t;
+        }
+        return result;
+    }
+
+    /// <summary>두드리는 중인 칸: 흔들리며 금(단계별)이 보이고 그 틈으로 빛이 샌다. 맞은 순간 살짝 밝게 번쩍.</summary>
+    void DrawDigCell(Vector2 shift)
+    {
+        if (digCell.x < 0 || digHits <= 0) return;
+        if (cracks == null) cracks = MakeCracks();
+        Rect r = CellRect(digCell.x, digCell.y);
+        r.position += shift;
+        float wobble = digShakeT > 0f ? Mathf.Sin(digShakeT * 40f) * cell * 0.06f * digShakeT : 0f;
+        r.position += new Vector2(wobble, -Mathf.Abs(wobble) * 0.5f);
+        CellType type = map.Get(digCell.x, digCell.y);
+        bool crystal = type == CellType.CrystalSmall || type == CellType.CrystalLarge;
+        if (digFlashT > 0f) Fill(r, new Color(1f, 0.95f, 0.85f, 0.22f * digFlashT));
+        Color glow = crystal ? new Color(0.85f, 0.7f, 1f) : new Color(1f, 0.88f, 0.58f);
+        float stage = Mathf.Clamp01(digHits / (float)Mathf.Max(1, digNeed - 1));
+        Texture2D crack = cracks[Mathf.Clamp(Mathf.RoundToInt(stage * 2f), 0, 2)];
+        Color old = GUI.color;
+        // 금 둘레로 번지는 빛, 그 위에 밝은 금
+        if (theme != null && theme.FxGlow != null)
+        {
+            float g = cell * (0.9f + 0.6f * stage);
+            DrawSprite(new Rect(r.center.x - g / 2f, r.center.y - g / 2f, g, g), theme.FxGlow, new Color(glow.r, glow.g, glow.b, 0.25f + 0.25f * stage));
+        }
+        GUI.color = new Color(glow.r, glow.g, glow.b, 0.95f);
+        GUI.DrawTexture(Shrink(r, -0.05f), crack);
+        GUI.color = old;
+    }
+
     void OnDestroy()
     {
+        if (cracks != null) foreach (Texture2D t in cracks) if (t != null) Destroy(t);
         if (fogTexture != null) Destroy(fogTexture);
         if (oldFog != null) Destroy(oldFog);
     }
@@ -284,10 +455,44 @@ public class ExploreUI : MonoBehaviour
 
     void UpdateEffects(float dt)
     {
+        if (digCooldown > 0f) digCooldown -= dt;
+        if (coinPunch > 0f) coinPunch -= dt / 0.25f;
+        // 화면이 이안을 부드럽게 따라간다(한 번에 뚝 옮기지 않게)
+        if (pendingPan != Vector2.zero)
+        {
+            Vector2 stepPan = pendingPan * (1f - Mathf.Exp(-8f * dt));
+            if (pendingPan.sqrMagnitude < 0.25f) stepPan = pendingPan;
+            origin += stepPan;
+            pendingPan -= stepPan;
+        }
+        // 타격 순간 아주 짧게 멈칫: 연출 시간을 멈춘다
+        if (hitStop > 0f)
+        {
+            hitStop -= dt;
+            return;
+        }
+        if (digShakeT > 0f) digShakeT -= dt / 0.2f;
+        if (digFlashT > 0f) digFlashT -= dt / 0.12f;
         for (int i = effects.Count - 1; i >= 0; i--)
         {
             Fx f = effects[i];
             f.age += dt;
+            if (f.kind == 6)
+            {
+                // 잠깐 튀어나왔다가(처음 25%) 몽결정 숫자로 빨려 들어간다
+                float k = f.age / f.life;
+                Vector2 burst = f.start + f.vel * 0.18f * Mathf.Sin(Mathf.Min(1f, k / 0.25f) * Mathf.PI * 0.5f);
+                float pull = Mathf.Clamp01((k - 0.25f) / 0.75f);
+                f.pos = Vector2.Lerp(burst, f.target, pull * pull);
+                f.angle += 720f * dt;
+                if (f.age >= f.life)
+                {
+                    coinPunch = 1f;
+                    SoundFx.Play("gem_in", 0.5f, 0.15f, 0.04f);
+                    effects.RemoveAt(i);
+                }
+                continue;
+            }
             f.pos += f.vel * dt;
             if (f.kind == 4) f.vel *= Mathf.Exp(-2.2f * dt);
             else if (f.kind != 3 && f.kind != 5) f.vel *= Mathf.Exp(-3.5f * dt);
@@ -324,6 +529,14 @@ public class ExploreUI : MonoBehaviour
             Vector2 p = CellToScreen(f.pos, shift);
             if (f.kind == 5) p.x += Mathf.Sin(f.age * 5f + f.angle) * cell * 0.08f;
             if (f.kind == 4) c.a = f.color.a * (1f - t) * Mathf.Min(1f, t * 8f + 0.6f);
+            if (f.kind == 6)
+            {
+                // 날아가는 결정 조각: 반짝이 + 작은 빛, 끝까지 또렷하게
+                float s6 = f.size0 * cell;
+                DrawSprite(new Rect(p.x - s6, p.y - s6, s6 * 2f, s6 * 2f), theme.FxGlow, new Color(f.color.r, f.color.g, f.color.b, 0.45f));
+                DrawSprite(new Rect(p.x - s6 / 2f, p.y - s6 / 2f, s6, s6), theme.FxSpark, f.color);
+                continue;
+            }
             if (f.kind == 3)
             {
                 GUIStyle style = skin.Text(Mathf.Clamp(Mathf.RoundToInt(cell * 0.55f), 14, 40), c, TextAnchor.MiddleCenter, true);
@@ -364,8 +577,7 @@ public class ExploreUI : MonoBehaviour
 
         if (ian == null)
         {
-            Rect fallback = CellRect(player.x, player.y);
-            fallback.position += shift;
+            var fallback = new Rect(p.x - cell / 2f, p.y - cell / 2f, cell, cell);
             if (skin.Has("mock_ian")) skin.Icon(Shrink(fallback, -0.15f), "mock_ian");
             else Fill(Shrink(fallback, 0.2f), ColPlayer);
             Outline(Shrink(fallback, 0.04f), ColPlayer, 2f * px);
@@ -400,19 +612,22 @@ public class ExploreUI : MonoBehaviour
     void FitView()
     {
         Rect area = MapArea;
+        pendingPan = Vector2.zero;
         cell = Mathf.Max(6f, Mathf.Min(area.width / map.Width, area.height / map.Height));
         origin = new Vector2(area.x + (area.width - cell * map.Width) / 2f, area.y + (area.height - cell * map.Height) / 2f);
     }
 
     void KeepPlayerInView()
     {
+        // 바로 옮기지 않고 pendingPan에 쌓아 UpdateEffects에서 부드럽게 따라간다
         Rect area = MapArea;
         Rect r = CellRect(player.x, player.y);
+        r.position += pendingPan;
         float margin = cell * 2f;
-        if (r.xMin < area.xMin + margin) origin.x += area.xMin + margin - r.xMin;
-        if (r.xMax > area.xMax - margin) origin.x -= r.xMax - (area.xMax - margin);
-        if (r.yMin < area.yMin + margin) origin.y += area.yMin + margin - r.yMin;
-        if (r.yMax > area.yMax - margin) origin.y -= r.yMax - (area.yMax - margin);
+        if (r.xMin < area.xMin + margin) pendingPan.x += area.xMin + margin - r.xMin;
+        if (r.xMax > area.xMax - margin) pendingPan.x -= r.xMax - (area.xMax - margin);
+        if (r.yMin < area.yMin + margin) pendingPan.y += area.yMin + margin - r.yMin;
+        if (r.yMax > area.yMax - margin) pendingPan.y -= r.yMax - (area.yMax - margin);
     }
 
     Rect CellRect(int x, int y) => new Rect(origin.x + x * cell, origin.y + y * cell, cell, cell);
@@ -693,6 +908,7 @@ public class ExploreUI : MonoBehaviour
             for (int y = 1; y < map.Height; y++) Fill(new Rect(o.x, o.y + y * cell, cell * map.Width, px), ColLine);
         }
 
+        DrawDigCell(shift);
         DrawIan(shift, px);
         DrawEffects(shift);
         GUI.EndClip();
@@ -710,10 +926,12 @@ public class ExploreUI : MonoBehaviour
             GUI.Label(new Rect(top.x + 18, top.y, top.width - 30, top.height), "꿈 탐색 · " + title + (DreamRun.TestMode ? "  <size=14>(테스트)</size>" : ""), skin.Text(22, UISkin.Light, TextAnchor.MiddleLeft, true));
         }
 
-        var coin = DreamRun.Prologue ? new Rect(24, 24, 200, 60) : new Rect(w - 268, 8, 260, 60);
+        Rect coin = CoinRect();
         skin.Frame(coin, "panel_indigo");
         skin.Icon(new Rect(coin.x + 12, coin.y + 10, 32, 40), "mock_icon_crystal");
-        GUI.Label(new Rect(coin.x + 50, coin.y, 110, coin.height), DreamRun.Collected.ToString(), skin.Text(28, UISkin.Gold, TextAnchor.MiddleLeft, true));
+        // 결정 조각이 꽂힐 때 숫자가 통 튄다
+        int coinSize = 28 + Mathf.RoundToInt(10f * Mathf.Max(0f, coinPunch));
+        GUI.Label(new Rect(coin.x + 50, coin.y - 6, 120, coin.height + 12), DreamRun.Collected.ToString(), skin.Text(coinSize, coinPunch > 0f ? Color.Lerp(UISkin.Gold, Color.white, coinPunch * 0.6f) : UISkin.Gold, TextAnchor.MiddleLeft, true));
         if (!DreamRun.Prologue) GUI.Label(new Rect(coin.x + 120, coin.y, 128, coin.height), $"밝힌 칸 {opened}", skin.Text(15, UISkin.Muted, TextAnchor.MiddleRight));
 
         if (DreamRun.Prologue) return; // 프롤로그는 위 몽결정만, 안내는 ExploreTutorial 툴팁
@@ -732,6 +950,9 @@ public class ExploreUI : MonoBehaviour
         if (!string.IsNullOrEmpty(toast) && Time.unscaledTime < toastUntil)
             UIKit.ShadowLabel(new Rect(0, h - 112, w, 40), toast, skin.Text(22, UISkin.Gold, TextAnchor.MiddleCenter, true));
     }
+
+    /// <summary>몽결정 숫자 상자 자리(프롤로그는 왼쪽 위, 보통은 오른쪽 위). 결정 조각이 여기로 날아간다.</summary>
+    Rect CoinRect() => DreamRun.Prologue ? new Rect(24, 24, 200, 60) : new Rect(UIKit.Width - 268, 8, 260, 60);
 
     void DrawMenu()
     {
@@ -787,7 +1008,7 @@ public class ExploreUI : MonoBehaviour
                     Vector2Int d = new Vector2Int(c.x - player.x, c.y - player.y);
                     if (Mathf.Abs(d.x) + Mathf.Abs(d.y) == 1)
                     {
-                        if (moveT < 1f) queuedDir = d;
+                        if (moveT < 1f || digCooldown > 0f) queuedDir = d;
                         else Step(c.x, c.y);
                     }
                 }

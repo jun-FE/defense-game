@@ -136,4 +136,12 @@ save('chain', mix(*links, (0.58, lowpass(noise(0.18), 900) * env(int(SR * 0.18),
 rustle = lowpass(highpass(noise(1.3), 250), 2200)
 shape = np.clip(np.sin(np.linspace(0, np.pi * 3, len(rustle))) * 0.7 + 0.3, 0, 1) ** 2 * np.sin(np.linspace(0, np.pi, len(rustle)))
 save('blanket', rustle * shape, 0.45)
+# 탐색 채굴: 어둠 두드리기(퍽 하는 둔탁한 타격 + 바스러짐), 결정 두드리기(유리 같은 쨍), 결정 조각이 몽결정 칸에 꽂힘(짧은 띵)
+save('dig', mix((0, sweep(160, 70, 0.12) * env(int(SR * 0.12), 0.001, 30)),
+                (0, lowpass(noise(0.16), 2200) * env(int(SR * 0.16), 0.001, 26) * 0.9),
+                (0.02, highpass(noise(0.08), 3000) * env(int(SR * 0.08), 0.001, 45) * 0.35)), 0.7)
+save('dig_crystal', mix((0, bell(2637, 0.3, 14, ((1, 1), (2.41, 0.5), (3.9, 0.3)))),
+                        (0, highpass(noise(0.05), 2500) * env(int(SR * 0.05), 0.0005, 80) * 0.7),
+                        (0, sweep(140, 80, 0.08) * env(int(SR * 0.08), 0.001, 40) * 0.6)), 0.6)
+save('gem_in', mix((0, bell(1976, 0.25, 16)), (0.03, bell(2960, 0.2, 20) * 0.5)), 0.4)
 print('완료 ->', OUT)
