@@ -64,6 +64,13 @@ def main():
         canvas = Image.new('RGBA', CANVAS, (0, 0, 0, 0))
         canvas.alpha_composite(im, (round(CANVAS[0] / 2 - cx * scale), round(CANVAS[1] * 0.96 - bottom * scale)))
         canvas.save(os.path.join(OUT, f'ian_{d}_{f}.png'))
+    if CHILD:
+        # 어린 이안 시트의 옆모습 줄은 엉망(왼쪽 4번째 칸이 오른쪽을 봄, 오른쪽 줄은 다리가 거의 같고 전등만 손을 옮겨 다님).
+        # → 왼쪽은 멀쩡한 0·1번 칸을 번갈아(0,1,0,1), 오른쪽은 그 그림을 좌우로 뒤집어 쓴다(2026-11-06 사용자 피드백).
+        for f in range(FRAMES):
+            left = Image.open(os.path.join(OUT, f'ian_left_{f % 2}.png'))
+            left.save(os.path.join(OUT, f'ian_left_{f}.png'))
+            left.transpose(Image.FLIP_LEFT_RIGHT).save(os.path.join(OUT, f'ian_right_{f}.png'))
     print('완료 ->', OUT)
 
 
