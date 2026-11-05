@@ -5,7 +5,7 @@
 ## 지금 상태와 다음 할 일 (최근 갱신 2026-11-06)
 - 최근 작업: 프롤로그를 `ArtSource/Prologue/프롤로그_화면구성.xlsx` 기준으로 다시 만듦(꿈속 방 탐색 → 전투 → 문 → 깨어남 → 수선소), 모든 전투 도구 슬롯, 탐색 채굴 타격감. 자세한 건 맨 아래 날짜별 기록.
 - **사용자 확인 대기**(Unity에서 아직 못 봄):
-  1. 새로하기 → 탐색 → 전투 화면이 "타워 목록에 빈 항목" 오류 없이 열리는지(2026-11-05 두 번째 수정: SetupStage를 LockTowers보다 먼저).
+  1. ~~새로하기 → 탐색 → 전투 화면 오류~~ → 2026-11-06 Unity 플레이 모드로 확인 완료: 전투 화면이 오류 없이 열리고(스탠드 1칸 + 잠긴 5칸), 웨이브 시작 후에도 오류 없음.
   2. 탐색 걷기가 순간이동처럼 보이지 않는지(0.4초/칸, 화면 부드럽게 따라감). 여전하면 이안 그림 로드 실패(네모로 보임) 여부부터 확인.
   3. 채굴 손맛(어둠 2·작은 결정 3·큰 결정 4번 두드림, `ExploreUI.DigHits`/`DigInterval`). 일반 탐색 전체에 적용됨 — 너무 느리면 줄이기.
   4. 문·깨어남 장면(눈꺼풀 연출, chain·blanket 소리), 대사창·툴팁 모양.
@@ -150,6 +150,7 @@
 - 사용자 Mac에 Unity CLI(Homebrew `unity-cli`) + `com.unity.pipeline` 0.10.0-exp.1 패키지 + `unity skill install claude-code`. Unity 6000.3.25f1.
 - **Mac에서 도는 Claude Code만** 에디터를 조종할 수 있다(파이프라인 서버는 localhost 전용). 클라우드 세션은 여전히 StubCompile·CoreTests로만 확인.
 - Mac 세션에서 할 수 있는 확인: `unity status`(연결), `unity command`/`unity eval`(에디터 조종: 콘솔 오류, 플레이 모드, 스크린샷), `unity logs`, `unity doctor`. MCP(`unity mcp configure`)는 쓰지 않음(문서 권장: 셸 명령이 더 빠름).
+- 이 파이프라인 버전의 명령 이름(옛 이름은 안 됨): `editor set_auto_tick`, `editor.playmode set_run_in_background`(끝나면 `-- --enabled false`), `editor.playmode start`/`stop`, `console get -- --level warn`, `console clear`, `capture game_view -- --source screen --output-path Screenshots/x.png`. 플레이 중 흐름은 `eval`로 직접 부름(예: `SceneFlow.StartTutorial()`, 탐색 길 열기 `DreamRun.Map.OpenCell` 후 `SceneFlow.FinishExploration()`, 웨이브 `FindFirstObjectByType<BattleController>().Session.StartWaveNow()`). `Screenshots/`는 커밋하지 않음.
 - AI Assistant 패키지(`com.unity.ai.assistant`)는 안 씀. 넣게 되면 2.13 이상이어야 CLI와 충돌 없음. 그 패키지 안 MCP 서버는 Unity가 지원 종료.
 - Unity 6.8부터 CoreCLR(Mono 제거): 정적 변수가 플레이 모드 재시작 때 초기화되지 않음(Tutorial.Active·DreamRun·SceneFlow·각종 캐시). 올릴 때 Project Auditor로 검사하고 `[AutoStaticsCleanup]` 등으로 초기화. 지금(6.3)은 할 일 없음.
 
