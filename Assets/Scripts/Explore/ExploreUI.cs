@@ -366,8 +366,20 @@ public class ExploreUI : MonoBehaviour
             float g = cell * (0.9f + 0.6f * stage);
             DrawSprite(new Rect(r.center.x - g / 2f, r.center.y - g / 2f, g, g), theme.FxGlow, new Color(glow.r, glow.g, glow.b, 0.25f + 0.25f * stage));
         }
-        GUI.color = new Color(glow.r, glow.g, glow.b, 0.95f);
-        GUI.DrawTexture(Shrink(r, -0.05f), crack);
+        Rect cr = Shrink(r, -0.05f);
+        if (crystal)
+        {
+            // 결정은 보랏빛이라 같은 색 금은 묻힌다: 짙은 남보라 테두리를 깔고 그 위에 흰 금
+            float o = Mathf.Max(1.5f, cell * 0.022f);
+            GUI.color = new Color(0.12f, 0.04f, 0.25f, 0.9f);
+            GUI.DrawTexture(new Rect(cr.x - o, cr.y, cr.width, cr.height), crack);
+            GUI.DrawTexture(new Rect(cr.x + o, cr.y, cr.width, cr.height), crack);
+            GUI.DrawTexture(new Rect(cr.x, cr.y - o, cr.width, cr.height), crack);
+            GUI.DrawTexture(new Rect(cr.x, cr.y + o, cr.width, cr.height), crack);
+            GUI.color = new Color(1f, 0.98f, 1f, 1f);
+        }
+        else GUI.color = new Color(glow.r, glow.g, glow.b, 0.95f);
+        GUI.DrawTexture(cr, crack);
         GUI.color = old;
     }
 
